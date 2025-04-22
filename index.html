@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LoL Fearless Draft Helper</title>
+    <title>Fearless Tools</title>
+    <link rel="icon" type="image/x-icon" href="/cwel.png">
     <script src="https://cdn.tailwindcss.com"></script>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
@@ -193,7 +194,7 @@
         .draft-game { border: 1px solid #4b5563; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; background-color: #1f2937; position: relative; }
         .remove-game-button { position: absolute; right: 8px; top: 8px; background-color: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 18px; font-weight: 500; line-height: 1; cursor: pointer; transition: background-color 0.2s; display: inline-flex; align-items: center; justify-content: center; padding: 0; z-index: 10; }
         .remove-game-button:hover { background-color: #dc2626; }
-        .remove-game-button svg { width: 14px; height: 14px; fill: white; }
+        .remove-game-button svg { width: 18px; height: 18px; fill: white; }
         .draft-columns { display: flex; gap: 0.5rem; align-items: center; }
         .draft-side { flex: 1; display: flex; flex-direction: column; align-items: center; }
         .game-indicator { font-size: 1.1rem; font-weight: 600; color: #9ca3af; margin: 0 0.75rem; white-space: nowrap; text-align: center; }
@@ -215,7 +216,7 @@
         .draft-side.red .ban-slot.filled { border-width: 1px; border-color: #ef4444; }
         .draft-slot.filled:hover { border-color: #9ca3af; }
         .add-game-button { padding: 0; margin-top: 0.5rem; border-radius: 50%; border: 1px solid #4b5563; transition: all 0.2s ease-out; cursor: pointer; background-color: #374151; color: #d1d5db; width: 32px; height: 32px; font-size: 24px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
-        .add-game-button svg { width: 18px; height: 18px; fill: currentColor; }
+        .add-game-button svg { width: 22px; height: 22px; fill: currentColor; }
         .add-game-button:hover { background-color: #4b5563; border-color: #6b7280; transform: translateY(-1px); }
         .reset-button { padding: 6px 12px; border-radius: 6px; transition: all 0.2s ease-out; cursor: pointer; font-size: 0.875rem; font-weight: 600; border: 1px solid transparent; }
         .reset-button.reset-marked:hover { transform: translateY(-1px); background-color: #ca8a04; }
@@ -265,9 +266,9 @@
                          :class="{
                             'unavailable': isUnavailable(champion.name),
                             'manually-marked': isPicked(champion.name) && !isUnavailable(champion.name),
-                            'in-pool': champion.poolInfo && champion.poolInfo.isInPool, // Check poolInfo exists
-                            'not-in-pool': (!champion.poolInfo || !champion.poolInfo.isInPool) && !isUnavailable(champion.name) && !isPicked(champion.name), // Check poolInfo exists
-                            [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name) // Optional chaining and default
+                            'in-pool': champion.poolInfo && champion.poolInfo.isInPool,
+                            'not-in-pool': (!champion.poolInfo || !champion.poolInfo.isInPool) && !isUnavailable(champion.name) && !isPicked(champion.name),
+                            [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name)
                          }"
                          @click="!isUnavailable(champion.name) && togglePick(champion.name)"
                          role="button"
@@ -361,13 +362,13 @@
             if (!firebase.apps.length) {
                 firebaseApp = firebase.initializeApp(firebaseConfig);
             } else {
-                firebaseApp = firebase.app(); // if already initialized, use that one
+                firebaseApp = firebase.app();
             }
-            db = firebase.firestore(); // Use Firestore Compat version
+            db = firebase.firestore();
             console.log("Firebase Initialized Successfully.");
         } catch (e) {
             console.error("Firebase initialization failed:", e);
-            db = null; // Ensure db is null if init fails
+            db = null;
         }
 
         // --- Firestore Helper Functions ---
@@ -390,7 +391,6 @@
                 if (docSnap.exists) {
                     console.log("Firestore data found.");
                     const data = docSnap.data();
-                    // Validate fetched data structure
                     const draftSeries = (Array.isArray(data.draftSeries) && data.draftSeries.length > 0) ? data.draftSeries : defaultData.draftSeries;
                     const pickedChampions = Array.isArray(data.pickedChampions) ? data.pickedChampions : defaultData.pickedChampions;
                     return { draftSeries, pickedChampions };
@@ -408,7 +408,6 @@
              if (!db) { console.error("Firestore not initialized. Cannot save."); return; }
              console.log(`Saving draft data to ${DRAFT_COLLECTION}/${DRAFT_DOC_ID}:`, draftData);
              try {
-                 // Use set with merge: true to create or update the document safely
                  await db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID).set(draftData, { merge: true });
                  console.log("Draft data saved successfully.");
              } catch (error) {
@@ -429,9 +428,9 @@
                 ],
                 isLoading: true,
                 _saveTimeout: null,
-                _unsubscribeFirestore: null, // To store the unsubscribe function
+                _unsubscribeFirestore: null,
 
-                // Default pool info structure to prevent errors before data loads/calculates
+                // Default pool info structure
                 _defaultPoolInfo: { isInPool: false, tier: null, players: [], tierClass: 'tier-DEFAULT' },
 
                 // --- Computed Properties ---
@@ -449,7 +448,6 @@
                     const roleOrder = ['Top', 'Jungle', 'Mid', 'Adc', 'Support'];
                     this.unavailableChampions.forEach(championName => {
                         let assignedRole = 'Unknown';
-                        // Ensure teamPool is loaded before trying to access roles
                         if (this.teamPool && Object.keys(this.teamPool).length > 0) {
                             for (const role of roleOrder) { if (this.teamPool[role]?.[championName]) { assignedRole = role; break; } }
                             if (assignedRole === 'Unknown') { for (const role in this.teamPool) { if (this.teamPool[role]?.[championName]) { assignedRole = role; break; } } }
@@ -464,8 +462,8 @@
                     if (!this.allChampions || this.allChampions.length === 0) return [];
                     let processedChampions = this.allChampions.map(champ => ({
                         ...champ,
-                        // Ensure poolInfo is always an object, even if calculation fails temporarily
-                        poolInfo: this.getChampionPoolInfo(champ.name, this.currentFilter) || this._defaultPoolInfo,
+                        // Use optional chaining and default value
+                        poolInfo: this.getChampionPoolInfo(champ.name, this.currentFilter) ?? this._defaultPoolInfo,
                         isChampUnavailable: this.isUnavailable(champ.name)
                     }));
                     if (this.currentFilter === 'pool') { processedChampions = processedChampions.filter(c => c.poolInfo.isInPool); }
@@ -478,33 +476,27 @@
                 async init() {
                     console.log('Alpine component initializing...');
                     this.isLoading = true;
-                    // Ensure local data is loaded first
                     this.allChampions = window.allLolChampions || [];
                     this.teamPool = window.teamTierList || {};
 
-                    // Load initial data from Firestore
                     try {
                         const loadedData = await fetchDraftDataFromFirestore();
-                        this.pickedChampions = loadedData.pickedChampions || []; // Default to empty array
-                        this.draftSeries = loadedData.draftSeries || [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }]; // Default to single empty game
-                        // Validate draftSeries structure
+                        this.pickedChampions = loadedData.pickedChampions || [];
+                        this.draftSeries = loadedData.draftSeries || [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
                         if (!Array.isArray(this.draftSeries) || this.draftSeries.length === 0 || typeof this.draftSeries[0] !== 'object') {
                             this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
                         }
                     } catch (error) {
                         console.error("Error during initial Firestore fetch:", error);
-                        // Keep default values if fetch fails
                     }
 
                     this.isLoading = false;
                     if (this.allChampions.length === 0) { console.error("Champion list failed to load!"); } else { console.log(`Loaded ${this.allChampions.length} champions.`); }
                     console.log('Draft Helper Initialized');
 
-                    // Set up debounced save function
                     const debouncedSave = () => {
                         clearTimeout(this._saveTimeout);
                         this._saveTimeout = setTimeout(() => {
-                             // Ensure data is valid before saving
                              const dataToSave = {
                                 pickedChampions: Array.isArray(this.pickedChampions) ? JSON.parse(JSON.stringify(this.pickedChampions)) : [],
                                 draftSeries: (Array.isArray(this.draftSeries) && this.draftSeries.length > 0) ? JSON.parse(JSON.stringify(this.draftSeries)) : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }]
@@ -513,22 +505,18 @@
                         }, 1500);
                     };
 
-                    // Watch for changes and trigger debounced save
                     this.$watch('pickedChampions', debouncedSave);
                     this.$watch('draftSeries', debouncedSave, { deep: true });
 
-                    // --- Real-time Listener ---
                     if (db) {
                         const docRef = db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID);
                         this._unsubscribeFirestore = docRef.onSnapshot((doc) => {
                             console.log("Real-time update received.");
                             if (doc.exists) {
                                 const data = doc.data();
-                                // Provide defaults and validate structure
                                 const newDraftSeries = (Array.isArray(data.draftSeries) && data.draftSeries.length > 0) ? data.draftSeries : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
                                 const newPickedChampions = Array.isArray(data.pickedChampions) ? data.pickedChampions : [];
 
-                                // Only update if data is truly different
                                 if (JSON.stringify(this.draftSeries) !== JSON.stringify(newDraftSeries)) {
                                     console.log("Updating local draftSeries from Firestore.");
                                     this.draftSeries = newDraftSeries;
@@ -539,7 +527,6 @@
                                  }
                             } else {
                                 console.log("Draft document deleted in Firestore. Resetting local state.");
-                                // Reset local state if document is deleted remotely
                                 this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
                                 this.pickedChampions = [];
                             }
@@ -550,7 +537,6 @@
                         console.error("Firestore not initialized, cannot set up real-time listener.");
                     }
                  },
-                 // Cleanup listener
                  destroy() {
                     if (this._unsubscribeFirestore) {
                         console.log("Unsubscribing from Firestore listener.");
@@ -562,7 +548,6 @@
                 isUnavailable(championName) {
                      if (!championName) return false;
                      const nameLower = championName.toLowerCase();
-                     // Ensure allChampions is available
                      const canonicalChamp = this.allChampions?.find(c => c.name.toLowerCase() === nameLower);
                      return canonicalChamp ? this.unavailableChampions.has(canonicalChamp.name) : false;
                 },
@@ -581,7 +566,6 @@
                     } else {
                         this.pickedChampions.splice(index, 1);
                     }
-                    // $watch handles saving
                  },
                 resetDraftSeries(confirmReset = true) {
                     if (!confirmReset || window.confirm('Reset entire series draft? This cannot be undone.')) {
@@ -598,11 +582,7 @@
                     saveDraftDataToFirestore({ pickedChampions: this.pickedChampions, draftSeries: this.draftSeries });
                  },
                  selectChampionForSlot(gameIndex, draftType, slotIndex) {
-                     // Basic validation
-                     if (!this.draftSeries || !this.draftSeries[gameIndex] || !this.draftSeries[gameIndex][draftType]) {
-                         console.error("Invalid game or draft type in selectChampionForSlot");
-                         return;
-                     }
+                     if (!this.draftSeries || !this.draftSeries[gameIndex] || !this.draftSeries[gameIndex][draftType]) { console.error("Invalid game or draft type in selectChampionForSlot"); return; }
                      const game = this.draftSeries[gameIndex];
                      const currentSelection = game[draftType][slotIndex];
                      const promptMessage = currentSelection ? `Current: ${currentSelection}. Enter new champion or leave blank to clear:` : `Enter champion for ${draftType.replace(/([A-Z])/g, ' $1')} slot ${slotIndex + 1}:`;
@@ -618,7 +598,7 @@
                              game[draftType][slotIndex] = null;
                              console.log(`Cleared slot ${slotIndex} for ${draftType} in Game ${gameIndex + 1}`);
                          }
-                         return; // $watch will handle saving
+                         return;
                      }
 
                      // Find and validate champion
@@ -662,27 +642,21 @@
                      // Update slot
                      game[draftType][slotIndex] = canonicalName;
                      console.log(`Set ${canonicalName} for Game ${gameIndex + 1} ${draftType} slot ${slotIndex + 1}`);
-                     // $watch will handle saving
                  },
                  addNewGame() {
                     this.draftSeries.push({ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) });
                     console.log(`Added Game ${this.draftSeries.length}`);
-                    // $watch will handle saving
                  },
                  removeGame(gameIndex) {
                      if (this.draftSeries.length <= 1) { alert("Cannot remove the only game in the series."); return; }
                      if (confirm(`Are you sure you want to remove Game ${gameIndex + 1}? This cannot be undone.`)) {
                          this.draftSeries.splice(gameIndex, 1);
                          console.log(`Removed Game at index ${gameIndex}`);
-                         // $watch will handle saving
                      }
                  },
                 // Safeguarded getChampionPoolInfo
                 getChampionPoolInfo(championName, activeFilter = 'all') {
-                    // Return default if essential data is missing
-                    if (!championName || !this.teamPool || typeof this.teamPool !== 'object') {
-                        return this._defaultPoolInfo;
-                    }
+                    if (!championName || !this.teamPool || typeof this.teamPool !== 'object') { return this._defaultPoolInfo; }
 
                     let players = [];
                     let isInPool = false;
@@ -690,38 +664,27 @@
                     const tierOrder = { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1 };
 
                     for (const player in this.teamPool) {
-                        // Check if player exists and has the champion
                         if (this.teamPool[player] && typeof this.teamPool[player] === 'object' && this.teamPool[player][championName]) {
                             isInPool = true;
-                            const currentTier = this.teamPool[player][championName]?.toUpperCase(); // Optional chaining for safety
-                            if (currentTier && (!highestTier || (tierOrder[currentTier] || 0) > (tierOrder[highestTier] || 0))) {
-                                highestTier = currentTier;
-                            }
+                            const currentTier = this.teamPool[player][championName]?.toUpperCase();
+                            if (currentTier && (!highestTier || (tierOrder[currentTier] || 0) > (tierOrder[highestTier] || 0))) { highestTier = currentTier; }
                             players.push(player);
                         }
                     }
 
                     let displayTier = null;
-                    if (activeFilter === 'all' || activeFilter === 'pool') {
-                        displayTier = highestTier;
-                    } else if (this.teamPool[activeFilter]?.[championName]) {
-                        displayTier = this.teamPool[activeFilter][championName].toUpperCase();
-                    }
+                    if (activeFilter === 'all' || activeFilter === 'pool') { displayTier = highestTier; }
+                    else if (this.teamPool[activeFilter]?.[championName]) { displayTier = this.teamPool[activeFilter][championName].toUpperCase(); }
 
                     let tierClass = 'tier-DEFAULT';
                     if (displayTier) {
                         switch (displayTier) {
-                            case 'S': tierClass = 'tier-S'; break;
-                            case 'A': tierClass = 'tier-A'; break;
-                            case 'B': tierClass = 'tier-B'; break;
-                            case 'C': tierClass = 'tier-C'; break;
+                            case 'S': tierClass = 'tier-S'; break; case 'A': tierClass = 'tier-A'; break;
+                            case 'B': tierClass = 'tier-B'; break; case 'C': tierClass = 'tier-C'; break;
                         }
                     }
 
-                    if (activeFilter !== 'all' && activeFilter !== 'pool' && !players.includes(activeFilter)) {
-                         tierClass = 'tier-DEFAULT';
-                         displayTier = null;
-                    }
+                    if (activeFilter !== 'all' && activeFilter !== 'pool' && !players.includes(activeFilter)) { tierClass = 'tier-DEFAULT'; displayTier = null; }
 
                     return { isInPool, tier: displayTier, players, tierClass };
                  },
@@ -731,7 +694,7 @@
                      console.log("Filter set to:", this.currentFilter);
                  },
                  getRoleIconUrl(playerName) {
-                     if (!playerName) return "https://placehold.co/16x16/cccccc/777777?text=?"; // Handle null/undefined
+                     if (!playerName) return "https://placehold.co/16x16/cccccc/777777?text=?";
                      const nameLower = playerName.toLowerCase();
                      const urls = { top: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-top-blue-hover.png", jungle: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-jungle-blue-hover.png", mid: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-middle-blue-hover.png", adc: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-bottom-blue-hover.png", support: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-utility-blue-hover.png", unknown: "https://placehold.co/16x16/cccccc/777777?text=?" };
                      if (nameLower.includes('top')) return urls.top; if (nameLower.includes('jg') || nameLower.includes('jng') || nameLower.includes('jungle')) return urls.jungle; if (nameLower.includes('mid')) return urls.mid; if (nameLower.includes('adc') || nameLower.includes('bot')) return urls.adc; if (nameLower.includes('sup') || nameLower.includes('support')) return urls.support; return urls.unknown;
@@ -752,7 +715,7 @@
                          // Ensure you are using the correct Data Dragon version if needed
                          return `http://ddragon.leagueoflegends.com/cdn/15.8.1/img/champion/${champData.imageName}.png`; // Updated version
                      } else {
-                         // console.warn(`Icon URL not found for: ${championName}`); // Keep this for debugging if needed
+                         // console.warn(`Icon URL not found for: ${championName}`);
                          return placeholderUrl;
                      }
                  }
