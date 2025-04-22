@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoL Fearless Draft Helper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="./champions.js"></script>
+    <style>
+        /* Styles remain the same - Omitted for brevity */
+        /* Basic resets and full height */
+        html, body { height: 100%; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #030712; /* Dark theme default */
+            color: #d1d5db;
+        }
+        .main-content { flex-grow: 1; }
+
+        /* Champion Card Container */
+        .champion-card {
+            transition: transform 0.15s ease-in-out, opacity 0.2s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.2s, border-color 0.2s;
+            position: relative; display: inline-flex; flex-direction: column;
+            align-items: center; margin: 2px; cursor: pointer;
+            width: 74px; height: 90px; padding: 3px; border-radius: 6px;
+            vertical-align: top; border: 1px solid transparent;
+            background-color: transparent; overflow: visible;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .champion-card img.champion-icon {
+            width: 64px; height: 64px; border-radius: 4px; display: block;
+            z-index: 1; position: relative; border: 2px solid transparent;
+            transition: filter 0.2s ease-in-out, border-color 0.2s ease-in-out;
+            margin-bottom: 1px;
+        }
+        .champion-card:not(.in-pool) img.champion-icon { border-color: rgba(255, 255, 255, 0.15); }
+
+        /* Champion Name Text */
+        .champion-name-text {
+            font-size: 0.7rem; line-height: 0.9rem; font-weight: 500;
+            text-align: center; width: 100%; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap; z-index: 1;
+            position: relative; margin-top: auto; padding-bottom: 1px;
+            color: #d1d5db;
+        }
+
+        /* Base Badge Styling */
+        .badge {
+            position: absolute; font-size: 0.55rem; line-height: 0.75rem;
+            font-weight: 700; padding: 1px 3px; border-radius: 3px; z-index: 5;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .tier-badge { top: -4px; left: -4px; }
+
+        /* Player Badge Container & Badge */
+        .player-badge-container {
+            position: absolute; top: -2px; right: -2px; display: flex;
+            flex-direction: column; gap: 2px; justify-content: flex-start;
+            align-items: flex-end; z-index: 4; pointer-events: none;
+        }
+        img.player-badge {
+            position: relative; padding: 0; width: 16px; height: 16px;
+            border-radius: 50%; overflow: hidden;
+            background-color: rgba(55, 65, 81, 0.95); border: 1px solid rgba(75, 85, 99, 0.8);
+            display: block; object-fit: cover;
+        }
+
+        /* Picked/Unavailable State */
+        .champion-card.unavailable {
+            opacity: 0.45 !important; transform: none !important; box-shadow: none !important;
+            background-color: #374151 !important; border-color: #1f2937 !important;
+            cursor: not-allowed;
+        }
+        .champion-card.unavailable img.champion-icon { filter: grayscale(95%); border-color: transparent !important; }
+        .champion-card.unavailable .picked-overlay-text { display: flex; }
+        .champion-card.unavailable .badge { display: none; }
+
+        /* Not In Pool State */
+        .champion-card.not-in-pool { opacity: 0.9; }
+        .champion-card.not-in-pool:hover { opacity: 0.95; }
+        .champion-card.not-in-pool .champion-name-text { color: #b7bcc5; }
+
+        /* Hover effect - Only when NOT unavailable */
+        .champion-card:not(.unavailable):hover {
+            transform: scale(1.08); opacity: 1; z-index: 10;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+        }
+         .champion-card.not-in-pool:not(.unavailable):hover {
+             background-color: #374151; border-color: #4b5563;
+        }
+         .champion-card.in-pool:not(.unavailable):hover {
+             background-color: #374151;
+        }
+
+        /* Style for Manually Marked Champions */
+        .champion-card.manually-marked {
+            box-shadow: 0 0 8px 2px rgba(59, 130, 246, 0.6); /* Blue glow */
+            border-color: #3b82f6; /* Blue border */
+            background-color: #1e3a8a; /* Added dark blue background */
+        }
+         .champion-card.manually-marked:hover {
+             box-shadow: 0 0 12px 3px rgba(96, 165, 250, 0.7); /* Brighter blue glow */
+             transform: scale(1.08); opacity: 1; z-index: 10;
+             background-color: #1e40af; /* Slightly lighter blue on hover */
+         }
+
+
+        /* Tier-specific styles */
+        .tier-S img.champion-icon { border-color: #f87171; } .tier-S .tier-badge { background-color: #f87171; color: #4c0519; }
+        .tier-A img.champion-icon { border-color: #facc15; } .tier-A .tier-badge { background-color: #facc15; color: #5a4503; }
+        .tier-B img.champion-icon { border-color: #4ade80; } .tier-B .tier-badge { background-color: #4ade80; color: #064e3b; }
+        .tier-C img.champion-icon { border-color: #60a5fa; } .tier-C .tier-badge { background-color: #60a5fa; color: #1e3a8a; }
+        .tier-DEFAULT img.champion-icon { border-color: #9ca3af; } .tier-DEFAULT .tier-badge { background-color: #9ca3af; color: #1f2937; }
+
+        /* Filter Buttons */
+        .filter-button {
+            padding: 6px 12px; margin: 2px 4px; border-radius: 6px;
+            border: 1px solid #4b5563; transition: all 0.2s ease-out;
+            cursor: pointer; font-size: 0.875rem;
+            background-color: #374151; color: #d1d5db;
+        }
+        .filter-button.active { background-color: #3b82f6; color: white; font-weight: 600; border-color: #3b82f6; }
+        .filter-button:hover:not(.active) { background-color: #4b5563; border-color: #6b7280; transform: translateY(-1px); }
+        .filter-button.active:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+        /* Text for "PICKED/UNAVAILABLE" overlay - Reduced font size */
+        .picked-overlay-text {
+            display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            align-items: center; justify-content: center; font-weight: bold;
+            font-size: 0.6rem; /* Reduced size */
+            color: white; background-color: rgba(0, 0, 0, 0.75); z-index: 10;
+            border-radius: 6px; text-align: center; padding: 2px; line-height: 1;
+        }
+
+        /* Error placeholder for images */
+        .img-error-placeholder { width: 64px; height: 64px; border-radius: 4px; margin-bottom: 1px; display: flex; align-items: center; justify-content: center; background-color: #374151; color: #9ca3af; font-size: 0.65rem; text-align: center; line-height: 0.8rem; position: relative; }
+
+        /* Scrollable container */
+        .champion-grid-container {
+            max-height: 55vh; min-height: 55vh; overflow-y: auto; padding: 4px;
+            border: 1px solid #374151; border-radius: 0.5rem; margin-bottom: 1rem;
+            background-color: #111827;
+        }
+        .champion-grid-inner { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 8px; }
+
+        /* Scrollbar styles */
+        .champion-grid-container::-webkit-scrollbar { width: 8px; }
+        .champion-grid-container::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
+        .champion-grid-container::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 4px; border: 2px solid #1f2937; }
+        .champion-grid-container::-webkit-scrollbar-thumb:hover { background-color: #6b7280; }
+
+        /* Footer Lists Container */
+        .footer-lists-container { display: flex; gap: 1rem; margin-top: 1.5rem; }
+        .footer-list-column {
+            flex: 1; padding: 1rem; border: 1px solid #4b5563;
+            border-radius: 0.5rem; background-color: #1f2937;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            max-height: 24vh; overflow-y: auto;
+        }
+        .footer-list-column h2 {
+            font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem;
+            color: #e5e7eb; border-bottom: 1px solid #4b5563; padding-bottom: 0.5rem;
+        }
+        .footer-role-groups-container { display: flex; gap: 1.5rem; padding-bottom: 0.5rem; overflow-x: auto; }
+        .footer-role-group { flex-shrink: 0; width: 120px; }
+        .footer-role-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; font-weight: 500; color: #9ca3af; font-size: 0.8rem; text-transform: uppercase; }
+        .footer-role-icon { width: 14px; height: 14px; }
+        .footer-list { display: flex; flex-direction: column; gap: 0.25rem; }
+        .manual-picks-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.5rem 1rem; }
+        .footer-list-item { display: flex; align-items: center; color: #d1d5db; font-size: 0.875rem; }
+        .footer-list-icon { width: 20px; height: 20px; border-radius: 3px; margin-right: 4px; flex-shrink: 0; border: 1px solid #4b5563; }
+        .footer-list-icon-error { background-color: #374151; display: inline-flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #9ca3af; }
+        .footer-list-column::-webkit-scrollbar { width: 6px; height: 6px; }
+        .footer-list-column::-webkit-scrollbar-track { background: #111827; border-radius: 3px; }
+        .footer-list-column::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 3px; }
+        .footer-list-column::-webkit-scrollbar-thumb:hover { background-color: #6b7280; }
+        .footer-role-groups-container::-webkit-scrollbar { height: 6px; }
+        .footer-role-groups-container::-webkit-scrollbar-track { background: #111827; border-radius: 3px; }
+        .footer-role-groups-container::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 3px; }
+        .footer-role-groups-container::-webkit-scrollbar-thumb:hover { background-color: #6b7280; }
+
+
+        /* --- Draft Tracker Styles --- */
+        .draft-game { border: 1px solid #4b5563; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; background-color: #1f2937; position: relative; }
+        .remove-game-button { position: absolute; right: 8px; top: 8px; background-color: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 18px; font-weight: 500; line-height: 1; cursor: pointer; transition: background-color 0.2s; display: inline-flex; align-items: center; justify-content: center; padding: 0; z-index: 10; }
+        .remove-game-button:hover { background-color: #dc2626; }
+        .remove-game-button svg { width: 14px; height: 14px; fill: white; }
+        .draft-columns { display: flex; gap: 0.5rem; align-items: center; }
+        .draft-side { flex: 1; display: flex; flex-direction: column; align-items: center; }
+        .game-indicator { font-size: 1.1rem; font-weight: 600; color: #9ca3af; margin: 0 0.75rem; white-space: nowrap; text-align: center; }
+        .draft-section { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 0.25rem; }
+        .draft-slots { display: flex; justify-content: center; align-items: center; gap: 2px; margin-bottom: 0.5rem; flex-wrap: nowrap; width: 100%; }
+        .ban-group-separator { width: 8px; height: 1px; }
+        .draft-slot { border: 1px dashed #4b5563; border-radius: 4px; background-color: #374151; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, border-width 0.2s; flex-shrink: 0; }
+        .draft-slot:hover { border-color: #6b7280; background-color: #4b5563; }
+        .ban-slot { width: 38px; height: 38px; }
+        .ban-slot img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; filter: grayscale(100%); }
+        .ban-slot .slot-placeholder { font-size: 1.1rem; color: #4b5563; }
+        .pick-slot { width: 60px; height: 60px; }
+        .pick-slot img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+        .pick-slot .slot-placeholder { font-size: 1.6rem; color: #4b5563; }
+        .draft-slot.filled { border-style: solid; border-width: 1px; }
+        .draft-side.blue .draft-slot.filled { border-color: #60a5fa; }
+        .draft-side.red .draft-slot.filled { border-color: #f87171; }
+        .draft-side.blue .ban-slot.filled { border-width: 1px; border-color: #3b82f6; }
+        .draft-side.red .ban-slot.filled { border-width: 1px; border-color: #ef4444; }
+        .draft-slot.filled:hover { border-color: #9ca3af; }
+        .add-game-button { padding: 0; margin-top: 0.5rem; border-radius: 50%; border: 1px solid #4b5563; transition: all 0.2s ease-out; cursor: pointer; background-color: #374151; color: #d1d5db; width: 32px; height: 32px; font-size: 24px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+        .add-game-button svg { width: 18px; height: 18px; fill: currentColor; }
+        .add-game-button:hover { background-color: #4b5563; border-color: #6b7280; transform: translateY(-1px); }
+        .reset-button { padding: 6px 12px; border-radius: 6px; transition: all 0.2s ease-out; cursor: pointer; font-size: 0.875rem; font-weight: 600; border: 1px solid transparent; }
+        .reset-button.reset-marked:hover { transform: translateY(-1px); background-color: #ca8a04; }
+        .reset-button.reset-series:hover { transform: translateY(-1px); filter: brightness(1.1); }
+
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-200">
+
+    <svg width="0" height="0" style="position:absolute">
+      <defs>
+        <symbol id="icon-plus" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" clip-rule="evenodd" /> </symbol>
+        <symbol id="icon-close" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /> </symbol>
+        <symbol id="role-top" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Zm11.707 7.707a1 1 0 0 1-1.414 0L10 12.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 11 4.293 6.707a1 1 0 0 1 1.414-1.414L10 9.586l4.293-4.293a1 1 0 0 1 1.414 1.414L11.414 11l4.293 4.293a1 1 0 0 1 0 1.414Z" clip-rule="evenodd"/> </symbol>
+        <symbol id="role-jungle" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1ZM8.21 5.215c.09.095.11.22.06.316a5.7 5.7 0 0 0-.26 1.077 6.494 6.494 0 0 0 .45 3.516 2.508 2.508 0 0 1 .88 1.449 2.18 2.18 0 0 1 .03 1.086 4.495 4.495 0 0 0 1.33 2.261 4.5 4.5 0 0 0 4.12 1.058A4.5 4.5 0 0 0 18 13.5a4.5 4.5 0 0 0-1.04-2.863 6.5 6.5 0 0 0-1.5-1.41 6.488 6.488 0 0 0-1.61-1.01 6.487 6.487 0 0 0-2.03-.67 5.49 5.49 0 0 0-1.62-.22 5.5 5.5 0 0 0-1.57.27.53.53 0 0 1-.18.07.5.5 0 0 1-.58-.06.5.5 0 0 1-.1-.58 8.5 8.5 0 0 1 .6-1.66 8.49 8.49 0 0 1 1.43-1.91c.096-.1.22-.13.316-.06Zm1.38 1.19c-.05.06-.08.13-.06.205.03.07.08.13.15.17.07.04.15.04.22 0a.2.2 0 0 0 .15-.16c.01-.08 0-.16-.06-.22a.2.2 0 0 0-.22-.06.2.2 0 0 0-.18.06Zm2.03 1.21a.2.2 0 0 0-.18.06c-.06.06-.08.14-.06.21a.2.2 0 0 0 .15.17c.07.04.15.04.22 0a.2.2 0 0 0 .15-.16c.01-.08 0-.16-.06-.22a.2.2 0 0 0-.22-.06ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Z" clip-rule="evenodd"/> </symbol>
+        <symbol id="role-mid" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Zm5-4a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1ZM9 13a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1Z" clip-rule="evenodd"/> </symbol>
+        <symbol id="role-adc" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Zm1.707-3.293a1 1 0 0 1 0-1.414l4-4a1 1 0 0 1 1.414 0l4 4a1 1 0 0 1-1.414 1.414L10 2.414 6.707 5.707a1 1 0 0 1-1 0ZM6.707 14.293a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L10 17.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" clip-rule="evenodd"/> </symbol>
+        <symbol id="role-support" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4ZM9 5a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1Zm1 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" clip-rule="evenodd"/> </symbol>
+        <symbol id="role-unknown" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0ZM8.94 6.553a1 1 0 0 0-1.88 0l-1.433 4.3a1 1 0 0 0 1.88 0l.213-1.066h1.94l.213 1.066a1 1 0 0 0 1.88 0l-1.433-4.3Zm-1.15 2.426 1.15-3.44 1.15 3.44H7.79ZM12.25 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" /> </symbol>
+      </defs>
+    </svg>
+
+    <div x-data="draftHelper()" x-init="init()" @destroy="destroy()" class="container mx-auto p-4 pt-8 main-content">
+
+        <div class="flex justify-center gap-4 mb-6">
+            <button @click="currentView = 'pool'"
+                    :class="{'filter-button': true, 'active': currentView === 'pool'}">
+                Champion Pool
+            </button>
+            <button @click="currentView = 'draftTracker'"
+                    :class="{'filter-button': true, 'active': currentView === 'draftTracker'}">
+                Draft Tracker
+            </button>
+        </div>
+
+        <div x-show="currentView === 'pool'" x-transition>
+           <div class="flex flex-col md:flex-row items-center gap-4 mb-4"> <div class="relative w-full md:w-1/2 lg:w-1/3"> <input type="text" x-model.debounce.300ms="searchTerm" placeholder="Search Champions..." class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 transition duration-150 ease-in-out hover:bg-gray-600 focus:bg-gray-600"> <button x-show="searchTerm" @click="searchTerm = ''" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-200" aria-label="Clear search"> &times; </button> </div> <div class="flex flex-wrap justify-center md:justify-end items-center gap-x-2 gap-y-2 flex-grow"> <button @click="toggleFilter('all')" class="filter-button" :class="{'active': currentFilter === 'all'}">All</button> <button @click="toggleFilter('pool')" class="filter-button" :class="{'active': currentFilter === 'pool'}">Team</button> <template x-for="player in Object.keys(teamPool)" :key="player"> <button @click="toggleFilter(player)" class="filter-button" :class="{'active': currentFilter === player}" x-text="player"></button> </template> <button @click="resetMarkedPicks()" class="reset-button reset-marked bg-yellow-600 hover:bg-yellow-500 text-white ml-4" aria-label="Reset marked picks"> Reset Marked </button> <button @click="resetDraftSeries()" class="reset-button reset-series bg-blue-700 hover:bg-blue-600 text-white ml-2" aria-label="Reset series draft"> Reset Series </button> </div> </div>
+            <div class="champion-grid-container"> <div class="champion-grid-inner"> <p x-show="filteredChampions.length === 0" class="text-gray-400 col-span-full text-center py-4"> No champions match your filter/search. </p>
+                <template x-for="champion in filteredChampions" :key="champion.id">
+                    <div x-transition:enter="transition ease-in-out duration-200"
+                         x-transition:enter-start="opacity-0 transform scale-95"
+                         x-transition:enter-end="opacity-100 transform scale-100"
+                         x-transition:leave="transition ease-in-out duration-150"
+                         x-transition:leave-start="opacity-100 transform scale-100"
+                         x-transition:leave-end="opacity-0 transform scale-95"
+                         class="champion-card"
+                         :class="{
+                            'unavailable': isUnavailable(champion.name),
+                            'manually-marked': isPicked(champion.name) && !isUnavailable(champion.name),
+                            'in-pool': champion.poolInfo && champion.poolInfo.isInPool, // Check poolInfo exists
+                            'not-in-pool': (!champion.poolInfo || !champion.poolInfo.isInPool) && !isUnavailable(champion.name) && !isPicked(champion.name), // Check poolInfo exists
+                            [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name) // Optional chaining and default
+                         }"
+                         @click="!isUnavailable(champion.name) && togglePick(champion.name)"
+                         role="button"
+                         :aria-disabled="isUnavailable(champion.name)"
+                         :aria-pressed="isPicked(champion.name)"
+                         :aria-label="`${champion.name} - ${champion.poolInfo && champion.poolInfo.isInPool ? ('Tier ' + champion.poolInfo.tier + ' (' + (champion.poolInfo.players || []).join(', ') + ')') : 'Not in Pool'}${isUnavailable(champion.name) ? ' (Unavailable)' : (isPicked(champion.name) ? ' (Marked)' : '')}`"
+                         :tabindex="0"
+                         x-cloak
+                         :title="champion.name">
+
+                         <img class="champion-icon" :src="getChampionIconUrl(champion.name)" :alt="champion.name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                         <div class="img-error-placeholder" style="display: none;">?</div>
+                         <span class="champion-name-text text-gray-200" x-text="champion.name" :title="champion.name"></span>
+
+                         <span class="badge tier-badge"
+                               x-show="champion.poolInfo && champion.poolInfo.isInPool && champion.poolInfo.tier && !isUnavailable(champion.name)"
+                               x-text="champion.poolInfo?.tier">
+                         </span>
+
+                         <div class="player-badge-container"
+                              x-show="champion.poolInfo && champion.poolInfo.isInPool && champion.poolInfo.players && champion.poolInfo.players.length > 0 && !isUnavailable(champion.name)">
+                            <template x-for="player in (champion.poolInfo?.players || [])" :key="player">
+                                <img class="player-badge" :src="getRoleIconUrl(player)" :alt="player" :title="player" onerror="this.style.opacity='0.5'; this.style.backgroundColor='red';" />
+                            </template>
+                         </div>
+
+                         <span class="picked-overlay-text" x-show="isUnavailable(champion.name) || isPicked(champion.name)" x-text="isUnavailable(champion.name) ? 'UNAVAILABLE' : 'MARKED'"></span>
+                    </div>
+                </template>
+             </div> </div>
+
+            <div class="footer-lists-container">
+                <div class="footer-list-column">
+                    <h2>Unavailable Champions (<span x-text="sortedUnavailableChampions.length"></span>)</h2>
+                    <p class="text-gray-400 text-sm" x-show="sortedUnavailableChampions.length === 0" x-cloak>No champions picked in draft yet.</p>
+                    <div class="footer-role-groups-container" x-show="sortedUnavailableChampions.length > 0" x-cloak>
+                        <template x-for="role in ['Top', 'Jungle', 'Mid', 'Adc', 'Support', 'Unknown']" :key="role">
+                            <div class="footer-role-group" x-show="unavailableChampionsByRole[role] && unavailableChampionsByRole[role].length > 0">
+                                <div class="footer-role-header">
+                                     <img class="footer-role-icon" :src="getRoleIconUrl(role)" :alt="role" :title="role" onerror="this.style.opacity='0.5'; this.style.backgroundColor='gray';"/>
+                                     <span x-text="role"></span>
+                                </div>
+                                <div class="footer-list">
+                                    <template x-for="name in unavailableChampionsByRole[role]" :key="name">
+                                        <div class="footer-list-item">
+                                            <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                            <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>
+                                            <span x-text="name"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <div class="footer-list-column">
+                    <h2>Manually Marked Picks (<span x-text="pickedChampions.length"></span>)</h2>
+                    <p class="text-gray-400 text-sm" x-show="pickedChampions.length === 0" x-cloak>No champions manually marked.</p>
+                    <div class="manual-picks-list" x-show="pickedChampions.length > 0" x-cloak>
+                        <template x-for="name in pickedChampions.slice().sort()" :key="name">
+                            <div class="footer-list-item">
+                                <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>
+                                <span x-text="name"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="currentView === 'draftTracker'" x-transition class="draft-tracker">
+             <template x-for="(game, gameIndex) in draftSeries" :key="gameIndex"> <div class="draft-game"> <button @click="removeGame(gameIndex)" x-show="gameIndex > 0" class="remove-game-button" title="Remove this game" aria-label="Remove this game"> <svg><use href="#icon-close"></use></svg> </button> <div class="draft-columns"> <div class="draft-side blue"> <div class="draft-section"> <div class="draft-slots"> <template x-for="i in 3" :key="`b-ban-slot-${i}`"> <div class="draft-slot ban-slot" :class="{'filled': game.blueBans[i-1]}" @click="selectChampionForSlot(gameIndex, 'blueBans', i-1)"> <template x-if="game.blueBans[i-1]"><img :src="getChampionIconUrl(game.blueBans[i-1], 'ban')" :alt="game.blueBans[i-1]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.blueBans[i-1]"><span class="slot-placeholder">&times;</span></template> </div> </template> <div class="ban-group-separator"></div> <template x-for="i in 2" :key="`b-ban-slot-${i+3}`"> <div class="draft-slot ban-slot" :class="{'filled': game.blueBans[i+2]}" @click="selectChampionForSlot(gameIndex, 'blueBans', i+2)"> <template x-if="game.blueBans[i+2]"><img :src="getChampionIconUrl(game.blueBans[i+2], 'ban')" :alt="game.blueBans[i+2]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.blueBans[i+2]"><span class="slot-placeholder">&times;</span></template> </div> </template> </div> <div class="draft-slots"> <template x-for="i in 5" :key="`b-pick-slot-${i}`"> <div class="draft-slot pick-slot" :class="{'filled': game.bluePicks[i-1]}" @click="selectChampionForSlot(gameIndex, 'bluePicks', i-1)"> <template x-if="game.bluePicks[i-1]"><img :src="getChampionIconUrl(game.bluePicks[i-1], 'pick')" :alt="game.bluePicks[i-1]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.bluePicks[i-1]"><span class="slot-placeholder">+</span></template> </div> </template> </div> </div> </div> <div class="game-indicator"> <h3 x-text="`Game ${gameIndex + 1}`"></h3> </div> <div class="draft-side red"> <div class="draft-section"> <div class="draft-slots"> <template x-for="i in 3" :key="`r-ban-slot-${i}`"> <div class="draft-slot ban-slot" :class="{'filled': game.redBans[i-1]}" @click="selectChampionForSlot(gameIndex, 'redBans', i-1)"> <template x-if="game.redBans[i-1]"><img :src="getChampionIconUrl(game.redBans[i-1], 'ban')" :alt="game.redBans[i-1]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.redBans[i-1]"><span class="slot-placeholder">&times;</span></template> </div> </template> <div class="ban-group-separator"></div> <template x-for="i in 2" :key="`r-ban-slot-${i+3}`"> <div class="draft-slot ban-slot" :class="{'filled': game.redBans[i+2]}" @click="selectChampionForSlot(gameIndex, 'redBans', i+2)"> <template x-if="game.redBans[i+2]"><img :src="getChampionIconUrl(game.redBans[i+2], 'ban')" :alt="game.redBans[i+2]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.redBans[i+2]"><span class="slot-placeholder">&times;</span></template> </div> </template> </div> <div class="draft-slots"> <template x-for="i in 5" :key="`r-pick-slot-${i}`"> <div class="draft-slot pick-slot" :class="{'filled': game.redPicks[i-1]}" @click="selectChampionForSlot(gameIndex, 'redPicks', i-1)"> <template x-if="game.redPicks[i-1]"><img :src="getChampionIconUrl(game.redPicks[i-1], 'pick')" :alt="game.redPicks[i-1]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.redPicks[i-1]"><span class="slot-placeholder">+</span></template> </div> </template> </div> </div> </div> </div> </div> </template>
+            <div class="text-center mt-4"> <button @click="addNewGame()" class="add-game-button" title="Add Game to Series"> <svg><use href="#icon-plus"></use></svg> </button> </div>
+        </div> </div> <script>
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyA8Sn1xWu628UB1MUABfvohYLzuchWVX18", // Replace with your actual API key
+          authDomain: "fearless-tools.firebaseapp.com",
+          projectId: "fearless-tools",
+          storageBucket: "fearless-tools.appspot.com",
+          messagingSenderId: "830913150506",
+          appId: "1:830913150506:web:6d6986862e404bc8ae0d53",
+          measurementId: "G-6Z91GFX42Q" // Optional
+        };
+
+        // --- Initialize Firebase ---
+        let firebaseApp;
+        let db;
+        try {
+            if (!firebase.apps.length) {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+            } else {
+                firebaseApp = firebase.app(); // if already initialized, use that one
+            }
+            db = firebase.firestore(); // Use Firestore Compat version
+            console.log("Firebase Initialized Successfully.");
+        } catch (e) {
+            console.error("Firebase initialization failed:", e);
+            db = null; // Ensure db is null if init fails
+        }
+
+        // --- Firestore Helper Functions ---
+        const DRAFT_COLLECTION = "drafts";
+        const DRAFT_DOC_ID = 'current_draft'; // MAKE DYNAMIC LATER
+
+        async function fetchDraftDataFromFirestore() {
+            console.log(`Fetching draft data from ${DRAFT_COLLECTION}/${DRAFT_DOC_ID}...`);
+            const defaultData = {
+                draftSeries: [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }],
+                pickedChampions: []
+            };
+            if (!db) {
+                 console.error("Firestore not initialized.");
+                 return defaultData;
+            }
+            try {
+                const docRef = db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID);
+                const docSnap = await docRef.get();
+                if (docSnap.exists) {
+                    console.log("Firestore data found.");
+                    const data = docSnap.data();
+                    // Validate fetched data structure
+                    const draftSeries = (Array.isArray(data.draftSeries) && data.draftSeries.length > 0) ? data.draftSeries : defaultData.draftSeries;
+                    const pickedChampions = Array.isArray(data.pickedChampions) ? data.pickedChampions : defaultData.pickedChampions;
+                    return { draftSeries, pickedChampions };
+                } else {
+                    console.log("No draft data found in Firestore, using defaults.");
+                    return defaultData;
+                }
+            } catch (error) {
+                console.error("Error fetching draft data from Firestore:", error);
+                 return defaultData;
+            }
+        }
+
+        async function saveDraftDataToFirestore(draftData) {
+             if (!db) { console.error("Firestore not initialized. Cannot save."); return; }
+             console.log(`Saving draft data to ${DRAFT_COLLECTION}/${DRAFT_DOC_ID}:`, draftData);
+             try {
+                 // Use set with merge: true to create or update the document safely
+                 await db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID).set(draftData, { merge: true });
+                 console.log("Draft data saved successfully.");
+             } catch (error) {
+                 console.error("Error saving draft data to Firestore:", error);
+             }
+        }
+    </script>
+
+    <script>
+        function draftHelper() {
+            return {
+                // --- State ---
+                allChampions: [], teamPool: {}, pickedChampions: [],
+                currentFilter: 'all', searchTerm: '',
+                currentView: 'pool',
+                draftSeries: [ // Initialize with default structure
+                    { blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }
+                ],
+                isLoading: true,
+                _saveTimeout: null,
+                _unsubscribeFirestore: null, // To store the unsubscribe function
+
+                // Default pool info structure to prevent errors before data loads/calculates
+                _defaultPoolInfo: { isInPool: false, tier: null, players: [], tierClass: 'tier-DEFAULT' },
+
+                // --- Computed Properties ---
+                get unavailableChampions() {
+                    const unavailable = new Set();
+                    this.draftSeries.forEach(game => {
+                        game.bluePicks.forEach(pick => pick && unavailable.add(pick));
+                        game.redPicks.forEach(pick => pick && unavailable.add(pick));
+                    });
+                    return unavailable;
+                },
+                get sortedUnavailableChampions() { return Array.from(this.unavailableChampions).sort(); },
+                get unavailableChampionsByRole() {
+                    const grouped = { Top: [], Jungle: [], Mid: [], Adc: [], Support: [], Unknown: [] };
+                    const roleOrder = ['Top', 'Jungle', 'Mid', 'Adc', 'Support'];
+                    this.unavailableChampions.forEach(championName => {
+                        let assignedRole = 'Unknown';
+                        // Ensure teamPool is loaded before trying to access roles
+                        if (this.teamPool && Object.keys(this.teamPool).length > 0) {
+                            for (const role of roleOrder) { if (this.teamPool[role]?.[championName]) { assignedRole = role; break; } }
+                            if (assignedRole === 'Unknown') { for (const role in this.teamPool) { if (this.teamPool[role]?.[championName]) { assignedRole = role; break; } } }
+                        }
+                        if (!grouped[assignedRole]) { grouped[assignedRole] = []; }
+                        grouped[assignedRole].push(championName);
+                    });
+                    for (const role in grouped) { grouped[role].sort(); }
+                    return grouped;
+                },
+                get filteredChampions() {
+                    if (!this.allChampions || this.allChampions.length === 0) return [];
+                    let processedChampions = this.allChampions.map(champ => ({
+                        ...champ,
+                        // Ensure poolInfo is always an object, even if calculation fails temporarily
+                        poolInfo: this.getChampionPoolInfo(champ.name, this.currentFilter) || this._defaultPoolInfo,
+                        isChampUnavailable: this.isUnavailable(champ.name)
+                    }));
+                    if (this.currentFilter === 'pool') { processedChampions = processedChampions.filter(c => c.poolInfo.isInPool); }
+                    else if (this.currentFilter !== 'all') { processedChampions = processedChampions.filter(c => c.poolInfo.players.includes(this.currentFilter)); }
+                    if (this.searchTerm.trim() !== '') { const searchLower = this.searchTerm.trim().toLowerCase(); processedChampions = processedChampions.filter(c => c.name.toLowerCase().includes(searchLower)); }
+                    return processedChampions.sort((a, b) => a.name.localeCompare(b.name));
+                 },
+
+                // --- Initialization ---
+                async init() {
+                    console.log('Alpine component initializing...');
+                    this.isLoading = true;
+                    // Ensure local data is loaded first
+                    this.allChampions = window.allLolChampions || [];
+                    this.teamPool = window.teamTierList || {};
+
+                    // Load initial data from Firestore
+                    try {
+                        const loadedData = await fetchDraftDataFromFirestore();
+                        this.pickedChampions = loadedData.pickedChampions || []; // Default to empty array
+                        this.draftSeries = loadedData.draftSeries || [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }]; // Default to single empty game
+                        // Validate draftSeries structure
+                        if (!Array.isArray(this.draftSeries) || this.draftSeries.length === 0 || typeof this.draftSeries[0] !== 'object') {
+                            this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
+                        }
+                    } catch (error) {
+                        console.error("Error during initial Firestore fetch:", error);
+                        // Keep default values if fetch fails
+                    }
+
+                    this.isLoading = false;
+                    if (this.allChampions.length === 0) { console.error("Champion list failed to load!"); } else { console.log(`Loaded ${this.allChampions.length} champions.`); }
+                    console.log('Draft Helper Initialized');
+
+                    // Set up debounced save function
+                    const debouncedSave = () => {
+                        clearTimeout(this._saveTimeout);
+                        this._saveTimeout = setTimeout(() => {
+                             // Ensure data is valid before saving
+                             const dataToSave = {
+                                pickedChampions: Array.isArray(this.pickedChampions) ? JSON.parse(JSON.stringify(this.pickedChampions)) : [],
+                                draftSeries: (Array.isArray(this.draftSeries) && this.draftSeries.length > 0) ? JSON.parse(JSON.stringify(this.draftSeries)) : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }]
+                             };
+                             saveDraftDataToFirestore(dataToSave);
+                        }, 1500);
+                    };
+
+                    // Watch for changes and trigger debounced save
+                    this.$watch('pickedChampions', debouncedSave);
+                    this.$watch('draftSeries', debouncedSave, { deep: true });
+
+                    // --- Real-time Listener ---
+                    if (db) {
+                        const docRef = db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID);
+                        this._unsubscribeFirestore = docRef.onSnapshot((doc) => {
+                            console.log("Real-time update received.");
+                            if (doc.exists) {
+                                const data = doc.data();
+                                // Provide defaults and validate structure
+                                const newDraftSeries = (Array.isArray(data.draftSeries) && data.draftSeries.length > 0) ? data.draftSeries : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
+                                const newPickedChampions = Array.isArray(data.pickedChampions) ? data.pickedChampions : [];
+
+                                // Only update if data is truly different
+                                if (JSON.stringify(this.draftSeries) !== JSON.stringify(newDraftSeries)) {
+                                    console.log("Updating local draftSeries from Firestore.");
+                                    this.draftSeries = newDraftSeries;
+                                }
+                                 if (JSON.stringify(this.pickedChampions) !== JSON.stringify(newPickedChampions)) {
+                                     console.log("Updating local pickedChampions from Firestore.");
+                                     this.pickedChampions = newPickedChampions;
+                                 }
+                            } else {
+                                console.log("Draft document deleted in Firestore. Resetting local state.");
+                                // Reset local state if document is deleted remotely
+                                this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
+                                this.pickedChampions = [];
+                            }
+                        }, (error) => {
+                            console.error("Error listening to draft updates:", error);
+                        });
+                    } else {
+                        console.error("Firestore not initialized, cannot set up real-time listener.");
+                    }
+                 },
+                 // Cleanup listener
+                 destroy() {
+                    if (this._unsubscribeFirestore) {
+                        console.log("Unsubscribing from Firestore listener.");
+                        this._unsubscribeFirestore();
+                    }
+                 },
+
+                // --- Methods ---
+                isUnavailable(championName) {
+                     if (!championName) return false;
+                     const nameLower = championName.toLowerCase();
+                     // Ensure allChampions is available
+                     const canonicalChamp = this.allChampions?.find(c => c.name.toLowerCase() === nameLower);
+                     return canonicalChamp ? this.unavailableChampions.has(canonicalChamp.name) : false;
+                },
+                isPicked(championName) {
+                     if (!championName) return false;
+                    const nameLower = championName.toLowerCase();
+                    return this.pickedChampions.some(pickedName => pickedName.toLowerCase() === nameLower);
+                 },
+                togglePick(championName) {
+                    if (!championName || this.isUnavailable(championName)) return;
+                    const nameLower = championName.toLowerCase();
+                    const index = this.pickedChampions.findIndex(pickedName => pickedName.toLowerCase() === nameLower);
+                    if (index === -1) {
+                        const canonicalChamp = this.allChampions?.find(champ => champ.name.toLowerCase() === nameLower);
+                        if (canonicalChamp) { this.pickedChampions.push(canonicalChamp.name); }
+                    } else {
+                        this.pickedChampions.splice(index, 1);
+                    }
+                    // $watch handles saving
+                 },
+                resetDraftSeries(confirmReset = true) {
+                    if (!confirmReset || window.confirm('Reset entire series draft? This cannot be undone.')) {
+                        const defaultDraft = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
+                        this.draftSeries = defaultDraft;
+                        this.searchTerm = '';
+                        console.log('Draft Series Reset');
+                        saveDraftDataToFirestore({ pickedChampions: this.pickedChampions, draftSeries: defaultDraft });
+                    }
+                 },
+                 resetMarkedPicks() {
+                    this.pickedChampions = [];
+                    console.log('Manually Marked Picks Reset');
+                    saveDraftDataToFirestore({ pickedChampions: this.pickedChampions, draftSeries: this.draftSeries });
+                 },
+                 selectChampionForSlot(gameIndex, draftType, slotIndex) {
+                     // Basic validation
+                     if (!this.draftSeries || !this.draftSeries[gameIndex] || !this.draftSeries[gameIndex][draftType]) {
+                         console.error("Invalid game or draft type in selectChampionForSlot");
+                         return;
+                     }
+                     const game = this.draftSeries[gameIndex];
+                     const currentSelection = game[draftType][slotIndex];
+                     const promptMessage = currentSelection ? `Current: ${currentSelection}. Enter new champion or leave blank to clear:` : `Enter champion for ${draftType.replace(/([A-Z])/g, ' $1')} slot ${slotIndex + 1}:`;
+                     const championNameInput = prompt(promptMessage, currentSelection || "");
+
+                     if (championNameInput === null) return; // Cancelled
+
+                     const nameTrimmed = championNameInput.trim();
+
+                     // Clear slot
+                     if (nameTrimmed === "") {
+                         if (currentSelection) {
+                             game[draftType][slotIndex] = null;
+                             console.log(`Cleared slot ${slotIndex} for ${draftType} in Game ${gameIndex + 1}`);
+                         }
+                         return; // $watch will handle saving
+                     }
+
+                     // Find and validate champion
+                     const canonicalChamp = this.allChampions?.find(champ => champ.name.toLowerCase() === nameTrimmed.toLowerCase());
+                     if (!canonicalChamp) { alert(`Champion "${nameTrimmed}" not found.`); return; }
+                     const canonicalName = canonicalChamp.name;
+
+                     // Check availability (picks only, excluding current slot if replacing)
+                     const isPick = draftType.includes('Picks');
+                     if (isPick) {
+                         let unavailableInOtherGames = false;
+                         for(let i = 0; i < this.draftSeries.length; i++) {
+                            if (i === gameIndex) continue;
+                            const otherGame = this.draftSeries[i];
+                            if ((otherGame?.bluePicks && otherGame.bluePicks.includes(canonicalName)) || (otherGame?.redPicks && otherGame.redPicks.includes(canonicalName))) {
+                                unavailableInOtherGames = true;
+                                break;
+                            }
+                         }
+                         if (unavailableInOtherGames && canonicalName !== currentSelection) {
+                             alert(`${canonicalName} is already picked in another game this series.`);
+                             return;
+                         }
+                     }
+
+                      // Check if drafted elsewhere IN THIS GAME (excluding current slot)
+                     const allDrafted = [...(game.blueBans || []), ...(game.bluePicks || []), ...(game.redBans || []), ...(game.redPicks || [])];
+                     const alreadyDraftedInGame = allDrafted.some(
+                         (draftedName, index) => {
+                             let currentSlotOverallIndex = -1;
+                             if (draftType === 'blueBans') currentSlotOverallIndex = slotIndex;
+                             else if (draftType === 'bluePicks') currentSlotOverallIndex = 5 + slotIndex;
+                             else if (draftType === 'redBans') currentSlotOverallIndex = 10 + slotIndex;
+                             else if (draftType === 'redPicks') currentSlotOverallIndex = 15 + slotIndex;
+
+                             return draftedName && draftedName === canonicalName && index !== currentSlotOverallIndex;
+                         }
+                     );
+                     if (alreadyDraftedInGame) { alert(`${canonicalName} already drafted in Game ${gameIndex + 1}.`); return; }
+
+                     // Update slot
+                     game[draftType][slotIndex] = canonicalName;
+                     console.log(`Set ${canonicalName} for Game ${gameIndex + 1} ${draftType} slot ${slotIndex + 1}`);
+                     // $watch will handle saving
+                 },
+                 addNewGame() {
+                    this.draftSeries.push({ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) });
+                    console.log(`Added Game ${this.draftSeries.length}`);
+                    // $watch will handle saving
+                 },
+                 removeGame(gameIndex) {
+                     if (this.draftSeries.length <= 1) { alert("Cannot remove the only game in the series."); return; }
+                     if (confirm(`Are you sure you want to remove Game ${gameIndex + 1}? This cannot be undone.`)) {
+                         this.draftSeries.splice(gameIndex, 1);
+                         console.log(`Removed Game at index ${gameIndex}`);
+                         // $watch will handle saving
+                     }
+                 },
+                // Safeguarded getChampionPoolInfo
+                getChampionPoolInfo(championName, activeFilter = 'all') {
+                    // Return default if essential data is missing
+                    if (!championName || !this.teamPool || typeof this.teamPool !== 'object') {
+                        return this._defaultPoolInfo;
+                    }
+
+                    let players = [];
+                    let isInPool = false;
+                    let highestTier = null;
+                    const tierOrder = { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1 };
+
+                    for (const player in this.teamPool) {
+                        // Check if player exists and has the champion
+                        if (this.teamPool[player] && typeof this.teamPool[player] === 'object' && this.teamPool[player][championName]) {
+                            isInPool = true;
+                            const currentTier = this.teamPool[player][championName]?.toUpperCase(); // Optional chaining for safety
+                            if (currentTier && (!highestTier || (tierOrder[currentTier] || 0) > (tierOrder[highestTier] || 0))) {
+                                highestTier = currentTier;
+                            }
+                            players.push(player);
+                        }
+                    }
+
+                    let displayTier = null;
+                    if (activeFilter === 'all' || activeFilter === 'pool') {
+                        displayTier = highestTier;
+                    } else if (this.teamPool[activeFilter]?.[championName]) {
+                        displayTier = this.teamPool[activeFilter][championName].toUpperCase();
+                    }
+
+                    let tierClass = 'tier-DEFAULT';
+                    if (displayTier) {
+                        switch (displayTier) {
+                            case 'S': tierClass = 'tier-S'; break;
+                            case 'A': tierClass = 'tier-A'; break;
+                            case 'B': tierClass = 'tier-B'; break;
+                            case 'C': tierClass = 'tier-C'; break;
+                        }
+                    }
+
+                    if (activeFilter !== 'all' && activeFilter !== 'pool' && !players.includes(activeFilter)) {
+                         tierClass = 'tier-DEFAULT';
+                         displayTier = null;
+                    }
+
+                    return { isInPool, tier: displayTier, players, tierClass };
+                 },
+                 toggleFilter(filterType) {
+                     if (this.currentFilter === filterType && filterType !== 'all') { this.currentFilter = 'all'; }
+                     else { this.currentFilter = filterType; }
+                     console.log("Filter set to:", this.currentFilter);
+                 },
+                 getRoleIconUrl(playerName) {
+                     if (!playerName) return "https://placehold.co/16x16/cccccc/777777?text=?"; // Handle null/undefined
+                     const nameLower = playerName.toLowerCase();
+                     const urls = { top: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-top-blue-hover.png", jungle: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-jungle-blue-hover.png", mid: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-middle-blue-hover.png", adc: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-bottom-blue-hover.png", support: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-utility-blue-hover.png", unknown: "https://placehold.co/16x16/cccccc/777777?text=?" };
+                     if (nameLower.includes('top')) return urls.top; if (nameLower.includes('jg') || nameLower.includes('jng') || nameLower.includes('jungle')) return urls.jungle; if (nameLower.includes('mid')) return urls.mid; if (nameLower.includes('adc') || nameLower.includes('bot')) return urls.adc; if (nameLower.includes('sup') || nameLower.includes('support')) return urls.support; return urls.unknown;
+                 },
+                 getChampionIconUrl(championName, context = 'grid') {
+                     const placeholderUrl64 = "https://placehold.co/64x64/374151/9ca3af?text=?";
+                     const placeholderUrl40 = "https://placehold.co/40x40/374151/9ca3af?text=?";
+                     const listPlaceholderUrl = "https://placehold.co/24x24/374151/9ca3af?text=?";
+                     let placeholderUrl = placeholderUrl64;
+                     if (context === 'ban') placeholderUrl = placeholderUrl40;
+                     if (context === 'list') placeholderUrl = listPlaceholderUrl;
+                     if (context === 'pick') placeholderUrl = placeholderUrl64;
+
+                     if (!championName) return placeholderUrl;
+                     // Ensure allChampions is loaded before searching
+                     const champData = this.allChampions?.find(champ => champ.name.toLowerCase() === championName.toLowerCase());
+                     if (champData && champData.imageName) {
+                         // Ensure you are using the correct Data Dragon version if needed
+                         return `http://ddragon.leagueoflegends.com/cdn/15.8.1/img/champion/${champData.imageName}.png`; // Updated version
+                     } else {
+                         // console.warn(`Icon URL not found for: ${championName}`); // Keep this for debugging if needed
+                         return placeholderUrl;
+                     }
+                 }
+            }
+        }
+    </script>
+
+</body>
+</html>
