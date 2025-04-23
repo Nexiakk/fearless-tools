@@ -6,14 +6,11 @@
     <title>Fearless Tools</title>
     <link rel="icon" type="image/x-icon" href="/cwel.png">
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="./champions.js"></script>
     <style>
-        /* Styles remain the same - Omitted for brevity */
         /* Basic resets and full height */
         html, body { height: 100%; margin: 0; padding: 0; }
         body {
@@ -23,8 +20,12 @@
             min-height: 100vh;
             background-color: #030712; /* Dark theme default */
             color: #d1d5db;
+            overflow-y: scroll; /* Always show vertical scrollbar to prevent layout shifts */
         }
         .main-content { flex-grow: 1; }
+
+        /* Prevent FOUC for Alpine elements */
+        [x-cloak] { display: none !important; }
 
         /* Champion Card Container */
         .champion-card {
@@ -122,16 +123,24 @@
         .tier-C img.champion-icon { border-color: #60a5fa; } .tier-C .tier-badge { background-color: #60a5fa; color: #1e3a8a; }
         .tier-DEFAULT img.champion-icon { border-color: #9ca3af; } .tier-DEFAULT .tier-badge { background-color: #9ca3af; color: #1f2937; }
 
-        /* Filter Buttons */
-        .filter-button {
-            padding: 6px 12px; margin: 2px 4px; border-radius: 6px;
+        /* Filter Buttons / Sort Buttons */
+        .filter-button, .sort-button {
+            padding: 6px 12px; margin: 0 2px; /* Adjusted margin for inline layout */
+            border-radius: 6px;
             border: 1px solid #4b5563; transition: all 0.2s ease-out;
             cursor: pointer; font-size: 0.875rem;
             background-color: #374151; color: #d1d5db;
+            white-space: nowrap; /* Prevent button text wrapping */
         }
-        .filter-button.active { background-color: #3b82f6; color: white; font-weight: 600; border-color: #3b82f6; }
-        .filter-button:hover:not(.active) { background-color: #4b5563; border-color: #6b7280; transform: translateY(-1px); }
-        .filter-button.active:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .filter-button.active, .sort-button.active {
+            background-color: #3b82f6; color: white; font-weight: 600; border-color: #3b82f6;
+        }
+        .filter-button:hover:not(.active), .sort-button:hover:not(.active) {
+             background-color: #4b5563; border-color: #6b7280; transform: translateY(-1px);
+        }
+        .filter-button.active:hover, .sort-button.active:hover {
+             filter: brightness(1.1); transform: translateY(-1px);
+        }
 
         /* Text for "PICKED/UNAVAILABLE" overlay - Reduced font size */
         .picked-overlay-text {
@@ -160,30 +169,125 @@
         .champion-grid-container::-webkit-scrollbar-thumb:hover { background-color: #6b7280; }
 
         /* Footer Lists Container */
-        .footer-lists-container { display: flex; gap: 1rem; margin-top: 1.5rem; }
+        .footer-lists-container { display: flex; gap: 1rem; }
         .footer-list-column {
-            flex: 1; padding: 1rem; border: 1px solid #4b5563;
+            padding: 0.4rem 1.5rem; border: 1px solid #4b5563;
             border-radius: 0.5rem; background-color: #1f2937;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            max-height: 24vh; overflow-y: auto;
+            max-height: 22vh; /* Default max height */
+            overflow-y: auto;
+        }
+        /* Specific adjustments for footer columns */
+        .footer-unavailable-column {
+             flex: 3; /* Give more space */
+        }
+        .footer-highlighted-column {
+             flex: 1; /* Give less space */
         }
         .footer-list-column h2 {
             font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem;
             color: #e5e7eb; border-bottom: 1px solid #4b5563; padding-bottom: 0.5rem;
         }
-        .footer-role-groups-container { display: flex; gap: 1.5rem; padding-bottom: 0.5rem; overflow-x: auto; }
-        .footer-role-group { flex-shrink: 0; width: 120px; }
-        .footer-role-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; font-weight: 500; color: #9ca3af; font-size: 0.8rem; text-transform: uppercase; }
+        /* Container for role groups - allows horizontal scrolling if needed */
+        .footer-role-groups-container {
+            display: flex;
+            gap: 1.5rem; /* Space between role groups */
+            padding-bottom: 0.5rem; /* Padding below the scrollbar if it appears */
+            overflow-x: auto; /* Enable horizontal scrolling ONLY if content overflows */
+            white-space: nowrap; /* Prevent groups themselves from wrapping */
+        }
+        .footer-role-group {
+            flex-shrink: 0; /* Prevent groups from shrinking */
+            width: auto; /* Allow width to adjust based on content */
+            display: inline-flex; /* Use inline-flex for horizontal layout within nowrap container */
+            flex-direction: column; /* Stack header and list vertically */
+            align-items: center; /* Center items horizontally */
+            vertical-align: top; /* Align groups to the top */
+            white-space: normal; /* Allow content within the group to wrap normally */
+        }
+        .footer-role-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            width: fit-content; /* Ensure header doesn't stretch unnecessarily */
+        }
         .footer-role-icon { width: 14px; height: 14px; }
-        .footer-list { display: flex; flex-direction: column; gap: 0.25rem; }
-        .manual-picks-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.5rem 1rem; }
-        .footer-list-item { display: flex; align-items: center; color: #d1d5db; font-size: 0.875rem; }
-        .footer-list-icon { width: 20px; height: 20px; border-radius: 3px; margin-right: 4px; flex-shrink: 0; border: 1px solid #4b5563; }
-        .footer-list-icon-error { background-color: #374151; display: inline-flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #9ca3af; }
+        /* Styles for Unavailable List Items (2 vertical columns within each role group) */
+        .footer-unavailable-list {
+            column-count: 2;
+            column-gap: 0.5rem; /* Reduced gap between columns */
+            display: block; /* Needed for column layout */
+            width: 100%; /* Ensure list takes full width of group */
+            max-width: 200px; /* Give the 2-column list a max-width to prevent excessive expansion */
+        }
+        .footer-unavailable-list .footer-list-item {
+             break-inside: avoid-column;
+             page-break-inside: avoid; /* Legacy support */
+             margin-bottom: 0.25rem; /* Adjust as needed */
+             flex-shrink: 0;
+             width: 100%; /* Allow item to take full width of its column */
+        }
+        /* Styles for Highlighted List Items */
+        .manual-picks-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.25rem 0.75rem; } /* Reduced gap */
+
+        /* General Footer List Item Styles */
+        .footer-list-item {
+            display: flex;
+            align-items: center;
+            color: #d1d5db;
+            font-size: 0.9rem; /* Slightly larger font size */
+        }
+        .footer-list-icon {
+            width: 22px; /* Larger icon */
+            height: 22px; /* Larger icon */
+            border-radius: 3px;
+            margin-right: 5px; /* Slightly more margin */
+            flex-shrink: 0;
+            border: 1px solid #4b5563;
+        }
+        .footer-list-icon-error {
+            background-color: #374151;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem; /* Adjusted error text size */
+            color: #9ca3af;
+        }
+
+        /* Text truncation ONLY for UNAVAILABLE list items */
+        .footer-unavailable-list .footer-list-item > span:last-child {
+            white-space: nowrap;      /* Prevent wrapping */
+            overflow: hidden;         /* Hide overflow */
+            text-overflow: ellipsis;  /* Show ellipsis (...) */
+            display: inline-block;    /* Needed for ellipsis */
+            vertical-align: middle;   /* Align text with icon */
+            /* Calculate max-width based on icon size and margin */
+            max-width: calc(100% - 22px - 5px);
+            /* Help enforce max-width in complex layouts */
+            min-width: 0;
+        }
+        /* Allow wrapping for HIGHLIGHTED list items */
+        .manual-picks-list .footer-list-item > span:last-child {
+            display: inline-block;
+            vertical-align: middle;
+            /* Ensure wrapping properties are default (no truncation) */
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+            max-width: none;
+        }
+
+        /* Footer scrollbars (vertical for column, horizontal for groups) */
         .footer-list-column::-webkit-scrollbar { width: 6px; height: 6px; }
         .footer-list-column::-webkit-scrollbar-track { background: #111827; border-radius: 3px; }
         .footer-list-column::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 3px; }
         .footer-list-column::-webkit-scrollbar-thumb:hover { background-color: #6b7280; }
+        /* Horizontal scrollbar for the role groups container */
         .footer-role-groups-container::-webkit-scrollbar { height: 6px; }
         .footer-role-groups-container::-webkit-scrollbar-track { background: #111827; border-radius: 3px; }
         .footer-role-groups-container::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 3px; }
@@ -192,8 +296,8 @@
 
         /* --- Draft Tracker Styles --- */
         .draft-game { border: 1px solid #4b5563; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; background-color: #1f2937; position: relative; }
-        .remove-game-button { position: absolute; right: 8px; top: 8px; background-color: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 18px; font-weight: 500; line-height: 1; cursor: pointer; transition: background-color 0.2s; display: inline-flex; align-items: center; justify-content: center; padding: 0; z-index: 10; }
-        .remove-game-button:hover { background-color: #dc2626; }
+        .remove-game-button { position: absolute; right: 8px; top: 8px; background-color: #00000093; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 18px; font-weight: 500; line-height: 1; cursor: pointer; transition: background-color 0.2s; display: inline-flex; align-items: center; justify-content: center; padding: 0; z-index: 10; }
+        .remove-game-button:hover { background-color: #000000; }
         .remove-game-button svg { width: 18px; height: 18px; fill: white; }
         .draft-columns { display: flex; gap: 0.5rem; align-items: center; }
         .draft-side { flex: 1; display: flex; flex-direction: column; align-items: center; }
@@ -218,9 +322,130 @@
         .add-game-button { padding: 0; margin-top: 0.5rem; border-radius: 50%; border: 1px solid #4b5563; transition: all 0.2s ease-out; cursor: pointer; background-color: #374151; color: #d1d5db; width: 32px; height: 32px; font-size: 24px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
         .add-game-button svg { width: 22px; height: 22px; fill: currentColor; }
         .add-game-button:hover { background-color: #4b5563; border-color: #6b7280; transform: translateY(-1px); }
-        .reset-button { padding: 6px 12px; border-radius: 6px; transition: all 0.2s ease-out; cursor: pointer; font-size: 0.875rem; font-weight: 600; border: 1px solid transparent; }
-        .reset-button.reset-marked:hover { transform: translateY(-1px); background-color: #ca8a04; }
-        .reset-button.reset-series:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        .reset-button { padding: 6px 12px; border-radius: 6px; transition: all 0.2s ease-out; cursor: pointer; font-size: 0.875rem; font-weight: 600; border: 1px solid transparent; white-space: nowrap; }
+        .reset-button.reset-marked:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        .reset-button.reset-series:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+        /* Styles for control rows */
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px; /* Space between the two rows */
+            margin-bottom: 8px; /* Space below the controls */
+        }
+        .controls-row-top {
+            display: flex;
+            justify-content: flex-start; /* Align player buttons left */
+            flex-wrap: wrap;
+            gap: 4px 8px;
+        }
+        .controls-row-bottom {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-container {
+            flex-grow: 1; /* Allow search to take available space */
+            min-width: 200px;
+            max-width: 400px; /* Optional max width */
+        }
+        .role-filters-container, .sort-reset-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 8px;
+            align-items: center; /* Vertically align items */
+        }
+        .sort-reset-container {
+            margin-left: auto; /* Push sort/reset block to the right */
+        }
+        .sort-label {
+             font-size: 0.8rem;
+             font-weight: 500;
+             color: #9ca3af; /* gray-400 */
+             margin-right: 0px; /* Reduced margin */
+             white-space: nowrap;
+        }
+
+        /* --- Modal Styles --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background-color: #1f2937; /* gray-800 */
+            padding: 1.5rem; border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            width: 90%; max-width: 500px; /* Adjust width as needed */
+            position: relative; /* Needed for absolute positioning of suggestions */
+        }
+        .modal-title {
+            font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #e5e7eb;
+        }
+        .modal-confirmation-message {
+            color: #d1d5db; /* gray-300 */
+            margin-bottom: 1.5rem; /* Space before buttons */
+            line-height: 1.6;
+        }
+        .modal-input {
+            width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.375rem;
+            border: 1px solid #4b5563; /* gray-600 */
+            background-color: #374151; /* gray-700 */
+            color: #e5e7eb; /* gray-200 */
+            margin-bottom: 0.5rem;
+            transition: border-color 0.2s;
+        }
+        .modal-input:focus {
+            outline: none; border-color: #3b82f6; /* blue-500 */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+        }
+        .suggestions-container {
+            position: absolute; /* Position relative to modal-content */
+            left: 1.5rem; /* Match modal padding */
+            right: 1.5rem; /* Match modal padding */
+            top: calc(100% - 1rem); /* Position below the input */
+            background-color: #374151; /* gray-700 */
+            border: 1px solid #4b5563; /* gray-600 */
+            border-top: none; /* Remove top border */
+            border-radius: 0 0 0.375rem 0.375rem; /* Rounded bottom corners */
+            max-height: 150px; overflow-y: auto;
+            z-index: 60; /* Ensure it's above modal content */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .suggestion-item {
+            padding: 0.5rem 0.75rem; cursor: pointer;
+            color: #d1d5db; /* gray-300 */
+            transition: background-color 0.15s;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .suggestion-item:hover, .suggestion-item.active {
+            background-color: #4b5563; /* gray-600 */
+            color: #ffffff;
+        }
+        .suggestion-icon { width: 20px; height: 20px; border-radius: 3px; }
+        .modal-buttons {
+            margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; /* Align buttons right */
+        }
+        .modal-button {
+            padding: 0.5rem 1rem; border-radius: 0.375rem; border: none;
+            font-weight: 600; cursor: pointer; transition: background-color 0.2s, filter 0.2s;
+        }
+        .modal-button-confirm { background-color: #1d4ed8; color: white; } /* Blue for Confirm */
+        .modal-button-confirm:hover { filter: brightness(1.1); }
+        .modal-button-danger { background-color: #dc2626; color: white; } /* Red for Danger/Reset */
+        .modal-button-danger:hover { filter: brightness(1.1); }
+        .modal-button-clear { background-color: #eab308; color: #422006; } /* Yellow for Clear */
+        .modal-button-clear:hover { filter: brightness(1.1); }
+        .modal-button-cancel { background-color: #4b5563; color: #e5e7eb; /* Removed margin-left */ }
+        .modal-button-cancel:hover { background-color: #6b7280; }
+
+        /* Scrollbar for suggestions */
+        .suggestions-container::-webkit-scrollbar { width: 6px; }
+        .suggestions-container::-webkit-scrollbar-track { background: #1f2937; border-radius: 3px; }
+        .suggestions-container::-webkit-scrollbar-thumb { background-color: #6b7280; border-radius: 3px; }
+        .suggestions-container::-webkit-scrollbar-thumb:hover { background-color: #9ca3af; }
 
     </style>
 </head>
@@ -233,7 +458,7 @@
         <symbol id="role-top" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Zm11.707 7.707a1 1 0 0 1-1.414 0L10 12.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 11 4.293 6.707a1 1 0 0 1 1.414-1.414L10 9.586l4.293-4.293a1 1 0 0 1 1.414 1.414L11.414 11l4.293 4.293a1 1 0 0 1 0 1.414Z" clip-rule="evenodd"/> </symbol>
         <symbol id="role-jungle" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1ZM8.21 5.215c.09.095.11.22.06.316a5.7 5.7 0 0 0-.26 1.077 6.494 6.494 0 0 0 .45 3.516 2.508 2.508 0 0 1 .88 1.449 2.18 2.18 0 0 1 .03 1.086 4.495 4.495 0 0 0 1.33 2.261 4.5 4.5 0 0 0 4.12 1.058A4.5 4.5 0 0 0 18 13.5a4.5 4.5 0 0 0-1.04-2.863 6.5 6.5 0 0 0-1.5-1.41 6.488 6.488 0 0 0-1.61-1.01 6.487 6.487 0 0 0-2.03-.67 5.49 5.49 0 0 0-1.62-.22 5.5 5.5 0 0 0-1.57.27.53.53 0 0 1-.18.07.5.5 0 0 1-.58-.06.5.5 0 0 1-.1-.58 8.5 8.5 0 0 1 .6-1.66 8.49 8.49 0 0 1 1.43-1.91c.096-.1.22-.13.316-.06Zm1.38 1.19c-.05.06-.08.13-.06.205.03.07.08.13.15.17.07.04.15.04.22 0a.2.2 0 0 0 .15-.16c.01-.08 0-.16-.06-.22a.2.2 0 0 0-.22-.06.2.2 0 0 0-.18.06Zm2.03 1.21a.2.2 0 0 0-.18.06c-.06.06-.08.14-.06.21a.2.2 0 0 0 .15.17c.07.04.15.04.22 0a.2.2 0 0 0 .15-.16c.01-.08 0-.16-.06-.22a.2.2 0 0 0-.22-.06ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Z" clip-rule="evenodd"/> </symbol>
         <symbol id="role-mid" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Zm5-4a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1ZM9 13a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1Z" clip-rule="evenodd"/> </symbol>
-        <symbol id="role-adc" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Zm1.707-3.293a1 1 0 0 1 0-1.414l4-4a1 1 0 0 1 1.414 0l4 4a1 1 0 0 1-1.414 1.414L10 2.414 6.707 5.707a1 1 0 0 1-1 0ZM6.707 14.293a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L10 17.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" clip-rule="evenodd"/> </symbol>
+        <symbol id="role-bot" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Zm1.707-3.293a1 1 0 0 1 0-1.414l4-4a1 1 0 0 1 1.414 0l4 4a1 1 0 0 1-1.414 1.414L10 2.414 6.707 5.707a1 1 0 0 1-1 0ZM6.707 14.293a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L10 17.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" clip-rule="evenodd"/> </symbol>
         <symbol id="role-support" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4ZM9 5a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1Zm1 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" clip-rule="evenodd"/> </symbol>
         <symbol id="role-unknown" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0ZM8.94 6.553a1 1 0 0 0-1.88 0l-1.433 4.3a1 1 0 0 0 1.88 0l.213-1.066h1.94l.213 1.066a1 1 0 0 0 1.88 0l-1.433-4.3Zm-1.15 2.426 1.15-3.44 1.15 3.44H7.79ZM12.25 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" /> </symbol>
       </defs>
@@ -252,101 +477,288 @@
             </button>
         </div>
 
-        <div x-show="currentView === 'pool'" x-transition>
-           <div class="flex flex-col md:flex-row items-center gap-4 mb-4"> <div class="relative w-full md:w-1/2 lg:w-1/3"> <input type="text" x-model.debounce.300ms="searchTerm" placeholder="Search Champions..." class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 transition duration-150 ease-in-out hover:bg-gray-600 focus:bg-gray-600"> <button x-show="searchTerm" @click="searchTerm = ''" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-200" aria-label="Clear search"> &times; </button> </div> <div class="flex flex-wrap justify-center md:justify-end items-center gap-x-2 gap-y-2 flex-grow"> <button @click="toggleFilter('all')" class="filter-button" :class="{'active': currentFilter === 'all'}">All</button> <button @click="toggleFilter('pool')" class="filter-button" :class="{'active': currentFilter === 'pool'}">Team</button> <template x-for="player in Object.keys(teamPool)" :key="player"> <button @click="toggleFilter(player)" class="filter-button" :class="{'active': currentFilter === player}" x-text="player"></button> </template> <button @click="resetMarkedPicks()" class="reset-button reset-marked bg-yellow-600 hover:bg-yellow-500 text-white ml-4" aria-label="Reset highlighted picks"> Reset Highlighted </button> <button @click="resetDraftSeries()" class="reset-button reset-series bg-blue-700 hover:bg-blue-600 text-white ml-2" aria-label="Reset series draft"> Reset Series </button> </div> </div>
-            <div class="champion-grid-container"> <div class="champion-grid-inner"> <p x-show="filteredChampions.length === 0" class="text-gray-400 col-span-full text-center py-4"> No champions match your filter/search. </p>
-                <template x-for="champion in filteredChampions" :key="champion.id">
-                    <div x-transition:enter="transition ease-in-out duration-200"
-                         x-transition:enter-start="opacity-0 transform scale-95"
-                         x-transition:enter-end="opacity-100 transform scale-100"
-                         x-transition:leave="transition ease-in-out duration-150"
-                         x-transition:leave-start="opacity-100 transform scale-100"
-                         x-transition:leave-end="opacity-0 transform scale-95"
-                         class="champion-card"
-                         :class="{
-                            'unavailable': isUnavailable(champion.name),
-                            'manually-marked': isPicked(champion.name) && !isUnavailable(champion.name),
-                            'in-pool': champion.poolInfo && champion.poolInfo.isInPool,
-                            'not-in-pool': (!champion.poolInfo || !champion.poolInfo.isInPool) && !isUnavailable(champion.name) && !isPicked(champion.name),
-                            [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name)
-                         }"
-                         @click="!isUnavailable(champion.name) && togglePick(champion.name)"
-                         role="button"
-                         :aria-disabled="isUnavailable(champion.name)"
-                         :aria-pressed="isPicked(champion.name)"
-                         :aria-label="`${champion.name} - ${champion.poolInfo && champion.poolInfo.isInPool ? ('Tier ' + champion.poolInfo.tier + ' (' + (champion.poolInfo.players || []).join(', ') + ')') : 'Not in Pool'}${isUnavailable(champion.name) ? ' (Unavailable)' : (isPicked(champion.name) ? ' (Marked)' : '')}`"
-                         :tabindex="0"
-                         x-cloak
-                         :title="champion.name">
-
-                         <img class="champion-icon" :src="getChampionIconUrl(champion.name)" :alt="champion.name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                         <div class="img-error-placeholder" style="display: none;">?</div>
-                         <span class="champion-name-text text-gray-200" x-text="champion.name" :title="champion.name"></span>
-
-                         <span class="badge tier-badge"
-                               x-show="champion.poolInfo && champion.poolInfo.isInPool && champion.poolInfo.tier && !isUnavailable(champion.name)"
-                               x-text="champion.poolInfo?.tier">
-                         </span>
-
-                         <div class="player-badge-container"
-                              x-show="champion.poolInfo && champion.poolInfo.isInPool && champion.poolInfo.players && champion.poolInfo.players.length > 0 && !isUnavailable(champion.name)">
-                            <template x-for="player in (champion.poolInfo?.players || [])" :key="player">
-                                <img class="player-badge" :src="getRoleIconUrl(player)" :alt="player" :title="player" onerror="this.style.opacity='0.5'; this.style.backgroundColor='red';" />
-                            </template>
-                         </div>
-
-                         <span class="picked-overlay-text" x-show="isUnavailable(champion.name) || isPicked(champion.name)" x-text="isUnavailable(champion.name) ? 'UNAVAILABLE' : 'MARKED'"></span>
+        <div class="relative">
+            <div x-show="currentView === 'pool'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="absolute w-full top-0 left-0">
+                <div class="controls-container">
+                    <div class="controls-row-top">
+                        <button @click="setFilter('pool', 'all')" class="filter-button" :class="{'active': currentFilter === 'pool'}">Team Pool</button>
+                        <button @click="setFilter('Top', 'all')" class="filter-button" :class="{'active': currentFilter === 'Top'}">Mietek</button>
+                        <button @click="setFilter('Jungle', 'all')" class="filter-button" :class="{'active': currentFilter === 'Jungle'}">Lulas</button>
+                        <button @click="setFilter('Mid', 'all')" class="filter-button" :class="{'active': currentFilter === 'Mid'}">Kaymin</button>
+                        <button @click="setFilter('Bot', 'all')" class="filter-button" :class="{'active': currentFilter === 'Bot'}">Exofeng</button>
+                        <button @click="setFilter('Support', 'all')" class="filter-button" :class="{'active': currentFilter === 'Support'}">Kasing</button>
                     </div>
-                </template>
-             </div> </div>
 
-            <div class="footer-lists-container">
-                <div class="footer-list-column">
-                    <h2>Unavailable Champions (<span x-text="sortedUnavailableChampions.length"></span>)</h2>
-                    <p class="text-gray-400 text-sm" x-show="sortedUnavailableChampions.length === 0" x-cloak>No champions picked in draft yet.</p>
-                    <div class="footer-role-groups-container" x-show="sortedUnavailableChampions.length > 0" x-cloak>
-                        <template x-for="role in ['Top', 'Jungle', 'Mid', 'Adc', 'Support', 'Unknown']" :key="role">
-                            <div class="footer-role-group" x-show="unavailableChampionsByRole[role] && unavailableChampionsByRole[role].length > 0">
-                                <div class="footer-role-header">
-                                     <img class="footer-role-icon" :src="getRoleIconUrl(role)" :alt="role" :title="role" onerror="this.style.opacity='0.5'; this.style.backgroundColor='gray';"/>
-                                     <span x-text="role"></span>
-                                </div>
-                                <div class="footer-list">
-                                    <template x-for="name in unavailableChampionsByRole[role]" :key="name">
-                                        <div class="footer-list-item">
-                                            <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-                                            <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>
-                                            <span x-text="name"></span>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
+                    <div class="controls-row-bottom">
+                        <div class="relative search-container">
+                            <input type="text" x-model.debounce.300ms="searchTerm" placeholder="Search Champions..." class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 transition duration-150 ease-in-out hover:bg-gray-600 focus:bg-gray-600">
+                            <button x-show="searchTerm" @click="searchTerm = ''" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-200" aria-label="Clear search">
+                                &times;
+                            </button>
+                        </div>
+                        <div class="role-filters-container">
+                            <button @click="setFilter('all', 'all')" class="filter-button" :class="{'active': currentFilter === 'all' && roleFilter === 'all'}">All</button>
+                            <button @click="setFilter('all', 'Top')" class="filter-button" :class="{'active': roleFilter === 'Top'}">Top</button>
+                            <button @click="setFilter('all', 'Jungle')" class="filter-button" :class="{'active': roleFilter === 'Jungle'}">Jungle</button>
+                            <button @click="setFilter('all', 'Mid')" class="filter-button" :class="{'active': roleFilter === 'Mid'}">Mid</button>
+                            <button @click="setFilter('all', 'Bot')" class="filter-button" :class="{'active': roleFilter === 'Bot'}">Bot</button>
+                            <button @click="setFilter('all', 'Support')" class="filter-button" :class="{'active': roleFilter === 'Support'}">Support</button>
+                        </div>
+                        <div class="sort-reset-container">
+                             <span class="sort-label">Sort By:</span>
+                             <button @click="setSortOrder('name')" class="sort-button" :class="{'active': sortOrder === 'name'}">Name</button>
+                             <button @click="setSortOrder('tier')" class="sort-button" :class="{'active': sortOrder === 'tier'}">Tier</button>
+                             <button @click="openConfirmationModal('Are you sure you want to reset highlighted picks?', () => resetMarkedPicksAction())" class="reset-button reset-marked bg-blue-700 hover:bg-blue-600 text-white ml-2" aria-label="Reset highlighted picks">
+                                 Reset Highlighted
+                             </button>
+                             <button @click="openConfirmationModal('Reset entire series draft? This cannot be undone.', () => resetDraftSeriesAction(), 'resetDraftSeries')" class="reset-button reset-series bg-yellow-600 hover:bg-yellow-500 text-white ml-2" aria-label="Reset series draft">
+                                 Reset Drafts
+                             </button>
+                        </div>
                     </div>
                 </div>
-                <div class="footer-list-column">
-                    <h2>Highlighted Champions (<span x-text="pickedChampions.length"></span>)</h2>
-                    <p class="text-gray-400 text-sm" x-show="pickedChampions.length === 0" x-cloak>No champions highlighted.</p>
-                    <div class="manual-picks-list" x-show="pickedChampions.length > 0" x-cloak>
-                        <template x-for="name in pickedChampions.slice().sort()" :key="name">
-                            <div class="footer-list-item">
-                                <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-                                <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>
-                                <span x-text="name"></span>
+                <div class="champion-grid-container">
+                    <div class="champion-grid-inner">
+                        <p x-show="filteredChampions.length === 0" class="text-gray-400 col-span-full text-center py-4" x-cloak>
+                            No champions match your filter/search.
+                        </p>
+                        <template x-for="champion in filteredChampions" :key="champion.id">
+                            <div x-transition:enter="transition ease-in-out duration-200"
+                                 x-transition:enter-start="opacity-0 transform scale-95"
+                                 x-transition:enter-end="opacity-100 transform scale-100"
+                                 x-transition:leave="transition ease-in-out duration-150"
+                                 x-transition:leave-start="opacity-100 transform scale-100"
+                                 x-transition:leave-end="opacity-0 transform scale-95"
+                                 class="champion-card"
+                                 :class="{
+                                    'unavailable': isUnavailable(champion.name),
+                                    'manually-marked': isPicked(champion.name) && !isUnavailable(champion.name),
+                                    'in-pool': champion.poolInfo && champion.poolInfo.isInPool,
+                                    'not-in-pool': (!champion.poolInfo || !champion.poolInfo.isInPool) && !isUnavailable(champion.name) && !isPicked(champion.name),
+                                    [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name)
+                                 }"
+                                 @click="!isUnavailable(champion.name) && togglePick(champion.name)"
+                                 role="button"
+                                 :aria-disabled="isUnavailable(champion.name)"
+                                 :aria-pressed="isPicked(champion.name)"
+                                 :aria-label="`${champion.name} - ${champion.poolInfo && champion.poolInfo.isInPool ? ('Tier ' + champion.poolInfo.tier + ' (' + (champion.poolInfo.players || []).join(', ') + ')') : 'Not in Pool'}${isUnavailable(champion.name) ? ' (Unavailable)' : (isPicked(champion.name) ? ' (Marked)' : '')}`"
+                                 :tabindex="0"
+                                 x-cloak
+                                 :title="champion.name">
+
+                                 <img class="champion-icon" :src="getChampionIconUrl(champion.name)" :alt="champion.name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                 <div class="img-error-placeholder" style="display: none;">?</div>
+                                 <span class="champion-name-text text-gray-200" x-text="champion.name" :title="champion.name"></span>
+
+                                 <span class="badge tier-badge"
+                                       x-show="champion.poolInfo && champion.poolInfo.isInPool && champion.poolInfo.tier && !isUnavailable(champion.name)"
+                                       x-text="champion.poolInfo?.tier"
+                                       x-cloak>
+                                 </span>
+
+                                 <div class="player-badge-container"
+                                      x-show="champion.poolInfo && champion.poolInfo.isInPool && champion.poolInfo.players && champion.poolInfo.players.length > 0 && !isUnavailable(champion.name)"
+                                      x-cloak>
+                                    <template x-for="player in (champion.poolInfo?.players || [])" :key="player">
+                                        <img class="player-badge" :src="getRoleIconUrl(player)" :alt="player" :title="player" onerror="this.style.opacity='0.5'; this.style.backgroundColor='red';" />
+                                    </template>
+                                 </div>
+
+                                 <span class="picked-overlay-text" x-show="isUnavailable(champion.name) || isPicked(champion.name)" x-text="isUnavailable(champion.name) ? 'UNAVAILABLE' : 'MARKED'" x-cloak></span>
                             </div>
                         </template>
+                     </div>
+                 </div>
+                 <div class="footer-lists-container">
+                    <div class="footer-list-column footer-unavailable-column">
+                        <!-- <h2>Unavailable Champions (<span x-text="sortedUnavailableChampions.length"></span>)</h2> -->
+                        <p class="text-gray-400 text-sm" x-show="sortedUnavailableChampions.length === 0" x-cloak>No champions picked in draft yet.</p>
+                        <div class="footer-role-groups-container" x-show="sortedUnavailableChampions.length > 0" x-cloak>
+                            <template x-for="role in ['Top', 'Jungle', 'Mid', 'Bot', 'Support', 'Unknown']" :key="role">
+                                <div class="footer-role-group" x-show="unavailableChampionsByRole[role] && unavailableChampionsByRole[role].length > 0" x-cloak>
+                                    <div class="footer-role-header">
+                                         <img class="footer-role-icon" :src="getRoleIconUrl(role)" :alt="role" :title="role" onerror="this.style.opacity='0.5'; this.style.backgroundColor='gray';"/>
+                                         <span x-text="role"></span>
+                                    </div>
+                                    <div class="footer-unavailable-list">
+                                        <template x-for="name in unavailableChampionsByRole[role]" :key="name">
+                                            <div class="footer-list-item">
+                                                <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                                <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>
+                                                <span x-text="name"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
+                    <div class="footer-list-column footer-highlighted-column">
+                        <h2>Highlighted Champions (<span x-text="pickedChampions.length"></span>)</h2>
+                        <p class="text-gray-400 text-sm" x-show="pickedChampions.length === 0" x-cloak>No champions highlighted.</p>
+                        <div class="manual-picks-list" x-show="pickedChampions.length > 0" x-cloak>
+                            <template x-for="name in pickedChampions.slice().sort()" :key="name">
+                                <div class="footer-list-item">
+                                    <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                    <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>
+                                    <span x-text="name"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="currentView === 'draftTracker'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="draft-tracker absolute w-full top-0 left-0" x-cloak>
+                 <template x-for="(game, gameIndex) in draftSeries" :key="gameIndex">
+                    <div class="draft-game">
+                        <button @click="openConfirmationModal('Are you sure you want to remove Game ' + (gameIndex + 1) + '?', () => removeGameAction(gameIndex), 'removeGame')" x-show="gameIndex > 0" class="remove-game-button" title="Remove this game" aria-label="Remove this game" x-cloak>
+                            <svg><use href="#icon-close"></use></svg>
+                        </button>
+                        <div class="draft-columns">
+                            <div class="draft-side blue">
+                                 <div class="draft-section">
+                                     <div class="draft-slots">
+                                         <template x-for="i in 3" :key="`b-ban-slot-${i}`">
+                                            <div class="draft-slot ban-slot" :class="{'filled': game.blueBans[i-1]}" @click="openChampionSelectModal(gameIndex, 'blueBans', i-1)">
+                                                <template x-if="game.blueBans[i-1]"><img :src="getChampionIconUrl(game.blueBans[i-1], 'ban')" :alt="game.blueBans[i-1]" onerror="this.style.opacity=0.5"></template>
+                                                <template x-if="!game.blueBans[i-1]"><span class="slot-placeholder">&times;</span></template>
+                                            </div>
+                                         </template>
+                                         <div class="ban-group-separator"></div>
+                                         <template x-for="i in 2" :key="`b-ban-slot-${i+3}`">
+                                            <div class="draft-slot ban-slot" :class="{'filled': game.blueBans[i+2]}" @click="openChampionSelectModal(gameIndex, 'blueBans', i+2)">
+                                                <template x-if="game.blueBans[i+2]"><img :src="getChampionIconUrl(game.blueBans[i+2], 'ban')" :alt="game.blueBans[i+2]" onerror="this.style.opacity=0.5"></template>
+                                                <template x-if="!game.blueBans[i+2]"><span class="slot-placeholder">&times;</span></template>
+                                            </div>
+                                         </template>
+                                     </div>
+                                     <div class="draft-slots">
+                                         <template x-for="i in 5" :key="`b-pick-slot-${i}`">
+                                            <div class="draft-slot pick-slot" :class="{'filled': game.bluePicks[i-1]}" @click="openChampionSelectModal(gameIndex, 'bluePicks', i-1)">
+                                                <template x-if="game.bluePicks[i-1]"><img :src="getChampionIconUrl(game.bluePicks[i-1], 'pick')" :alt="game.bluePicks[i-1]" onerror="this.style.opacity=0.5"></template>
+                                                <template x-if="!game.bluePicks[i-1]"><span class="slot-placeholder">+</span></template>
+                                            </div>
+                                         </template>
+                                     </div>
+                                 </div>
+                            </div>
+                            <div class="game-indicator">
+                                 <h3 x-text="`Game ${gameIndex + 1}`"></h3>
+                            </div>
+                            <div class="draft-side red">
+                                 <div class="draft-section">
+                                     <div class="draft-slots">
+                                         <template x-for="i in 3" :key="`r-ban-slot-${i}`">
+                                            <div class="draft-slot ban-slot" :class="{'filled': game.redBans[i-1]}" @click="openChampionSelectModal(gameIndex, 'redBans', i-1)">
+                                                <template x-if="game.redBans[i-1]"><img :src="getChampionIconUrl(game.redBans[i-1], 'ban')" :alt="game.redBans[i-1]" onerror="this.style.opacity=0.5"></template>
+                                                <template x-if="!game.redBans[i-1]"><span class="slot-placeholder">&times;</span></template>
+                                            </div>
+                                         </template>
+                                         <div class="ban-group-separator"></div>
+                                         <template x-for="i in 2" :key="`r-ban-slot-${i+3}`">
+                                            <div class="draft-slot ban-slot" :class="{'filled': game.redBans[i+2]}" @click="openChampionSelectModal(gameIndex, 'redBans', i+2)">
+                                                <template x-if="game.redBans[i+2]"><img :src="getChampionIconUrl(game.redBans[i+2], 'ban')" :alt="game.redBans[i+2]" onerror="this.style.opacity=0.5"></template>
+                                                <template x-if="!game.redBans[i+2]"><span class="slot-placeholder">&times;</span></template>
+                                            </div>
+                                         </template>
+                                     </div>
+                                     <div class="draft-slots">
+                                         <template x-for="i in 5" :key="`r-pick-slot-${i}`">
+                                            <div class="draft-slot pick-slot" :class="{'filled': game.redPicks[i-1]}" @click="openChampionSelectModal(gameIndex, 'redPicks', i-1)">
+                                                <template x-if="game.redPicks[i-1]"><img :src="getChampionIconUrl(game.redPicks[i-1], 'pick')" :alt="game.redPicks[i-1]" onerror="this.style.opacity=0.5"></template>
+                                                <template x-if="!game.redPicks[i-1]"><span class="slot-placeholder">+</span></template>
+                                            </div>
+                                         </template>
+                                     </div>
+                                 </div>
+                            </div>
+                        </div>
+                     </div>
+                 </template>
+                 <div class="text-center mt-4">
+                    <button @click="addNewGame()" class="add-game-button" title="Add Game to Series">
+                        <svg><use href="#icon-plus"></use></svg>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <div x-show="currentView === 'draftTracker'" x-transition class="draft-tracker">
-             <template x-for="(game, gameIndex) in draftSeries" :key="gameIndex"> <div class="draft-game"> <button @click="removeGame(gameIndex)" x-show="gameIndex > 0" class="remove-game-button" title="Remove this game" aria-label="Remove this game"> <svg><use href="#icon-close"></use></svg> </button> <div class="draft-columns"> <div class="draft-side blue"> <div class="draft-section"> <div class="draft-slots"> <template x-for="i in 3" :key="`b-ban-slot-${i}`"> <div class="draft-slot ban-slot" :class="{'filled': game.blueBans[i-1]}" @click="selectChampionForSlot(gameIndex, 'blueBans', i-1)"> <template x-if="game.blueBans[i-1]"><img :src="getChampionIconUrl(game.blueBans[i-1], 'ban')" :alt="game.blueBans[i-1]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.blueBans[i-1]"><span class="slot-placeholder">&times;</span></template> </div> </template> <div class="ban-group-separator"></div> <template x-for="i in 2" :key="`b-ban-slot-${i+3}`"> <div class="draft-slot ban-slot" :class="{'filled': game.blueBans[i+2]}" @click="selectChampionForSlot(gameIndex, 'blueBans', i+2)"> <template x-if="game.blueBans[i+2]"><img :src="getChampionIconUrl(game.blueBans[i+2], 'ban')" :alt="game.blueBans[i+2]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.blueBans[i+2]"><span class="slot-placeholder">&times;</span></template> </div> </template> </div> <div class="draft-slots"> <template x-for="i in 5" :key="`b-pick-slot-${i}`"> <div class="draft-slot pick-slot" :class="{'filled': game.bluePicks[i-1]}" @click="selectChampionForSlot(gameIndex, 'bluePicks', i-1)"> <template x-if="game.bluePicks[i-1]"><img :src="getChampionIconUrl(game.bluePicks[i-1], 'pick')" :alt="game.bluePicks[i-1]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.bluePicks[i-1]"><span class="slot-placeholder">+</span></template> </div> </template> </div> </div> </div> <div class="game-indicator"> <h3 x-text="`Game ${gameIndex + 1}`"></h3> </div> <div class="draft-side red"> <div class="draft-section"> <div class="draft-slots"> <template x-for="i in 3" :key="`r-ban-slot-${i}`"> <div class="draft-slot ban-slot" :class="{'filled': game.redBans[i-1]}" @click="selectChampionForSlot(gameIndex, 'redBans', i-1)"> <template x-if="game.redBans[i-1]"><img :src="getChampionIconUrl(game.redBans[i-1], 'ban')" :alt="game.redBans[i-1]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.redBans[i-1]"><span class="slot-placeholder">&times;</span></template> </div> </template> <div class="ban-group-separator"></div> <template x-for="i in 2" :key="`r-ban-slot-${i+3}`"> <div class="draft-slot ban-slot" :class="{'filled': game.redBans[i+2]}" @click="selectChampionForSlot(gameIndex, 'redBans', i+2)"> <template x-if="game.redBans[i+2]"><img :src="getChampionIconUrl(game.redBans[i+2], 'ban')" :alt="game.redBans[i+2]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.redBans[i+2]"><span class="slot-placeholder">&times;</span></template> </div> </template> </div> <div class="draft-slots"> <template x-for="i in 5" :key="`r-pick-slot-${i}`"> <div class="draft-slot pick-slot" :class="{'filled': game.redPicks[i-1]}" @click="selectChampionForSlot(gameIndex, 'redPicks', i-1)"> <template x-if="game.redPicks[i-1]"><img :src="getChampionIconUrl(game.redPicks[i-1], 'pick')" :alt="game.redPicks[i-1]" onerror="this.style.opacity=0.5"></template> <template x-if="!game.redPicks[i-1]"><span class="slot-placeholder">+</span></template> </div> </template> </div> </div> </div> </div> </div> </template>
-            <div class="text-center mt-4"> <button @click="addNewGame()" class="add-game-button" title="Add Game to Series"> <svg><use href="#icon-plus"></use></svg> </button> </div>
-        </div> </div> <script>
+        <div x-show="modalType !== 'closed'"
+             class="modal-overlay"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0 resetModalState()"
+             @keydown.escape.window="closeModal()"
+             x-cloak>
+            <div class="modal-content" @click.outside="closeModal()">
+                <h3 class="modal-title" x-text="modalTitle">Modal Title</h3>
+
+                <div x-show="modalType === 'championSelect'" x-cloak>
+                    <div class="relative">
+                        <input type="text"
+                               class="modal-input"
+                               placeholder="Type champion name..."
+                               x-model="modalSearchTerm"
+                               @input="updateSuggestions()"
+                               @keydown.enter.prevent="confirmModalAction()"
+                               @keydown.arrow-down.prevent="selectNextSuggestion()"
+                               @keydown.arrow-up.prevent="selectPreviousSuggestion()"
+                               x-ref="modalInput">
+
+                        <div x-show="modalSuggestions.length > 0 && modalSearchTerm.length > 0"
+                             class="suggestions-container"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-0 -translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 -translate-y-1"
+                             x-cloak>
+                            <template x-for="(suggestion, index) in modalSuggestions" :key="suggestion.id">
+                                <div class="suggestion-item"
+                                     :class="{'active': modalSuggestionIndex === index}"
+                                     @click="selectSuggestion(suggestion.name)"
+                                     @mouseenter="modalSuggestionIndex = index">
+                                     <img class="suggestion-icon" :src="getChampionIconUrl(suggestion.name, 'list')" :alt="suggestion.name" onerror="this.style.opacity=0.5">
+                                     <span x-text="suggestion.name"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                     <div class="modal-buttons mt-4">
+                        <button @click="clearModalSelection()" class="modal-button modal-button-clear" x-show="modalCurrentValue" x-cloak>Clear Slot</button>
+                        <div class="ml-auto flex gap-3">
+                            <button @click="confirmModalAction()" class="modal-button modal-button-confirm">Confirm</button>
+                            <button @click="closeModal()" class="modal-button modal-button-cancel">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="modalType === 'confirm'" x-cloak>
+                    <p class="modal-confirmation-message" x-text="confirmationMessage"></p>
+                     <div class="modal-buttons">
+                        <button @click="closeModal()" class="modal-button modal-button-cancel">Cancel</button>
+                        <button @click="confirmModalAction()"
+                                :class="{
+                                    'modal-button': true,
+                                    'modal-button-danger': confirmationAction === 'resetDraftSeries' || confirmationAction === 'removeGame',
+                                    'modal-button-confirm': confirmationAction !== 'resetDraftSeries' && confirmationAction !== 'removeGame'
+                                }">Confirm</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        </div>
+
+    <script>
         // --- Firebase Configuration ---
         const firebaseConfig = {
-          apiKey: "AIzaSyA8Sn1xWu628UB1MUABfvohYLzuchWVX18", // Replace with your actual API key
+          apiKey: "YOUR_API_KEY", // Replace with your actual API key if needed, but seems you have it hardcoded below
           authDomain: "fearless-tools.firebaseapp.com",
           projectId: "fearless-tools",
           storageBucket: "fearless-tools.appspot.com",
@@ -359,6 +771,8 @@
         let firebaseApp;
         let db;
         try {
+            // Use hardcoded key from original script if needed, otherwise use above config
+            firebaseConfig.apiKey = "AIzaSyA8Sn1xWu628UB1MUABfvohYLzuchWVX18"; // Using the key from the original script
             if (!firebase.apps.length) {
                 firebaseApp = firebase.initializeApp(firebaseConfig);
             } else {
@@ -368,13 +782,14 @@
             console.log("Firebase Initialized Successfully.");
         } catch (e) {
             console.error("Firebase initialization failed:", e);
-            db = null;
+            db = null; // Set db to null if initialization fails
         }
 
         // --- Firestore Helper Functions ---
         const DRAFT_COLLECTION = "drafts";
-        const DRAFT_DOC_ID = 'current_draft'; // MAKE DYNAMIC LATER
+        const DRAFT_DOC_ID = 'current_draft'; // Consider making this dynamic later
 
+        // Fetches draft data from Firestore, providing default structure if not found or on error
         async function fetchDraftDataFromFirestore() {
             console.log(`Fetching draft data from ${DRAFT_COLLECTION}/${DRAFT_DOC_ID}...`);
             const defaultData = {
@@ -382,7 +797,7 @@
                 pickedChampions: []
             };
             if (!db) {
-                 console.error("Firestore not initialized.");
+                 console.error("Firestore not initialized. Returning default data.");
                  return defaultData;
             }
             try {
@@ -391,8 +806,17 @@
                 if (docSnap.exists) {
                     console.log("Firestore data found.");
                     const data = docSnap.data();
-                    const draftSeries = (Array.isArray(data.draftSeries) && data.draftSeries.length > 0) ? data.draftSeries : defaultData.draftSeries;
+                    // Validate and sanitize loaded data before assigning
+                    const draftSeries = (Array.isArray(data.draftSeries) && data.draftSeries.length > 0)
+                        ? data.draftSeries.map(game => ({ // Ensure each game has the correct structure
+                              blueBans: Array.isArray(game?.blueBans) && game.blueBans.length === 5 ? game.blueBans : Array(5).fill(null),
+                              bluePicks: Array.isArray(game?.bluePicks) && game.bluePicks.length === 5 ? game.bluePicks : Array(5).fill(null),
+                              redBans: Array.isArray(game?.redBans) && game.redBans.length === 5 ? game.redBans : Array(5).fill(null),
+                              redPicks: Array.isArray(game?.redPicks) && game.redPicks.length === 5 ? game.redPicks : Array(5).fill(null),
+                          }))
+                        : defaultData.draftSeries; // Fallback to default if data is invalid
                     const pickedChampions = Array.isArray(data.pickedChampions) ? data.pickedChampions : defaultData.pickedChampions;
+
                     return { draftSeries, pickedChampions };
                 } else {
                     console.log("No draft data found in Firestore, using defaults.");
@@ -400,15 +824,29 @@
                 }
             } catch (error) {
                 console.error("Error fetching draft data from Firestore:", error);
-                 return defaultData;
+                 return defaultData; // Return default data on error
             }
         }
 
+        // Saves draft data to Firestore, ensuring structure integrity
         async function saveDraftDataToFirestore(draftData) {
              if (!db) { console.error("Firestore not initialized. Cannot save."); return; }
              console.log(`Saving draft data to ${DRAFT_COLLECTION}/${DRAFT_DOC_ID}:`, draftData);
              try {
-                 await db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID).set(draftData, { merge: true });
+                 // Basic validation before saving to ensure correct structure
+                 const dataToSave = {
+                     pickedChampions: Array.isArray(draftData.pickedChampions) ? draftData.pickedChampions : [],
+                     draftSeries: (Array.isArray(draftData.draftSeries) && draftData.draftSeries.length > 0)
+                        ? draftData.draftSeries.map(game => ({ // Ensure structure within series
+                              blueBans: Array.isArray(game?.blueBans) && game.blueBans.length === 5 ? game.blueBans : Array(5).fill(null),
+                              bluePicks: Array.isArray(game?.bluePicks) && game.bluePicks.length === 5 ? game.bluePicks : Array(5).fill(null),
+                              redBans: Array.isArray(game?.redBans) && game.redBans.length === 5 ? game.redBans : Array(5).fill(null),
+                              redPicks: Array.isArray(game?.redPicks) && game.redPicks.length === 5 ? game.redPicks : Array(5).fill(null),
+                          }))
+                        : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }] // Default if invalid
+                 };
+                 // Use set with merge:true to update or create the document
+                 await db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID).set(dataToSave, { merge: true });
                  console.log("Draft data saved successfully.");
              } catch (error) {
                  console.error("Error saving draft data to Firestore:", error);
@@ -420,86 +858,155 @@
         function draftHelper() {
             return {
                 // --- State ---
-                allChampions: [], teamPool: {}, pickedChampions: [],
-                currentFilter: 'all', searchTerm: '',
-                currentView: 'pool',
-                draftSeries: [ // Initialize with default structure
+                allChampions: [], // Holds data from champions.js
+                teamPool: {}, // Holds data from champions.js (teamTierList)
+                pickedChampions: [], // Manually highlighted champions (synced with Firestore)
+                currentFilter: 'all', // 'all', 'pool', or player role (e.g., 'Top')
+                roleFilter: 'all', // 'all' or specific role (e.g., 'Jungle')
+                searchTerm: '', // Input for champion search
+                sortOrder: 'name', // 'name' or 'tier'
+                currentView: 'pool', // 'pool' or 'draftTracker'
+                draftSeries: [ // Array of draft games (synced with Firestore)
                     { blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }
                 ],
-                isLoading: true,
-                _saveTimeout: null,
-                _unsubscribeFirestore: null,
+                isLoading: true, // Flag for initial data loading
+                _saveTimeout: null, // Timeout ID for debounced Firestore save
+                _unsubscribeFirestore: null, // Function to detach Firestore listener
+                _defaultPoolInfo: { isInPool: false, tier: null, players: [], tierClass: 'tier-DEFAULT' }, // Default structure for pool info
+                _tierOrderValue: { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'DEFAULT': 0 }, // Numerical value for tier sorting
 
-                // Default pool info structure
-                _defaultPoolInfo: { isInPool: false, tier: null, players: [], tierClass: 'tier-DEFAULT' },
+                // Modal State
+                modalType: 'closed', // 'closed', 'championSelect', 'confirm'
+                modalTarget: { gameIndex: null, draftType: null, slotIndex: null }, // Tracks which draft slot the modal is for
+                modalSearchTerm: '', // Search term within the champion select modal
+                modalSuggestions: [], // Filtered champion suggestions for the modal
+                modalSuggestionIndex: -1, // Index of the currently highlighted suggestion
+                modalCurrentValue: null, // The champion currently in the targeted slot (if any)
+                confirmationMessage: '', // Message displayed in the confirmation modal
+                confirmationCallback: null, // Function to execute when confirmation is confirmed
+                confirmationAction: '', // Identifier for styling the confirm button (e.g., 'resetDraftSeries', 'removeGame')
 
                 // --- Computed Properties ---
+                // (Computed properties remain unchanged)
                 get unavailableChampions() {
                     const unavailable = new Set();
                     this.draftSeries.forEach(game => {
-                        game.bluePicks.forEach(pick => pick && unavailable.add(pick));
-                        game.redPicks.forEach(pick => pick && unavailable.add(pick));
+                        (game?.bluePicks ?? []).forEach(pick => pick && unavailable.add(pick));
+                        (game?.redPicks ?? []).forEach(pick => pick && unavailable.add(pick));
+                        (game?.blueBans ?? []).forEach(ban => ban && unavailable.add(ban));
+                        (game?.redBans ?? []).forEach(ban => ban && unavailable.add(ban));
                     });
                     return unavailable;
                 },
-                get sortedUnavailableChampions() { return Array.from(this.unavailableChampions).sort(); },
+                get sortedUnavailableChampions() {
+                    return Array.from(this.unavailableChampions).sort();
+                },
                 get unavailableChampionsByRole() {
-                    const grouped = { Top: [], Jungle: [], Mid: [], Adc: [], Support: [], Unknown: [] };
-                    const roleOrder = ['Top', 'Jungle', 'Mid', 'Adc', 'Support'];
+                    const grouped = { Top: [], Jungle: [], Mid: [], Bot: [], Support: [], Unknown: [] };
+                    const validRoles = new Set(['Top', 'Jungle', 'Mid', 'Bot', 'Support']);
                     this.unavailableChampions.forEach(championName => {
                         let assignedRole = 'Unknown';
-                        if (this.teamPool && Object.keys(this.teamPool).length > 0) {
-                            for (const role of roleOrder) { if (this.teamPool[role]?.[championName]) { assignedRole = role; break; } }
-                            if (assignedRole === 'Unknown') { for (const role in this.teamPool) { if (this.teamPool[role]?.[championName]) { assignedRole = role; break; } } }
+                        const teamRoles = Object.keys(this.teamPool).filter(role => this.teamPool[role]?.[championName]);
+                        const teamRoleCount = teamRoles.length;
+                        const champData = this.allChampions.find(c => c.name === championName);
+                        const mainRole = champData?.mainRole;
+                        if (teamRoleCount === 1) {
+                            assignedRole = teamRoles[0];
+                        } else if (teamRoleCount > 1) {
+                            if (mainRole && validRoles.has(mainRole)) { assignedRole = mainRole; }
+                            else { assignedRole = teamRoles[0] || 'Unknown'; }
+                        } else {
+                            if (mainRole && validRoles.has(mainRole)) { assignedRole = mainRole; }
+                            else { assignedRole = (champData?.roles?.find(r => validRoles.has(r))) || 'Unknown'; }
                         }
-                        if (!grouped[assignedRole]) { grouped[assignedRole] = []; }
+                        if (!grouped[assignedRole]) { assignedRole = 'Unknown'; }
                         grouped[assignedRole].push(championName);
                     });
-                    for (const role in grouped) { grouped[role].sort(); }
+                    Object.values(grouped).forEach(arr => arr.sort());
                     return grouped;
                 },
                 get filteredChampions() {
                     if (!this.allChampions || this.allChampions.length === 0) return [];
                     let processedChampions = this.allChampions.map(champ => ({
                         ...champ,
-                        // Use optional chaining and default value
-                        poolInfo: this.getChampionPoolInfo(champ.name, this.currentFilter) ?? this._defaultPoolInfo,
+                        poolInfo: this.getChampionPoolInfo(champ.name, this.currentFilter, this.roleFilter),
                         isChampUnavailable: this.isUnavailable(champ.name)
                     }));
-                    if (this.currentFilter === 'pool') { processedChampions = processedChampions.filter(c => c.poolInfo.isInPool); }
-                    else if (this.currentFilter !== 'all') { processedChampions = processedChampions.filter(c => c.poolInfo.players.includes(this.currentFilter)); }
-                    if (this.searchTerm.trim() !== '') { const searchLower = this.searchTerm.trim().toLowerCase(); processedChampions = processedChampions.filter(c => c.name.toLowerCase().includes(searchLower)); }
-                    return processedChampions.sort((a, b) => a.name.localeCompare(b.name));
+                    if (this.currentFilter === 'pool') {
+                        processedChampions = processedChampions.filter(c => c.poolInfo.isInPool);
+                    } else if (this.currentFilter !== 'all') {
+                        processedChampions = processedChampions.filter(c => c.poolInfo.players.includes(this.currentFilter));
+                    }
+                    if (this.roleFilter !== 'all') {
+                        processedChampions = processedChampions.filter(c => Array.isArray(c.roles) && c.roles.includes(this.roleFilter));
+                    }
+                    if (this.searchTerm.trim() !== '') {
+                        const searchLower = this.searchTerm.trim().toLowerCase();
+                        processedChampions = processedChampions.filter(c => c.name.toLowerCase().includes(searchLower));
+                    }
+                    processedChampions.sort((a, b) => {
+                        if (this.sortOrder === 'tier') {
+                            const tierA = a.poolInfo?.tier || 'DEFAULT';
+                            const tierB = b.poolInfo?.tier || 'DEFAULT';
+                            const valueA = this._tierOrderValue[tierA] ?? 0;
+                            const valueB = this._tierOrderValue[tierB] ?? 0;
+                            if (valueA !== valueB) return valueB - valueA;
+                            return a.name.localeCompare(b.name);
+                        } else {
+                            return a.name.localeCompare(b.name);
+                        }
+                    });
+                    return processedChampions;
+                 },
+                 get modalTitle() {
+                     if (this.modalType === 'championSelect') {
+                         if (!this.modalTarget.draftType) return 'Select Champion';
+                         const side = this.modalTarget.draftType.includes('blue') ? 'Blue' : 'Red';
+                         const type = this.modalTarget.draftType.includes('Bans') ? 'Ban' : 'Pick';
+                         const slot = this.modalTarget.slotIndex + 1;
+                         return `Select Champion for ${side} ${type} ${slot}`;
+                     } else if (this.modalType === 'confirm') {
+                         return 'Confirm Action';
+                     }
+                     return 'Modal'; // Return default title only if needed during transition
                  },
 
                 // --- Initialization ---
+                // (Initialization logic remains unchanged)
                 async init() {
                     console.log('Alpine component initializing...');
                     this.isLoading = true;
                     this.allChampions = window.allLolChampions || [];
                     this.teamPool = window.teamTierList || {};
+                    if (this.allChampions.length === 0) { console.error("Champion list (allLolChampions) failed to load from champions.js!"); }
+                    if (Object.keys(this.teamPool).length === 0) { console.warn("Team tier list (teamTierList) might be empty or failed to load from champions.js."); }
 
                     try {
                         const loadedData = await fetchDraftDataFromFirestore();
-                        this.pickedChampions = loadedData.pickedChampions || [];
-                        this.draftSeries = loadedData.draftSeries || [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
-                        if (!Array.isArray(this.draftSeries) || this.draftSeries.length === 0 || typeof this.draftSeries[0] !== 'object') {
-                            this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
-                        }
+                         this.pickedChampions = loadedData.pickedChampions || [];
+                         this.draftSeries = (Array.isArray(loadedData.draftSeries) && loadedData.draftSeries.length > 0 ? loadedData.draftSeries : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }])
+                             .map(game => ({
+                                 blueBans: Array.isArray(game?.blueBans) && game.blueBans.length === 5 ? game.blueBans : Array(5).fill(null),
+                                 bluePicks: Array.isArray(game?.bluePicks) && game.bluePicks.length === 5 ? game.bluePicks : Array(5).fill(null),
+                                 redBans: Array.isArray(game?.redBans) && game.redBans.length === 5 ? game.redBans : Array(5).fill(null),
+                                 redPicks: Array.isArray(game?.redPicks) && game.redPicks.length === 5 ? game.redPicks : Array(5).fill(null),
+                             }));
                     } catch (error) {
                         console.error("Error during initial Firestore fetch:", error);
+                         this.pickedChampions = [];
+                         this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
                     }
 
                     this.isLoading = false;
-                    if (this.allChampions.length === 0) { console.error("Champion list failed to load!"); } else { console.log(`Loaded ${this.allChampions.length} champions.`); }
+                    console.log(`Loaded ${this.allChampions.length} champions.`);
                     console.log('Draft Helper Initialized');
 
                     const debouncedSave = () => {
                         clearTimeout(this._saveTimeout);
                         this._saveTimeout = setTimeout(() => {
                              const dataToSave = {
-                                pickedChampions: Array.isArray(this.pickedChampions) ? JSON.parse(JSON.stringify(this.pickedChampions)) : [],
-                                draftSeries: (Array.isArray(this.draftSeries) && this.draftSeries.length > 0) ? JSON.parse(JSON.stringify(this.draftSeries)) : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }]
+                                pickedChampions: JSON.parse(JSON.stringify(this.pickedChampions)),
+                                draftSeries: JSON.parse(JSON.stringify(this.draftSeries))
                              };
                              saveDraftDataToFirestore(dataToSave);
                         }, 1500);
@@ -511,10 +1018,16 @@
                     if (db) {
                         const docRef = db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID);
                         this._unsubscribeFirestore = docRef.onSnapshot((doc) => {
-                            console.log("Real-time update received.");
+                            console.log("Real-time update received from Firestore.");
                             if (doc.exists) {
                                 const data = doc.data();
-                                const newDraftSeries = (Array.isArray(data.draftSeries) && data.draftSeries.length > 0) ? data.draftSeries : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
+                                const newDraftSeries = (Array.isArray(data.draftSeries) && data.draftSeries.length > 0 ? data.draftSeries : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }])
+                                    .map(game => ({
+                                        blueBans: Array.isArray(game?.blueBans) && game.blueBans.length === 5 ? game.blueBans : Array(5).fill(null),
+                                        bluePicks: Array.isArray(game?.bluePicks) && game.bluePicks.length === 5 ? game.bluePicks : Array(5).fill(null),
+                                        redBans: Array.isArray(game?.redBans) && game.redBans.length === 5 ? game.redBans : Array(5).fill(null),
+                                        redPicks: Array.isArray(game?.redPicks) && game.redPicks.length === 5 ? game.redPicks : Array(5).fill(null),
+                                    }));
                                 const newPickedChampions = Array.isArray(data.pickedChampions) ? data.pickedChampions : [];
 
                                 if (JSON.stringify(this.draftSeries) !== JSON.stringify(newDraftSeries)) {
@@ -542,182 +1055,290 @@
                         console.log("Unsubscribing from Firestore listener.");
                         this._unsubscribeFirestore();
                     }
+                     clearTimeout(this._saveTimeout);
                  },
 
                 // --- Methods ---
-                isUnavailable(championName) {
-                     if (!championName) return false;
-                     const nameLower = championName.toLowerCase();
-                     const canonicalChamp = this.allChampions?.find(c => c.name.toLowerCase() === nameLower);
-                     return canonicalChamp ? this.unavailableChampions.has(canonicalChamp.name) : false;
+                // (setSortOrder, setFilter, isUnavailable, isPicked, togglePick, resetDraftSeriesAction, resetMarkedPicksAction, removeGameAction remain unchanged)
+                setSortOrder(order) { this.sortOrder = order; },
+                setFilter(playerFilterValue, roleFilterValue) {
+                    if (this.currentFilter === playerFilterValue && this.roleFilter === roleFilterValue && (playerFilterValue !== 'all' || roleFilterValue !== 'all')) {
+                        this.currentFilter = 'all'; this.roleFilter = 'all';
+                    } else {
+                        this.currentFilter = playerFilterValue; this.roleFilter = roleFilterValue;
+                    }
+                    console.log(`Filters set - Player/Team: ${this.currentFilter}, Role: ${this.roleFilter}`);
                 },
-                isPicked(championName) {
-                     if (!championName) return false;
-                    const nameLower = championName.toLowerCase();
-                    return this.pickedChampions.some(pickedName => pickedName.toLowerCase() === nameLower);
-                 },
+                isUnavailable(championName) { return championName ? this.unavailableChampions.has(championName) : false; },
+                isPicked(championName) { return championName ? this.pickedChampions.includes(championName) : false; },
                 togglePick(championName) {
                     if (!championName || this.isUnavailable(championName)) return;
-                    const nameLower = championName.toLowerCase();
-                    const index = this.pickedChampions.findIndex(pickedName => pickedName.toLowerCase() === nameLower);
+                    const index = this.pickedChampions.indexOf(championName);
                     if (index === -1) {
-                        const canonicalChamp = this.allChampions?.find(champ => champ.name.toLowerCase() === nameLower);
-                        if (canonicalChamp) { this.pickedChampions.push(canonicalChamp.name); }
+                        this.pickedChampions = [...this.pickedChampions, championName];
                     } else {
-                        this.pickedChampions.splice(index, 1);
+                        this.pickedChampions = this.pickedChampions.filter(name => name !== championName);
                     }
                  },
-                resetDraftSeries(confirmReset = true) {
-                    if (!confirmReset || window.confirm('Reset entire series draft? This cannot be undone.')) {
-                        const defaultDraft = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
-                        this.draftSeries = defaultDraft;
-                        this.searchTerm = '';
-                        console.log('Draft Series Reset');
-                        saveDraftDataToFirestore({ pickedChampions: this.pickedChampions, draftSeries: defaultDraft });
+                 resetDraftSeriesAction() {
+                     const defaultDraft = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
+                     this.draftSeries = JSON.parse(JSON.stringify(defaultDraft));
+                     this.searchTerm = '';
+                     console.log('Draft Series Reset');
+                     saveDraftDataToFirestore({ pickedChampions: this.pickedChampions, draftSeries: defaultDraft });
+                 },
+                 resetMarkedPicksAction() {
+                    if (this.pickedChampions.length > 0) {
+                        this.pickedChampions = [];
+                        console.log('Highlighted Picks Reset');
+                        saveDraftDataToFirestore({ pickedChampions: [], draftSeries: this.draftSeries });
                     }
                  },
-                 resetMarkedPicks() {
-                    this.pickedChampions = [];
-                    console.log('Highlighted Picks Reset');
-                    saveDraftDataToFirestore({ pickedChampions: this.pickedChampions, draftSeries: this.draftSeries });
+                 removeGameAction(gameIndex) {
+                    const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
+                    newDraftSeries.splice(gameIndex, 1);
+                    this.draftSeries = newDraftSeries;
+                    console.log(`Removed Game at index ${gameIndex}`);
                  },
-                 selectChampionForSlot(gameIndex, draftType, slotIndex) {
-                     if (!this.draftSeries || !this.draftSeries[gameIndex] || !this.draftSeries[gameIndex][draftType]) { console.error("Invalid game or draft type in selectChampionForSlot"); return; }
-                     const game = this.draftSeries[gameIndex];
-                     const currentSelection = game[draftType][slotIndex];
-                     const promptMessage = currentSelection ? `Current: ${currentSelection}. Enter new champion or leave blank to clear:` : `Enter champion for ${draftType.replace(/([A-Z])/g, ' $1')} slot ${slotIndex + 1}:`;
-                     const championNameInput = prompt(promptMessage, currentSelection || "");
 
-                     if (championNameInput === null) return; // Cancelled
+                 // --- Modal Methods ---
 
-                     const nameTrimmed = championNameInput.trim();
+                 // Opens the champion select modal for a specific draft slot
+                 openChampionSelectModal(gameIndex, draftType, slotIndex) {
+                    if (gameIndex < 0 || gameIndex >= this.draftSeries.length || !this.draftSeries[gameIndex]?.[draftType]) {
+                        console.error("Invalid target for modal:", gameIndex, draftType, slotIndex);
+                        return;
+                    }
+                    this.modalType = 'championSelect'; // Set type *before* setting values
+                    this.modalTarget = { gameIndex, draftType, slotIndex };
+                    this.modalCurrentValue = this.draftSeries[gameIndex][draftType][slotIndex];
+                    this.modalSearchTerm = this.modalCurrentValue || '';
+                    this.modalSuggestions = [];
+                    this.modalSuggestionIndex = -1;
+                    this.confirmationMessage = '';
+                    this.confirmationCallback = null;
+                    this.confirmationAction = '';
 
-                     // Clear slot
-                     if (nameTrimmed === "") {
-                         if (currentSelection) {
-                             game[draftType][slotIndex] = null;
-                             console.log(`Cleared slot ${slotIndex} for ${draftType} in Game ${gameIndex + 1}`);
-                         }
-                         return;
-                     }
-
-                     // Find and validate champion
-                     const canonicalChamp = this.allChampions?.find(champ => champ.name.toLowerCase() === nameTrimmed.toLowerCase());
-                     if (!canonicalChamp) { alert(`Champion "${nameTrimmed}" not found.`); return; }
-                     const canonicalName = canonicalChamp.name;
-
-                     // Check availability (picks only, excluding current slot if replacing)
-                     const isPick = draftType.includes('Picks');
-                     if (isPick) {
-                         let unavailableInOtherGames = false;
-                         for(let i = 0; i < this.draftSeries.length; i++) {
-                            if (i === gameIndex) continue;
-                            const otherGame = this.draftSeries[i];
-                            if ((otherGame?.bluePicks && otherGame.bluePicks.includes(canonicalName)) || (otherGame?.redPicks && otherGame.redPicks.includes(canonicalName))) {
-                                unavailableInOtherGames = true;
-                                break;
-                            }
-                         }
-                         if (unavailableInOtherGames && canonicalName !== currentSelection) {
-                             alert(`${canonicalName} is already picked in another game this series.`);
-                             return;
-                         }
-                     }
-
-                      // Check if drafted elsewhere IN THIS GAME (excluding current slot)
-                     const allDrafted = [...(game.blueBans || []), ...(game.bluePicks || []), ...(game.redBans || []), ...(game.redPicks || [])];
-                     const alreadyDraftedInGame = allDrafted.some(
-                         (draftedName, index) => {
-                             let currentSlotOverallIndex = -1;
-                             if (draftType === 'blueBans') currentSlotOverallIndex = slotIndex;
-                             else if (draftType === 'bluePicks') currentSlotOverallIndex = 5 + slotIndex;
-                             else if (draftType === 'redBans') currentSlotOverallIndex = 10 + slotIndex;
-                             else if (draftType === 'redPicks') currentSlotOverallIndex = 15 + slotIndex;
-
-                             return draftedName && draftedName === canonicalName && index !== currentSlotOverallIndex;
-                         }
-                     );
-                     if (alreadyDraftedInGame) { alert(`${canonicalName} already drafted in Game ${gameIndex + 1}.`); return; }
-
-                     // Update slot
-                     game[draftType][slotIndex] = canonicalName;
-                     console.log(`Set ${canonicalName} for Game ${gameIndex + 1} ${draftType} slot ${slotIndex + 1}`);
+                    this.$nextTick(() => {
+                        this.$refs.modalInput?.focus();
+                        this.updateSuggestions();
+                    });
                  },
+
+                 // Opens the confirmation modal
+                 openConfirmationModal(message, callback, actionIdentifier = 'confirm') {
+                     this.modalType = 'confirm'; // Set type *before* setting values
+                     this.confirmationMessage = message;
+                     this.confirmationCallback = callback;
+                     this.confirmationAction = actionIdentifier;
+                     // Clear potentially conflicting state
+                     this.modalTarget = { gameIndex: null, draftType: null, slotIndex: null };
+                     this.modalSearchTerm = '';
+                     this.modalSuggestions = [];
+                     this.modalSuggestionIndex = -1;
+                     this.modalCurrentValue = null;
+                 },
+
+                 // *** UPDATED: closeModal just sets the type to trigger the transition ***
+                 closeModal() {
+                    this.modalType = 'closed';
+                    this.resetModalState();
+                 },
+
+                 // *** ADDED: resetModalState resets variables AFTER transition ***
+                 resetModalState() {
+                    console.log("Resetting modal state after transition.");
+                    this.modalTarget = { gameIndex: null, draftType: null, slotIndex: null };
+                    this.modalSearchTerm = '';
+                    this.modalSuggestions = [];
+                    this.modalSuggestionIndex = -1;
+                    this.modalCurrentValue = null;
+                    this.confirmationMessage = '';
+                    this.confirmationCallback = null;
+                    this.confirmationAction = '';
+                 },
+
+                 // (updateSuggestions, selectSuggestion, selectNextSuggestion, selectPreviousSuggestion remain unchanged)
+                 updateSuggestions() {
+                    if (this.modalType !== 'championSelect') return;
+                    const term = this.modalSearchTerm.trim().toLowerCase();
+                    if (term === '') {
+                        this.modalSuggestions = [];
+                        this.modalSuggestionIndex = -1;
+                        return;
+                    }
+                    // Filter available champions based on availability
+                    const availableChamps = this.allChampions.filter(champ =>
+                        !this.isUnavailable(champ.name) || champ.name === this.modalCurrentValue
+                    );
+                    // Filter by search term, sort alphabetically, then slice
+                    this.modalSuggestions = availableChamps
+                        .filter(champ => champ.name.toLowerCase().includes(term))
+                        .sort((a, b) => a.name.localeCompare(b.name)) // <-- ADDED SORTING
+                        .slice(0, 7);
+                    this.modalSuggestionIndex = -1; // Reset selection index
+                 },
+                 selectSuggestion(championName) {
+                    this.modalSearchTerm = championName;
+                    this.modalSuggestions = [];
+                    this.modalSuggestionIndex = -1;
+                    this.$refs.modalInput?.focus();
+                 },
+                 selectNextSuggestion() {
+                    if (this.modalSuggestions.length === 0) return;
+                    this.modalSuggestionIndex = (this.modalSuggestionIndex + 1) % this.modalSuggestions.length;
+                 },
+                 selectPreviousSuggestion() {
+                    if (this.modalSuggestions.length === 0) return;
+                    this.modalSuggestionIndex = (this.modalSuggestionIndex - 1 + this.modalSuggestions.length) % this.modalSuggestions.length;
+                 },
+
+                 // *** UPDATED: confirmModalAction now calls closeModal() which only triggers the transition ***
+                 confirmModalAction() {
+                    if (this.modalType === 'championSelect') {
+                        let selectedChampionName = this.modalSearchTerm.trim();
+                        if (this.modalSuggestionIndex !== -1 && this.modalSuggestions[this.modalSuggestionIndex]) {
+                            selectedChampionName = this.modalSuggestions[this.modalSuggestionIndex].name;
+                        }
+                        if (selectedChampionName === "") {
+                            this.clearModalSelection(); // clearModalSelection now also calls closeModal()
+                            return;
+                        }
+                        const canonicalChamp = this.allChampions?.find(champ => champ.name.toLowerCase() === selectedChampionName.toLowerCase());
+                        if (!canonicalChamp) {
+                            alert(`Champion "${selectedChampionName}" not found.`);
+                            this.modalSearchTerm = ''; this.updateSuggestions(); this.$refs.modalInput?.focus();
+                            return; // Keep modal open
+                        }
+                        const canonicalName = canonicalChamp.name;
+                        if (this.isUnavailable(canonicalName) && canonicalName !== this.modalCurrentValue) {
+                             alert(`${canonicalName} is already picked or banned in this series.`);
+                             return; // Keep modal open
+                        }
+                        const { gameIndex, draftType, slotIndex } = this.modalTarget;
+                        if (gameIndex !== null && draftType && slotIndex !== null) {
+                            const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
+                            newDraftSeries[gameIndex][draftType][slotIndex] = canonicalName;
+                            this.draftSeries = newDraftSeries;
+                            console.log(`Set ${canonicalName} for Game ${gameIndex + 1} ${draftType} slot ${slotIndex + 1}`);
+                        }
+                        this.closeModal(); // Trigger close transition (state reset happens on leave-end)
+
+                    } else if (this.modalType === 'confirm') {
+                        if (typeof this.confirmationCallback === 'function') {
+                            this.confirmationCallback();
+                        }
+                        this.closeModal(); // Trigger close transition (state reset happens on leave-end)
+                    }
+                 },
+
+                 // *** UPDATED: clearModalSelection now calls closeModal() ***
+                 clearModalSelection() {
+                    if (this.modalType !== 'championSelect') return;
+                    const { gameIndex, draftType, slotIndex } = this.modalTarget;
+                    if (gameIndex !== null && draftType && slotIndex !== null && this.draftSeries[gameIndex][draftType][slotIndex] !== null) {
+                        const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
+                        newDraftSeries[gameIndex][draftType][slotIndex] = null;
+                        this.draftSeries = newDraftSeries;
+                        console.log(`Cleared slot ${slotIndex + 1} for ${draftType} in Game ${gameIndex + 1}`);
+                    }
+                    this.closeModal(); // Trigger close transition (state reset happens on leave-end)
+                 },
+
+                 // (addNewGame, removeGame remain unchanged)
                  addNewGame() {
-                    this.draftSeries.push({ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) });
-                    console.log(`Added Game ${this.draftSeries.length}`);
+                     const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
+                     newDraftSeries.push({ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) });
+                     this.draftSeries = newDraftSeries;
                  },
                  removeGame(gameIndex) {
                      if (this.draftSeries.length <= 1) { alert("Cannot remove the only game in the series."); return; }
-                     if (confirm(`Are you sure you want to remove Game ${gameIndex + 1}? This cannot be undone.`)) {
-                         this.draftSeries.splice(gameIndex, 1);
-                         console.log(`Removed Game at index ${gameIndex}`);
-                     }
+                     this.openConfirmationModal(
+                         `Are you sure you want to remove Game ${gameIndex + 1}? This cannot be undone.`,
+                         () => this.removeGameAction(gameIndex),
+                         'removeGame'
+                     );
                  },
-                // Safeguarded getChampionPoolInfo
-                getChampionPoolInfo(championName, activeFilter = 'all') {
-                    if (!championName || !this.teamPool || typeof this.teamPool !== 'object') { return this._defaultPoolInfo; }
 
+                 // --- Helper Methods ---
+                 // (getChampionPoolInfo, getRoleIconUrl, getChampionIconUrl remain unchanged)
+                 getChampionPoolInfo(championName, currentFilter = 'all', roleFilter = 'all') {
+                    const defaultInfo = { ...this._defaultPoolInfo };
+                    if (!championName || !this.teamPool || typeof this.teamPool !== 'object') {
+                        return defaultInfo;
+                    }
                     let players = [];
                     let isInPool = false;
                     let highestTier = null;
-                    const tierOrder = { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1 };
-
-                    for (const player in this.teamPool) {
-                        if (this.teamPool[player] && typeof this.teamPool[player] === 'object' && this.teamPool[player][championName]) {
+                    let specificTier = null;
+                    const tierOrder = this._tierOrderValue;
+                    let lookupKey = null;
+                    if (currentFilter !== 'all' && currentFilter !== 'pool') {
+                        lookupKey = currentFilter;
+                    }
+                    for (const playerRole in this.teamPool) {
+                        if (this.teamPool[playerRole]?.[championName]) {
                             isInPool = true;
-                            const currentTier = this.teamPool[player][championName]?.toUpperCase();
-                            if (currentTier && (!highestTier || (tierOrder[currentTier] || 0) > (tierOrder[highestTier] || 0))) { highestTier = currentTier; }
-                            players.push(player);
+                            players.push(playerRole);
+                            const currentTier = this.teamPool[playerRole][championName]?.toUpperCase();
+                            if (currentTier && (!highestTier || (tierOrder[currentTier] ?? 0) > (tierOrder[highestTier] ?? 0))) {
+                                highestTier = currentTier;
+                            }
+                            if (playerRole === lookupKey) {
+                                specificTier = currentTier;
+                            }
                         }
                     }
-
                     let displayTier = null;
-                    if (activeFilter === 'all' || activeFilter === 'pool') { displayTier = highestTier; }
-                    else if (this.teamPool[activeFilter]?.[championName]) { displayTier = this.teamPool[activeFilter][championName].toUpperCase(); }
-
                     let tierClass = 'tier-DEFAULT';
-                    if (displayTier) {
-                        switch (displayTier) {
-                            case 'S': tierClass = 'tier-S'; break; case 'A': tierClass = 'tier-A'; break;
-                            case 'B': tierClass = 'tier-B'; break; case 'C': tierClass = 'tier-C'; break;
+                    if (isInPool) {
+                        if (lookupKey && specificTier) {
+                            displayTier = specificTier;
+                        } else {
+                            displayTier = highestTier;
+                        }
+                        if (displayTier) {
+                            tierClass = `tier-${displayTier}`;
                         }
                     }
-
-                    if (activeFilter !== 'all' && activeFilter !== 'pool' && !players.includes(activeFilter)) { tierClass = 'tier-DEFAULT'; displayTier = null; }
-
                     return { isInPool, tier: displayTier, players, tierClass };
                  },
-                 toggleFilter(filterType) {
-                     if (this.currentFilter === filterType && filterType !== 'all') { this.currentFilter = 'all'; }
-                     else { this.currentFilter = filterType; }
-                     console.log("Filter set to:", this.currentFilter);
-                 },
-                 getRoleIconUrl(playerName) {
-                     if (!playerName) return "https://placehold.co/16x16/cccccc/777777?text=?";
-                     const nameLower = playerName.toLowerCase();
-                     const urls = { top: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-top-blue-hover.png", jungle: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-jungle-blue-hover.png", mid: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-middle-blue-hover.png", adc: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-bottom-blue-hover.png", support: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-utility-blue-hover.png", unknown: "https://placehold.co/16x16/cccccc/777777?text=?" };
-                     if (nameLower.includes('top')) return urls.top; if (nameLower.includes('jg') || nameLower.includes('jng') || nameLower.includes('jungle')) return urls.jungle; if (nameLower.includes('mid')) return urls.mid; if (nameLower.includes('adc') || nameLower.includes('bot')) return urls.adc; if (nameLower.includes('sup') || nameLower.includes('support')) return urls.support; return urls.unknown;
+                 getRoleIconUrl(roleOrPlayerName) {
+                     if (!roleOrPlayerName) return "https://placehold.co/16x16/cccccc/777777?text=?";
+                     const nameLower = roleOrPlayerName.toLowerCase();
+                     const urls = {
+                         top: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-top-blue-hover.png",
+                         jungle: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-jungle-blue-hover.png",
+                         mid: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-middle-blue-hover.png",
+                         bot: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-bottom-blue-hover.png",
+                         support: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-utility-blue-hover.png",
+                         unknown: "https://placehold.co/16x16/cccccc/777777?text=?"
+                     };
+                     if (urls[nameLower]) return urls[nameLower];
+                     if (nameLower.includes('top')) return urls.top;
+                     if (nameLower.includes('jg') || nameLower.includes('jng') || nameLower.includes('jungle')) return urls.jungle;
+                     if (nameLower.includes('mid')) return urls.mid;
+                     if (nameLower.includes('bot') || nameLower.includes('adc')) return urls.bot;
+                     if (nameLower.includes('sup') || nameLower.includes('support')) return urls.support;
+                     return urls.unknown;
                  },
                  getChampionIconUrl(championName, context = 'grid') {
-                     const placeholderUrl64 = "https://placehold.co/64x64/374151/9ca3af?text=?";
-                     const placeholderUrl40 = "https://placehold.co/40x40/374151/9ca3af?text=?";
-                     const listPlaceholderUrl = "https://placehold.co/24x24/374151/9ca3af?text=?";
-                     let placeholderUrl = placeholderUrl64;
-                     if (context === 'ban') placeholderUrl = placeholderUrl40;
-                     if (context === 'list') placeholderUrl = listPlaceholderUrl;
-                     if (context === 'pick') placeholderUrl = placeholderUrl64;
-
-                     if (!championName) return placeholderUrl;
-                     // Ensure allChampions is loaded before searching
-                     const champData = this.allChampions?.find(champ => champ.name.toLowerCase() === championName.toLowerCase());
-                     if (champData && champData.imageName) {
-                         // Ensure you are using the correct Data Dragon version if needed
-                         return `http://ddragon.leagueoflegends.com/cdn/15.8.1/img/champion/${champData.imageName}.png`; // Updated version
-                     } else {
-                         // console.warn(`Icon URL not found for: ${championName}`);
-                         return placeholderUrl;
-                     }
+                    const placeholderUrls = {
+                        grid: "https://placehold.co/64x64/374151/9ca3af?text=?",
+                        pick: "https://placehold.co/60x60/374151/9ca3af?text=?",
+                        ban: "https://placehold.co/38x38/374151/9ca3af?text=?",
+                        list: "https://placehold.co/22x22/374151/9ca3af?text=?"
+                    };
+                    const placeholderUrl = placeholderUrls[context] || placeholderUrls.grid;
+                    if (!championName || !Array.isArray(this.allChampions) || this.allChampions.length === 0) return placeholderUrl;
+                    const champData = this.allChampions.find(champ => champ?.name?.toLowerCase() === championName.toLowerCase());
+                    if (champData?.imageName) {
+                        const patchVersion = "15.8.1"; // TODO: Consider making patch version dynamic or configurable
+                        return `https://ddragon.leagueoflegends.com/cdn/${patchVersion}/img/champion/${champData.imageName}.png`;
+                    } else {
+                        console.warn(`Could not find image name for champion: ${championName}`);
+                        return placeholderUrl;
+                    }
                  }
             }
         }
