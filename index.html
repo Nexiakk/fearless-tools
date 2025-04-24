@@ -185,7 +185,7 @@
              flex: 1; /* Give less space */
         }
         .footer-list-column h2 {
-            font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem;
+            font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem;
             color: #e5e7eb; border-bottom: 1px solid #4b5563; padding-bottom: 0.5rem;
         }
         /* Container for role groups - allows horizontal scrolling if needed */
@@ -205,17 +205,25 @@
             vertical-align: top; /* Align groups to the top */
             white-space: normal; /* Allow content within the group to wrap normally */
         }
+        /* --- MODIFIED RULE --- */
         .footer-role-header {
             display: flex;
-            align-items: center;
+            align-items: center; /* Vertical centering */
+            justify-content: center; /* Horizontal centering */
             gap: 0.5rem;
             margin-bottom: 0.25rem;
             font-weight: 500;
             color: #9ca3af;
             font-size: 0.8rem;
             text-transform: uppercase;
-            width: fit-content; /* Ensure header doesn't stretch unnecessarily */
+            /* width: fit-content; */ /* Removed to allow centering */
         }
+
+        .footer-role-header > span {
+            position: relative;
+            top: -1px; /* Adjust this value (e.g., -1px, -2px) if needed */
+        }
+        /* --- END MODIFIED RULE --- */
         .footer-role-icon { width: 14px; height: 14px; }
         /* Styles for Unavailable List Items (2 vertical columns within each role group) */
         .footer-unavailable-list {
@@ -571,7 +579,6 @@
                  </div>
                  <div class="footer-lists-container">
                     <div class="footer-list-column footer-unavailable-column">
-                        <!-- <h2>Unavailable Champions (<span x-text="sortedUnavailableChampions.length"></span>)</h2> -->
                         <p class="text-gray-400 text-sm" x-show="sortedUnavailableChampions.length === 0" x-cloak>No champions picked in draft yet.</p>
                         <div class="footer-role-groups-container" x-show="sortedUnavailableChampions.length > 0" x-cloak>
                             <template x-for="role in ['Top', 'Jungle', 'Mid', 'Bot', 'Support', 'Unknown']" :key="role">
@@ -1142,7 +1149,7 @@
                  // *** UPDATED: closeModal just sets the type to trigger the transition ***
                  closeModal() {
                     this.modalType = 'closed';
-                    this.resetModalState();
+                    // State reset is now handled by resetModalState triggered by x-transition:leave-end
                  },
 
                  // *** ADDED: resetModalState resets variables AFTER transition ***
