@@ -900,8 +900,6 @@
                     this.draftSeries.forEach(game => {
                         (game?.bluePicks ?? []).forEach(pick => pick && unavailable.add(pick));
                         (game?.redPicks ?? []).forEach(pick => pick && unavailable.add(pick));
-                        (game?.blueBans ?? []).forEach(ban => ban && unavailable.add(ban));
-                        (game?.redBans ?? []).forEach(ban => ban && unavailable.add(ban));
                     });
                     return unavailable;
                 },
