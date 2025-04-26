@@ -185,7 +185,7 @@ const teamTierList = {
     "Jayce": "S",
     "Gwen": "S",
     "Rumble": "S",
-    "KSante": "S",
+    "K'Sante": "S",
     "Volibear": "A",
     "Gnar": "A",
     "Yone": "A",
