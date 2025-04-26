@@ -6,456 +6,13 @@
     <title>Fearless Tools</title>
     <link rel="icon" type="image/x-icon" href="/cwel.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="./champions.js"></script>
-    <style>
-        /* Basic resets and full height */
-        html, body { height: 100%; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            background-color: #030712; /* Dark theme default */
-            color: #d1d5db;
-            overflow-y: scroll; /* Always show vertical scrollbar to prevent layout shifts */
-        }
-        .main-content { flex-grow: 1; }
-
-        /* Prevent FOUC for Alpine elements */
-        [x-cloak] { display: none !important; }
-
-        /* Champion Card Container */
-        .champion-card {
-            transition: transform 0.15s ease-in-out, opacity 0.2s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.2s, border-color 0.2s;
-            position: relative; display: inline-flex; flex-direction: column;
-            align-items: center; margin: 2px; cursor: pointer;
-            width: 74px; height: 90px; padding: 3px; border-radius: 6px;
-            vertical-align: top; border: 1px solid transparent;
-            background-color: transparent; overflow: visible;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        }
-        .champion-card img.champion-icon {
-            width: 64px; height: 64px; border-radius: 4px; display: block;
-            z-index: 1; position: relative; border: 2px solid transparent;
-            transition: filter 0.2s ease-in-out, border-color 0.2s ease-in-out;
-            margin-bottom: 1px;
-        }
-        .champion-card:not(.in-pool) img.champion-icon { border-color: rgba(255, 255, 255, 0.15); }
-
-        /* Champion Name Text */
-        .champion-name-text {
-            font-size: 0.7rem; line-height: 0.9rem; font-weight: 500;
-            text-align: center; width: 100%; overflow: hidden;
-            text-overflow: ellipsis; white-space: nowrap; z-index: 1;
-            position: relative; margin-top: auto; padding-bottom: 1px;
-            color: #d1d5db;
-        }
-
-        /* Base Badge Styling */
-        .badge {
-            position: absolute; font-size: 0.55rem; line-height: 0.75rem;
-            font-weight: 700; padding: 1px 3px; border-radius: 3px; z-index: 5;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
-            display: inline-flex; align-items: center; justify-content: center;
-        }
-        .tier-badge { top: -4px; left: -4px; }
-
-        /* Player Badge Container & Badge */
-        .player-badge-container {
-            position: absolute; top: -4px; right: -3px; display: flex;
-            flex-direction: column; gap: 2px; justify-content: flex-start;
-            align-items: flex-end; z-index: 4; pointer-events: none;
-        }
-        img.player-badge {
-            position: relative; padding: 0; width: 16px; height: 16px;
-            border-radius: 50%; overflow: hidden;
-            background-color: rgba(55, 65, 81, 0.95); border: 1px solid rgba(75, 85, 99, 0.8);
-            display: block; object-fit: cover;
-        }
-
-        /* Picked/Unavailable State */
-        .champion-card.unavailable {
-            opacity: 0.45 !important; transform: none !important; box-shadow: none !important;
-            background-color: #374151 !important; border-color: #1f2937 !important;
-            cursor: not-allowed;
-        }
-        .champion-card.unavailable img.champion-icon { filter: grayscale(95%); border-color: transparent !important; }
-        .champion-card.unavailable .picked-overlay-text { display: flex; }
-        .champion-card.unavailable .badge { display: none; }
-
-        /* Not In Pool State */
-        .champion-card.not-in-pool { opacity: 0.9; }
-        .champion-card.not-in-pool:hover { opacity: 0.95; }
-        .champion-card.not-in-pool .champion-name-text { color: #b7bcc5; }
-
-        /* Hover effect - Only when NOT unavailable */
-        .champion-card:not(.unavailable):hover {
-            transform: scale(1.08); opacity: 1; z-index: 10;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.3);
-        }
-         .champion-card.not-in-pool:not(.unavailable):hover {
-             background-color: #374151; border-color: #4b5563;
-        }
-         .champion-card.in-pool:not(.unavailable):hover {
-             background-color: #374151;
-        }
-
-        /* Style for Manually Marked Champions */
-        .champion-card.manually-marked {
-            box-shadow: 0 0 8px 2px rgba(59, 130, 246, 0.6); /* Blue glow */
-            border-color: #3b82f6; /* Blue border */
-            background-color: #1e3a8a; /* Added dark blue background */
-        }
-         .champion-card.manually-marked:hover {
-             box-shadow: 0 0 12px 3px rgba(96, 165, 250, 0.7); /* Brighter blue glow */
-             transform: scale(1.08); opacity: 1; z-index: 10;
-             background-color: #1e40af; /* Slightly lighter blue on hover */
-         }
-
-
-        /* Tier-specific styles */
-        .tier-S img.champion-icon { border-color: #f87171; } .tier-S .tier-badge { background-color: #f87171; color: #4c0519; }
-        .tier-A img.champion-icon { border-color: #facc15; } .tier-A .tier-badge { background-color: #facc15; color: #5a4503; }
-        .tier-B img.champion-icon { border-color: #4ade80; } .tier-B .tier-badge { background-color: #4ade80; color: #064e3b; }
-        .tier-C img.champion-icon { border-color: #60a5fa; } .tier-C .tier-badge { background-color: #60a5fa; color: #1e3a8a; }
-        .tier-DEFAULT img.champion-icon { border-color: #9ca3af; } .tier-DEFAULT .tier-badge { background-color: #9ca3af; color: #1f2937; }
-
-        /* Filter Buttons / Sort Buttons */
-        .filter-button, .sort-button {
-            padding: 6px 12px; margin: 0 2px; /* Adjusted margin for inline layout */
-            border-radius: 6px;
-            border: 1px solid #4b5563; transition: all 0.2s ease-out;
-            cursor: pointer; font-size: 0.875rem;
-            background-color: #374151; color: #d1d5db;
-            white-space: nowrap; /* Prevent button text wrapping */
-        }
-        .filter-button.active, .sort-button.active {
-            background-color: #3b82f6; color: white; font-weight: 600; border-color: #3b82f6;
-        }
-        .filter-button:hover:not(.active), .sort-button:hover:not(.active) {
-             background-color: #4b5563; border-color: #6b7280; transform: translateY(-1px);
-        }
-        .filter-button.active:hover, .sort-button.active:hover {
-             filter: brightness(1.1); transform: translateY(-1px);
-        }
-
-        /* Text for "PICKED/UNAVAILABLE" overlay - Reduced font size */
-        .picked-overlay-text {
-            display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            align-items: center; justify-content: center; font-weight: bold;
-            font-size: 0.6rem; /* Reduced size */
-            color: white; background-color: rgba(0, 0, 0, 0.75); z-index: 10;
-            border-radius: 6px; text-align: center; padding: 2px; line-height: 1;
-        }
-
-        /* Error placeholder for images */
-        .img-error-placeholder { width: 64px; height: 64px; border-radius: 4px; margin-bottom: 1px; display: flex; align-items: center; justify-content: center; background-color: #374151; color: #9ca3af; font-size: 0.65rem; text-align: center; line-height: 0.8rem; position: relative; }
-
-        /* Scrollable container */
-        .champion-grid-container {
-            max-height: 55vh; min-height: 55vh; overflow-y: auto; padding: 4px;
-            border: 1px solid #374151; border-radius: 0.5rem; margin-bottom: 1rem;
-            background-color: #111827;
-        }
-        .champion-grid-inner { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 8px; }
-
-        /* Scrollbar styles */
-        .champion-grid-container::-webkit-scrollbar { width: 8px; }
-        .champion-grid-container::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
-        .champion-grid-container::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 4px; border: 2px solid #1f2937; }
-        .champion-grid-container::-webkit-scrollbar-thumb:hover { background-color: #6b7280; }
-
-        /* Footer Lists Container */
-        .footer-lists-container { display: flex; gap: 1rem; }
-        .footer-list-column {
-            padding: 0.4rem 1.5rem; border: 1px solid #4b5563;
-            border-radius: 0.5rem; background-color: #1f2937;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            max-height: 22vh; /* Default max height */
-            overflow-y: auto;
-        }
-        /* Specific adjustments for footer columns */
-        .footer-unavailable-column {
-             flex: 3; /* Give more space */
-        }
-        .footer-highlighted-column {
-             flex: 1; /* Give less space */
-        }
-        .footer-list-column h2 {
-            font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem;
-            color: #e5e7eb; border-bottom: 1px solid #4b5563; padding-bottom: 0.5rem;
-        }
-        /* Container for role groups - allows horizontal scrolling if needed */
-        .footer-role-groups-container {
-            display: flex;
-            gap: 1.5rem; /* Space between role groups */
-            padding-bottom: 0.5rem; /* Padding below the scrollbar if it appears */
-            overflow-x: auto; /* Enable horizontal scrolling ONLY if content overflows */
-            white-space: nowrap; /* Prevent groups themselves from wrapping */
-        }
-        .footer-role-group {
-            flex-shrink: 0; /* Prevent groups from shrinking */
-            width: auto; /* Allow width to adjust based on content */
-            display: inline-flex; /* Use inline-flex for horizontal layout within nowrap container */
-            flex-direction: column; /* Stack header and list vertically */
-            align-items: center; /* Center items horizontally */
-            vertical-align: top; /* Align groups to the top */
-            white-space: normal; /* Allow content within the group to wrap normally */
-        }
-        /* --- MODIFIED RULE --- */
-        .footer-role-header {
-            display: flex;
-            align-items: center; /* Vertical centering */
-            justify-content: center; /* Horizontal centering */
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
-            font-weight: 500;
-            color: #9ca3af;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            /* width: fit-content; */ /* Removed to allow centering */
-        }
-
-        .footer-role-header > span {
-            position: relative;
-            top: -1px; /* Adjust this value (e.g., -1px, -2px) if needed */
-        }
-        /* --- END MODIFIED RULE --- */
-        .footer-role-icon { width: 14px; height: 14px; }
-        /* Styles for Unavailable List Items (2 vertical columns within each role group) */
-        .footer-unavailable-list {
-            column-count: 2;
-            column-gap: 0.5rem; /* Reduced gap between columns */
-            display: block; /* Needed for column layout */
-            width: 100%; /* Ensure list takes full width of group */
-            max-width: 200px; /* Give the 2-column list a max-width to prevent excessive expansion */
-        }
-        .footer-unavailable-list .footer-list-item {
-             break-inside: avoid-column;
-             page-break-inside: avoid; /* Legacy support */
-             margin-bottom: 0.25rem; /* Adjust as needed */
-             flex-shrink: 0;
-             width: 100%; /* Allow item to take full width of its column */
-        }
-        /* Styles for Highlighted List Items */
-        .manual-picks-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.25rem 0.75rem; } /* Reduced gap */
-
-        /* General Footer List Item Styles */
-        .footer-list-item {
-            display: flex;
-            align-items: center;
-            color: #d1d5db;
-            font-size: 0.9rem; /* Slightly larger font size */
-        }
-        .footer-list-icon {
-            width: 22px; /* Larger icon */
-            height: 22px; /* Larger icon */
-            border-radius: 3px;
-            margin-right: 5px; /* Slightly more margin */
-            flex-shrink: 0;
-            border: 1px solid #4b5563;
-        }
-        .footer-list-icon-error {
-            background-color: #374151;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6rem; /* Adjusted error text size */
-            color: #9ca3af;
-        }
-
-        /* Text truncation ONLY for UNAVAILABLE list items */
-        .footer-unavailable-list .footer-list-item > span:last-child {
-            white-space: nowrap;      /* Prevent wrapping */
-            overflow: hidden;         /* Hide overflow */
-            text-overflow: ellipsis;  /* Show ellipsis (...) */
-            display: inline-block;    /* Needed for ellipsis */
-            vertical-align: middle;   /* Align text with icon */
-            /* Calculate max-width based on icon size and margin */
-            max-width: calc(100% - 22px - 5px);
-            /* Help enforce max-width in complex layouts */
-            min-width: 0;
-        }
-        /* Allow wrapping for HIGHLIGHTED list items */
-        .manual-picks-list .footer-list-item > span:last-child {
-            display: inline-block;
-            vertical-align: middle;
-            /* Ensure wrapping properties are default (no truncation) */
-            white-space: normal;
-            overflow: visible;
-            text-overflow: clip;
-            max-width: none;
-        }
-
-        /* Footer scrollbars (vertical for column, horizontal for groups) */
-        .footer-list-column::-webkit-scrollbar { width: 6px; height: 6px; }
-        .footer-list-column::-webkit-scrollbar-track { background: #111827; border-radius: 3px; }
-        .footer-list-column::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 3px; }
-        .footer-list-column::-webkit-scrollbar-thumb:hover { background-color: #6b7280; }
-        /* Horizontal scrollbar for the role groups container */
-        .footer-role-groups-container::-webkit-scrollbar { height: 6px; }
-        .footer-role-groups-container::-webkit-scrollbar-track { background: #111827; border-radius: 3px; }
-        .footer-role-groups-container::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 3px; }
-        .footer-role-groups-container::-webkit-scrollbar-thumb:hover { background-color: #6b7280; }
-
-
-        /* --- Draft Tracker Styles --- */
-        .draft-game { border: 1px solid #4b5563; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; background-color: #1f2937; position: relative; }
-        .remove-game-button { position: absolute; right: 8px; top: 8px; background-color: #00000093; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 18px; font-weight: 500; line-height: 1; cursor: pointer; transition: background-color 0.2s; display: inline-flex; align-items: center; justify-content: center; padding: 0; z-index: 10; }
-        .remove-game-button:hover { background-color: #000000; }
-        .remove-game-button svg { width: 18px; height: 18px; fill: white; }
-        .draft-columns { display: flex; gap: 0.5rem; align-items: center; }
-        .draft-side { flex: 1; display: flex; flex-direction: column; align-items: center; }
-        .game-indicator { font-size: 1.1rem; font-weight: 600; color: #9ca3af; margin: 0 0.75rem; white-space: nowrap; text-align: center; }
-        .draft-section { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 0.25rem; }
-        .draft-slots { display: flex; justify-content: center; align-items: center; gap: 2px; margin-bottom: 0.5rem; flex-wrap: nowrap; width: 100%; }
-        .ban-group-separator { width: 8px; height: 1px; }
-        .draft-slot { border: 1px dashed #4b5563; border-radius: 4px; background-color: #374151; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, border-width 0.2s; flex-shrink: 0; }
-        .draft-slot:hover { border-color: #6b7280; background-color: #4b5563; }
-        .ban-slot { width: 38px; height: 38px; }
-        .ban-slot img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; filter: grayscale(100%); }
-        .ban-slot .slot-placeholder { font-size: 1.1rem; color: #4b5563; }
-        .pick-slot { width: 60px; height: 60px; }
-        .pick-slot img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
-        .pick-slot .slot-placeholder { font-size: 1.6rem; color: #4b5563; }
-        .draft-slot.filled { border-style: solid; border-width: 1px; }
-        .draft-side.blue .draft-slot.filled { border-color: #60a5fa; }
-        .draft-side.red .draft-slot.filled { border-color: #f87171; }
-        .draft-side.blue .ban-slot.filled { border-width: 1px; border-color: #3b82f6; }
-        .draft-side.red .ban-slot.filled { border-width: 1px; border-color: #ef4444; }
-        .draft-slot.filled:hover { border-color: #9ca3af; }
-        .add-game-button { padding: 0; margin-top: 0.5rem; border-radius: 50%; border: 1px solid #4b5563; transition: all 0.2s ease-out; cursor: pointer; background-color: #374151; color: #d1d5db; width: 32px; height: 32px; font-size: 24px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
-        .add-game-button svg { width: 22px; height: 22px; fill: currentColor; }
-        .add-game-button:hover { background-color: #4b5563; border-color: #6b7280; transform: translateY(-1px); }
-        .reset-button { padding: 6px 12px; border-radius: 6px; transition: all 0.2s ease-out; cursor: pointer; font-size: 0.875rem; font-weight: 600; border: 1px solid transparent; white-space: nowrap; }
-        .reset-button.reset-marked:hover { transform: translateY(-1px); filter: brightness(1.05); }
-        .reset-button.reset-series:hover { transform: translateY(-1px); filter: brightness(1.05); }
-
-        /* Styles for control rows */
-        .controls-container {
-            display: flex;
-            flex-direction: column;
-            gap: 8px; /* Space between the two rows */
-            margin-bottom: 8px; /* Space below the controls */
-        }
-        .controls-row-top {
-            display: flex;
-            justify-content: flex-start; /* Align player buttons left */
-            flex-wrap: wrap;
-            gap: 4px 8px;
-        }
-        .controls-row-bottom {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-        }
-        .search-container {
-            flex-grow: 1; /* Allow search to take available space */
-            min-width: 200px;
-            max-width: 400px; /* Optional max width */
-        }
-        .role-filters-container, .sort-reset-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px 8px;
-            align-items: center; /* Vertically align items */
-        }
-        .sort-reset-container {
-            margin-left: auto; /* Push sort/reset block to the right */
-        }
-        .sort-label {
-             font-size: 0.8rem;
-             font-weight: 500;
-             color: #9ca3af; /* gray-400 */
-             margin-right: 0px; /* Reduced margin */
-             white-space: nowrap;
-        }
-
-        /* --- Modal Styles --- */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 50;
-        }
-        .modal-content {
-            background-color: #1f2937; /* gray-800 */
-            padding: 1.5rem; border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            width: 90%; max-width: 500px; /* Adjust width as needed */
-            position: relative; /* Needed for absolute positioning of suggestions */
-        }
-        .modal-title {
-            font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #e5e7eb;
-        }
-        .modal-confirmation-message {
-            color: #d1d5db; /* gray-300 */
-            margin-bottom: 1.5rem; /* Space before buttons */
-            line-height: 1.6;
-        }
-        .modal-input {
-            width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.375rem;
-            border: 1px solid #4b5563; /* gray-600 */
-            background-color: #374151; /* gray-700 */
-            color: #e5e7eb; /* gray-200 */
-            margin-bottom: 0.5rem;
-            transition: border-color 0.2s;
-        }
-        .modal-input:focus {
-            outline: none; border-color: #3b82f6; /* blue-500 */
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
-        }
-        .suggestions-container {
-            position: absolute; /* Position relative to modal-content */
-            left: 1.5rem; /* Match modal padding */
-            right: 1.5rem; /* Match modal padding */
-            top: calc(100% - 1rem); /* Position below the input */
-            background-color: #374151; /* gray-700 */
-            border: 1px solid #4b5563; /* gray-600 */
-            border-top: none; /* Remove top border */
-            border-radius: 0 0 0.375rem 0.375rem; /* Rounded bottom corners */
-            max-height: 150px; overflow-y: auto;
-            z-index: 60; /* Ensure it's above modal content */
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        }
-        .suggestion-item {
-            padding: 0.5rem 0.75rem; cursor: pointer;
-            color: #d1d5db; /* gray-300 */
-            transition: background-color 0.15s;
-            display: flex; align-items: center; gap: 0.5rem;
-        }
-        .suggestion-item:hover, .suggestion-item.active {
-            background-color: #4b5563; /* gray-600 */
-            color: #ffffff;
-        }
-        .suggestion-icon { width: 20px; height: 20px; border-radius: 3px; }
-        .modal-buttons {
-            margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; /* Align buttons right */
-        }
-        .modal-button {
-            padding: 0.5rem 1rem; border-radius: 0.375rem; border: none;
-            font-weight: 600; cursor: pointer; transition: background-color 0.2s, filter 0.2s;
-        }
-        .modal-button-confirm { background-color: #1d4ed8; color: white; } /* Blue for Confirm */
-        .modal-button-confirm:hover { filter: brightness(1.1); }
-        .modal-button-danger { background-color: #dc2626; color: white; } /* Red for Danger/Reset */
-        .modal-button-danger:hover { filter: brightness(1.1); }
-        .modal-button-clear { background-color: #eab308; color: #422006; } /* Yellow for Clear */
-        .modal-button-clear:hover { filter: brightness(1.1); }
-        .modal-button-cancel { background-color: #4b5563; color: #e5e7eb; /* Removed margin-left */ }
-        .modal-button-cancel:hover { background-color: #6b7280; }
-
-        /* Scrollbar for suggestions */
-        .suggestions-container::-webkit-scrollbar { width: 6px; }
-        .suggestions-container::-webkit-scrollbar-track { background: #1f2937; border-radius: 3px; }
-        .suggestions-container::-webkit-scrollbar-thumb { background-color: #6b7280; border-radius: 3px; }
-        .suggestions-container::-webkit-scrollbar-thumb:hover { background-color: #9ca3af; }
-
-    </style>
+    <script src="./firebase-init.js"></script>
+    <script src="./alpine-component.js"></script>
 </head>
 <body class="bg-gray-950 text-gray-200">
 
@@ -463,13 +20,13 @@
       <defs>
         <symbol id="icon-plus" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" clip-rule="evenodd" /> </symbol>
         <symbol id="icon-close" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /> </symbol>
-        <symbol id="role-top" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Zm11.707 7.707a1 1 0 0 1-1.414 0L10 12.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 11 4.293 6.707a1 1 0 0 1 1.414-1.414L10 9.586l4.293-4.293a1 1 0 0 1 1.414 1.414L11.414 11l4.293 4.293a1 1 0 0 1 0 1.414Z" clip-rule="evenodd"/> </symbol>
-        <symbol id="role-jungle" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1ZM8.21 5.215c.09.095.11.22.06.316a5.7 5.7 0 0 0-.26 1.077 6.494 6.494 0 0 0 .45 3.516 2.508 2.508 0 0 1 .88 1.449 2.18 2.18 0 0 1 .03 1.086 4.495 4.495 0 0 0 1.33 2.261 4.5 4.5 0 0 0 4.12 1.058A4.5 4.5 0 0 0 18 13.5a4.5 4.5 0 0 0-1.04-2.863 6.5 6.5 0 0 0-1.5-1.41 6.488 6.488 0 0 0-1.61-1.01 6.487 6.487 0 0 0-2.03-.67 5.49 5.49 0 0 0-1.62-.22 5.5 5.5 0 0 0-1.57.27.53.53 0 0 1-.18.07.5.5 0 0 1-.58-.06.5.5 0 0 1-.1-.58 8.5 8.5 0 0 1 .6-1.66 8.49 8.49 0 0 1 1.43-1.91c.096-.1.22-.13.316-.06Zm1.38 1.19c-.05.06-.08.13-.06.205.03.07.08.13.15.17.07.04.15.04.22 0a.2.2 0 0 0 .15-.16c.01-.08 0-.16-.06-.22a.2.2 0 0 0-.22-.06.2.2 0 0 0-.18.06Zm2.03 1.21a.2.2 0 0 0-.18.06c-.06.06-.08.14-.06.21a.2.2 0 0 0 .15.17c.07.04.15.04.22 0a.2.2 0 0 0 .15-.16c.01-.08 0-.16-.06-.22a.2.2 0 0 0-.22-.06ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Z" clip-rule="evenodd"/> </symbol>
-        <symbol id="role-mid" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Zm5-4a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1ZM9 13a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1Z" clip-rule="evenodd"/> </symbol>
-        <symbol id="role-bot" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4Zm1.707-3.293a1 1 0 0 1 0-1.414l4-4a1 1 0 0 1 1.414 0l4 4a1 1 0 0 1-1.414 1.414L10 2.414 6.707 5.707a1 1 0 0 1-1 0ZM6.707 14.293a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L10 17.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" clip-rule="evenodd"/> </symbol>
-        <symbol id="role-support" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 14a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1ZM17 9a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1ZM4 9a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H4ZM9 5a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1Zm1 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" clip-rule="evenodd"/> </symbol>
-        <symbol id="role-unknown" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0ZM8.94 6.553a1 1 0 0 0-1.88 0l-1.433 4.3a1 1 0 0 0 1.88 0l.213-1.066h1.94l.213 1.066a1 1 0 0 0 1.88 0l-1.433-4.3Zm-1.15 2.426 1.15-3.44 1.15 3.44H7.79ZM12.25 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" /> </symbol>
-      </defs>
+        <symbol id="icon-save" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM8.5 3.75a.75.75 0 0 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5Zm3 1.5a.75.75 0 0 0-1.5 0v7.5a.75.75 0 0 0 1.5 0v-7.5Z" clip-rule="evenodd" /> </symbol> <symbol id="icon-note" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M5.75 3A2.75 2.75 0 0 0 3 5.75v8.5A2.75 2.75 0 0 0 5.75 17h8.5A2.75 2.75 0 0 0 17 14.25v-8.5A2.75 2.75 0 0 0 14.25 3H5.75ZM5 5.75c0-.414.336-.75.75-.75h8.5c.414 0 .75.336.75.75v8.5c0 .414-.336.75-.75.75h-8.5c-.414 0-.75-.336-.75-.75V5.75Zm3.25 2a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5Z" clip-rule="evenodd" /> </symbol>
+        <symbol id="icon-load" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm7.5 1.5V7h3.5L12 3.5ZM5 7.75A.75.75 0 0 1 5.75 7h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 5 7.75Zm0 3A.75.75 0 0 1 5.75 10h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 5 10.75Zm0 3A.75.75 0 0 1 5.75 13h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 5 13.75Z" clip-rule="evenodd" /> </symbol>
+        <symbol id="icon-trash" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75V4.5h8V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.5.66 1.5 1.5v.75h-3v-.75C8.5 4.66 9.16 4 10 4ZM4.118 6A1 1 0 0 0 3.13 6.886l.434 9.548A2 2 0 0 0 5.558 18h8.884a2 2 0 0 0 1.994-1.566l.434-9.548A1 1 0 0 0 15.882 6H4.118ZM8.75 9.75a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1a.75.75 0 0 1-.75-.75Zm3 0a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" /> </symbol>
+        <symbol id="icon-edit" viewBox="0 0 20 20"> <path d="M13.586 3.586a2 2 0 1 1 2.828 2.828l-.793.793-2.828-2.828.793-.793ZM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828Z" /> </symbol>
+        <symbol id="icon-search" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" /> </symbol>
+        <symbol id="icon-check" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" /> </symbol>
+    </defs>
     </svg>
 
     <div x-data="draftHelper()" x-init="init()" @destroy="destroy()" class="container mx-auto p-4 pt-8 main-content">
@@ -483,34 +40,46 @@
                     :class="{'filter-button': true, 'active': currentView === 'draftTracker'}">
                 Draft Tracker
             </button>
+            <button @click="currentView = 'drafting'"
+                    :class="{'filter-button': true, 'active': currentView === 'drafting'}">
+                Drafting
+            </button>
         </div>
 
         <div class="relative">
+
             <div x-show="currentView === 'pool'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="absolute w-full top-0 left-0">
                 <div class="controls-container">
                     <div class="controls-row-top">
-                        <button @click="setFilter('pool', 'all')" class="filter-button" :class="{'active': currentFilter === 'pool'}">Team Pool</button>
-                        <button @click="setFilter('Top', 'all')" class="filter-button" :class="{'active': currentFilter === 'Top'}">Mietek</button>
-                        <button @click="setFilter('Jungle', 'all')" class="filter-button" :class="{'active': currentFilter === 'Jungle'}">Lulas</button>
-                        <button @click="setFilter('Mid', 'all')" class="filter-button" :class="{'active': currentFilter === 'Mid'}">Kaymin</button>
-                        <button @click="setFilter('Bot', 'all')" class="filter-button" :class="{'active': currentFilter === 'Bot'}">Exofeng</button>
-                        <button @click="setFilter('Support', 'all')" class="filter-button" :class="{'active': currentFilter === 'Support'}">Kasing</button>
+                        <button @click="setFilter('pool', 'player')" class="filter-button" :class="{'active': currentFilter === 'pool'}">Team Pool</button>
+                        <button @click="setFilter('Top', 'player')" class="filter-button" :class="{'active': currentFilter === 'Top'}">Mietek</button>
+                        <button @click="setFilter('Jungle', 'player')" class="filter-button" :class="{'active': currentFilter === 'Jungle'}">Lulas</button>
+                        <button @click="setFilter('Mid', 'player')" class="filter-button" :class="{'active': currentFilter === 'Mid'}">Kaymin</button>
+                        <button @click="setFilter('Bot', 'player')" class="filter-button" :class="{'active': currentFilter === 'Bot'}">Exofeng</button>
+                        <button @click="setFilter('Support', 'player')" class="filter-button" :class="{'active': currentFilter === 'Support'}">Kasing</button>
                     </div>
-
                     <div class="controls-row-bottom">
                         <div class="relative search-container">
-                            <input type="text" x-model.debounce.300ms="searchTerm" placeholder="Search Champions..." class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 transition duration-150 ease-in-out hover:bg-gray-600 focus:bg-gray-600">
-                            <button x-show="searchTerm" @click="searchTerm = ''" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-200" aria-label="Clear search">
-                                &times;
+                            <svg class="search-icon"><use href="#icon-search"></use></svg>
+                            <input type="text" x-model.debounce.300ms="searchTerm" placeholder="Search..." class="pool-search-input"> <button x-show="searchTerm" @click="searchTerm = ''" class="clear-search-button" aria-label="Clear search"> &times;
                             </button>
                         </div>
                         <div class="role-filters-container">
-                            <button @click="setFilter('all', 'all')" class="filter-button" :class="{'active': currentFilter === 'all' && roleFilter === 'all'}">All</button>
-                            <button @click="setFilter('all', 'Top')" class="filter-button" :class="{'active': roleFilter === 'Top'}">Top</button>
-                            <button @click="setFilter('all', 'Jungle')" class="filter-button" :class="{'active': roleFilter === 'Jungle'}">Jungle</button>
-                            <button @click="setFilter('all', 'Mid')" class="filter-button" :class="{'active': roleFilter === 'Mid'}">Mid</button>
-                            <button @click="setFilter('all', 'Bot')" class="filter-button" :class="{'active': roleFilter === 'Bot'}">Bot</button>
-                            <button @click="setFilter('all', 'Support')" class="filter-button" :class="{'active': roleFilter === 'Support'}">Support</button>
+                            <button @click="setFilter('Top', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Top'}" title="Filter by Top Lane">
+                                <img :src="getRoleIconUrl('Top')" alt="Top Lane" class="filter-icon" draggable="false">
+                            </button>
+                            <button @click="setFilter('Jungle', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Jungle'}" title="Filter by Jungle">
+                                <img :src="getRoleIconUrl('Jungle')" alt="Jungle" class="filter-icon" draggable="false">
+                            </button>
+                            <button @click="setFilter('Mid', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Mid'}" title="Filter by Mid Lane">
+                                <img :src="getRoleIconUrl('Mid')" alt="Mid Lane" class="filter-icon" draggable="false">
+                            </button>
+                            <button @click="setFilter('Bot', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Bot'}" title="Filter by Bot Lane">
+                                <img :src="getRoleIconUrl('Bot')" alt="Bot Lane" class="filter-icon" draggable="false">
+                            </button>
+                            <button @click="setFilter('Support', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Support'}" title="Filter by Support">
+                                <img :src="getRoleIconUrl('Support')" alt="Support" class="filter-icon" draggable="false">
+                            </button>
                         </div>
                         <div class="sort-reset-container">
                              <span class="sort-label">Sort By:</span>
@@ -519,7 +88,7 @@
                              <button @click="openConfirmationModal('Are you sure you want to reset highlighted picks?', () => resetMarkedPicksAction())" class="reset-button reset-marked bg-blue-700 hover:bg-blue-600 text-white ml-2" aria-label="Reset highlighted picks">
                                  Reset Highlighted
                              </button>
-                             <button @click="openConfirmationModal('Reset entire series draft? This cannot be undone.', () => resetDraftSeriesAction(), 'resetDraftSeries')" class="reset-button reset-series bg-yellow-600 hover:bg-yellow-500 text-white ml-2" aria-label="Reset series draft">
+                             <button @click="openConfirmationModal('Reset entire series draft? This cannot be undone.', () => resetDraftSeriesAction(), 'resetDraftSeries')" class="reset-button reset-series bg-yellow-700 hover:bg-yellow-600 text-white ml-2" aria-label="Reset series draft">
                                  Reset Drafts
                              </button>
                         </div>
@@ -546,6 +115,7 @@
                                     [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name)
                                  }"
                                  @click="!isUnavailable(champion.name) && togglePick(champion.name)"
+                                 @contextmenu.prevent="!isUnavailable(champion.name) && unpickChampion(champion.name)"
                                  role="button"
                                  :aria-disabled="isUnavailable(champion.name)"
                                  :aria-pressed="isPicked(champion.name)"
@@ -553,25 +123,21 @@
                                  :tabindex="0"
                                  x-cloak
                                  :title="champion.name">
-
-                                 <img class="champion-icon" :src="getChampionIconUrl(champion.name)" :alt="champion.name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                 <img class="champion-icon" :src="getChampionIconUrl(champion.name)" :alt="champion.name" loading="lazy" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                  <div class="img-error-placeholder" style="display: none;">?</div>
                                  <span class="champion-name-text text-gray-200" x-text="champion.name" :title="champion.name"></span>
-
                                  <span class="badge tier-badge"
                                        x-show="champion.poolInfo && champion.poolInfo.isInPool && champion.poolInfo.tier && !isUnavailable(champion.name)"
                                        x-text="champion.poolInfo?.tier"
                                        x-cloak>
                                  </span>
-
                                  <div class="player-badge-container"
                                       x-show="champion.poolInfo && champion.poolInfo.isInPool && champion.poolInfo.players && champion.poolInfo.players.length > 0 && !isUnavailable(champion.name)"
                                       x-cloak>
                                     <template x-for="player in (champion.poolInfo?.players || [])" :key="player">
-                                        <img class="player-badge" :src="getRoleIconUrl(player)" :alt="player" :title="player" onerror="this.style.opacity='0.5'; this.style.backgroundColor='red';" />
+                                        <img class="player-badge" :src="getRoleIconUrl(player)" :alt="player" :title="player" draggable="false" onerror="this.style.opacity='0.5'; this.style.backgroundColor='red';" />
                                     </template>
                                  </div>
-
                                  <span class="picked-overlay-text" x-show="isUnavailable(champion.name) || isPicked(champion.name)" x-text="isUnavailable(champion.name) ? 'UNAVAILABLE' : 'MARKED'" x-cloak></span>
                             </div>
                         </template>
@@ -579,18 +145,18 @@
                  </div>
                  <div class="footer-lists-container">
                     <div class="footer-list-column footer-unavailable-column">
-                        <p class="text-gray-400 text-sm" x-show="sortedUnavailableChampions.length === 0" x-cloak>No champions picked in draft yet.</p>
+                        <p class="h-full flex items-center justify-center text-lg text-gray-500" x-show="sortedUnavailableChampions.length === 0" x-cloak>No champions picked in draft yet.</p>
                         <div class="footer-role-groups-container" x-show="sortedUnavailableChampions.length > 0" x-cloak>
                             <template x-for="role in ['Top', 'Jungle', 'Mid', 'Bot', 'Support', 'Unknown']" :key="role">
                                 <div class="footer-role-group" x-show="unavailableChampionsByRole[role] && unavailableChampionsByRole[role].length > 0" x-cloak>
                                     <div class="footer-role-header">
-                                         <img class="footer-role-icon" :src="getRoleIconUrl(role)" :alt="role" :title="role" onerror="this.style.opacity='0.5'; this.style.backgroundColor='gray';"/>
+                                         <img class="footer-role-icon" :src="getRoleIconUrl(role)" :alt="role" :title="role" draggable="false" onerror="this.style.opacity='0.5'; this.style.backgroundColor='gray';"/>
                                          <span x-text="role"></span>
                                     </div>
                                     <div class="footer-unavailable-list">
                                         <template x-for="name in unavailableChampionsByRole[role]" :key="name">
                                             <div class="footer-list-item">
-                                                <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                                <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                                                 <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>
                                                 <span x-text="name"></span>
                                             </div>
@@ -606,7 +172,7 @@
                         <div class="manual-picks-list" x-show="pickedChampions.length > 0" x-cloak>
                             <template x-for="name in pickedChampions.slice().sort()" :key="name">
                                 <div class="footer-list-item">
-                                    <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                    <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                                     <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>
                                     <span x-text="name"></span>
                                 </div>
@@ -627,24 +193,38 @@
                                  <div class="draft-section">
                                      <div class="draft-slots">
                                          <template x-for="i in 3" :key="`b-ban-slot-${i}`">
-                                            <div class="draft-slot ban-slot" :class="{'filled': game.blueBans[i-1]}" @click="openChampionSelectModal(gameIndex, 'blueBans', i-1)">
-                                                <template x-if="game.blueBans[i-1]"><img :src="getChampionIconUrl(game.blueBans[i-1], 'ban')" :alt="game.blueBans[i-1]" onerror="this.style.opacity=0.5"></template>
+                                            <div class="draft-slot ban-slot"
+                                                 :class="{'filled': game.blueBans[i-1]}"
+                                                 @click="openChampionSelectModal(gameIndex, 'blueBans', i-1)"
+                                                 @contextmenu.prevent="clearSlot(gameIndex, 'blueBans', i-1)"
+                                                 title="Click to select, Right-click to clear">
+                                                <template x-if="game.blueBans[i-1]"><img :src="getChampionIconUrl(game.blueBans[i-1], 'ban')" :alt="game.blueBans[i-1]" draggable="false" onerror="this.style.opacity=0.5"></template>
                                                 <template x-if="!game.blueBans[i-1]"><span class="slot-placeholder">&times;</span></template>
                                             </div>
                                          </template>
                                          <div class="ban-group-separator"></div>
                                          <template x-for="i in 2" :key="`b-ban-slot-${i+3}`">
-                                            <div class="draft-slot ban-slot" :class="{'filled': game.blueBans[i+2]}" @click="openChampionSelectModal(gameIndex, 'blueBans', i+2)">
-                                                <template x-if="game.blueBans[i+2]"><img :src="getChampionIconUrl(game.blueBans[i+2], 'ban')" :alt="game.blueBans[i+2]" onerror="this.style.opacity=0.5"></template>
+                                            <div class="draft-slot ban-slot"
+                                                 :class="{'filled': game.blueBans[i+2]}"
+                                                 @click="openChampionSelectModal(gameIndex, 'blueBans', i+2)"
+                                                 @contextmenu.prevent="clearSlot(gameIndex, 'blueBans', i+2)"
+                                                 title="Click to select, Right-click to clear">
+                                                <template x-if="game.blueBans[i+2]"><img :src="getChampionIconUrl(game.blueBans[i+2], 'ban')" :alt="game.blueBans[i+2]" draggable="false" onerror="this.style.opacity=0.5"></template>
                                                 <template x-if="!game.blueBans[i+2]"><span class="slot-placeholder">&times;</span></template>
                                             </div>
                                          </template>
                                      </div>
                                      <div class="draft-slots">
                                          <template x-for="i in 5" :key="`b-pick-slot-${i}`">
-                                            <div class="draft-slot pick-slot" :class="{'filled': game.bluePicks[i-1]}" @click="openChampionSelectModal(gameIndex, 'bluePicks', i-1)">
-                                                <template x-if="game.bluePicks[i-1]"><img :src="getChampionIconUrl(game.bluePicks[i-1], 'pick')" :alt="game.bluePicks[i-1]" onerror="this.style.opacity=0.5"></template>
-                                                <template x-if="!game.bluePicks[i-1]"><span class="slot-placeholder">+</span></template>
+                                            <div class="draft-slot pick-slot"
+                                                 :class="{'filled': game.bluePicks[i-1]}"
+                                                 @click="openChampionSelectModal(gameIndex, 'bluePicks', i-1)"
+                                                 @contextmenu.prevent="clearSlot(gameIndex, 'bluePicks', i-1)"
+                                                 title="Click to select, Right-click to clear">
+                                                <template x-if="game.bluePicks[i-1]"><img :src="getChampionIconUrl(game.bluePicks[i-1], 'pick')" :alt="game.bluePicks[i-1]" draggable="false" onerror="this.style.opacity=0.5"></template>
+                                                <template x-if="!game.bluePicks[i-1]">
+                                                    <img src="./media/no_champion.png" alt="Empty slot" class="slot-placeholder-image" draggable="false">
+                                                </template>
                                             </div>
                                          </template>
                                      </div>
@@ -657,24 +237,38 @@
                                  <div class="draft-section">
                                      <div class="draft-slots">
                                          <template x-for="i in 3" :key="`r-ban-slot-${i}`">
-                                            <div class="draft-slot ban-slot" :class="{'filled': game.redBans[i-1]}" @click="openChampionSelectModal(gameIndex, 'redBans', i-1)">
-                                                <template x-if="game.redBans[i-1]"><img :src="getChampionIconUrl(game.redBans[i-1], 'ban')" :alt="game.redBans[i-1]" onerror="this.style.opacity=0.5"></template>
+                                            <div class="draft-slot ban-slot"
+                                                 :class="{'filled': game.redBans[i-1]}"
+                                                 @click="openChampionSelectModal(gameIndex, 'redBans', i-1)"
+                                                 @contextmenu.prevent="clearSlot(gameIndex, 'redBans', i-1)"
+                                                 title="Click to select, Right-click to clear">
+                                                <template x-if="game.redBans[i-1]"><img :src="getChampionIconUrl(game.redBans[i-1], 'ban')" :alt="game.redBans[i-1]" draggable="false" onerror="this.style.opacity=0.5"></template>
                                                 <template x-if="!game.redBans[i-1]"><span class="slot-placeholder">&times;</span></template>
                                             </div>
                                          </template>
                                          <div class="ban-group-separator"></div>
                                          <template x-for="i in 2" :key="`r-ban-slot-${i+3}`">
-                                            <div class="draft-slot ban-slot" :class="{'filled': game.redBans[i+2]}" @click="openChampionSelectModal(gameIndex, 'redBans', i+2)">
-                                                <template x-if="game.redBans[i+2]"><img :src="getChampionIconUrl(game.redBans[i+2], 'ban')" :alt="game.redBans[i+2]" onerror="this.style.opacity=0.5"></template>
+                                            <div class="draft-slot ban-slot"
+                                                 :class="{'filled': game.redBans[i+2]}"
+                                                 @click="openChampionSelectModal(gameIndex, 'redBans', i+2)"
+                                                 @contextmenu.prevent="clearSlot(gameIndex, 'redBans', i+2)"
+                                                 title="Click to select, Right-click to clear">
+                                                <template x-if="game.redBans[i+2]"><img :src="getChampionIconUrl(game.redBans[i+2], 'ban')" :alt="game.redBans[i+2]" draggable="false" onerror="this.style.opacity=0.5"></template>
                                                 <template x-if="!game.redBans[i+2]"><span class="slot-placeholder">&times;</span></template>
                                             </div>
                                          </template>
                                      </div>
                                      <div class="draft-slots">
                                          <template x-for="i in 5" :key="`r-pick-slot-${i}`">
-                                            <div class="draft-slot pick-slot" :class="{'filled': game.redPicks[i-1]}" @click="openChampionSelectModal(gameIndex, 'redPicks', i-1)">
-                                                <template x-if="game.redPicks[i-1]"><img :src="getChampionIconUrl(game.redPicks[i-1], 'pick')" :alt="game.redPicks[i-1]" onerror="this.style.opacity=0.5"></template>
-                                                <template x-if="!game.redPicks[i-1]"><span class="slot-placeholder">+</span></template>
+                                            <div class="draft-slot pick-slot"
+                                                 :class="{'filled': game.redPicks[i-1]}"
+                                                 @click="openChampionSelectModal(gameIndex, 'redPicks', i-1)"
+                                                 @contextmenu.prevent="clearSlot(gameIndex, 'redPicks', i-1)"
+                                                 title="Click to select, Right-click to clear">
+                                                <template x-if="game.redPicks[i-1]"><img :src="getChampionIconUrl(game.redPicks[i-1], 'pick')" :alt="game.redPicks[i-1]" draggable="false" onerror="this.style.opacity=0.5"></template>
+                                                 <template x-if="!game.redPicks[i-1]">
+                                                    <img src="./media/no_champion.png" alt="Empty slot" class="slot-placeholder-image" draggable="false">
+                                                </template>
                                             </div>
                                          </template>
                                      </div>
@@ -689,6 +283,272 @@
                     </button>
                 </div>
             </div>
+
+            <div x-show="currentView === 'drafting'"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="draft-creator-view absolute w-full top-0 left-0"
+                 x-cloak>
+
+                 <div class="draft-creator-main-wrapper">
+
+                     <div class="draft-indicator-container">
+                         <div class="indicator-rect blue-indicator"></div>
+                         <div class="indicator-rect red-indicator"></div>
+                     </div>
+
+                    <div class="draft-creator-bans-header">
+                        <div class="draft-creator-bans blue-bans">
+                            <template x-for="i in 3" :key="`creator-b-ban-${i}`">
+                                <div class="draft-creator-slot ban-slot"
+                                     :class="{
+                                        'filled': currentDraft.blueBans[i-1].champion,
+                                        'has-notes': currentDraft.blueBans[i-1].notes,
+                                        'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'blue' && selectedChampionSource.type === 'bans' && selectedChampionSource.index === (i-1),
+                                        'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'blue' && selectedTargetSlot.type === 'bans' && selectedTargetSlot.index === (i-1) && !currentDraft.blueBans[i-1].champion
+                                     }"
+                                     @click="handleSlotClick('blue', 'bans', i-1)"
+                                     @contextmenu.prevent="clearCreatorSlot('blue', 'bans', i-1)"
+                                     title="Click to place/move/target, Right-click to clear">
+                                    <template x-if="currentDraft.blueBans[i-1].champion">
+                                        <img :src="getChampionIconUrl(currentDraft.blueBans[i-1].champion, 'ban')" :alt="currentDraft.blueBans[i-1].champion" draggable="false" onerror="this.style.opacity=0.5">
+                                    </template>
+                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'bans', i-1)" title="Edit Notes">
+                                        <svg><use href="#icon-note"></use></svg>
+                                    </button>
+                                </div>
+                            </template>
+                            <div class="ban-group-separator horizontal"></div>
+                            <template x-for="i in 2" :key="`creator-b-ban-${i+3}`">
+                                <div class="draft-creator-slot ban-slot"
+                                     :class="{
+                                        'filled': currentDraft.blueBans[i+2].champion,
+                                        'has-notes': currentDraft.blueBans[i+2].notes,
+                                        'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'blue' && selectedChampionSource.type === 'bans' && selectedChampionSource.index === (i+2),
+                                        'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'blue' && selectedTargetSlot.type === 'bans' && selectedTargetSlot.index === (i+2) && !currentDraft.blueBans[i+2].champion
+                                      }"
+                                     @click="handleSlotClick('blue', 'bans', i+2)"
+                                     @contextmenu.prevent="clearCreatorSlot('blue', 'bans', i+2)"
+                                     title="Click to place/move/target, Right-click to clear">
+                                    <template x-if="currentDraft.blueBans[i+2].champion">
+                                        <img :src="getChampionIconUrl(currentDraft.blueBans[i+2].champion, 'ban')" :alt="currentDraft.blueBans[i+2].champion" draggable="false" onerror="this.style.opacity=0.5">
+                                    </template>
+                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'bans', i+2)" title="Edit Notes">
+                                        <svg><use href="#icon-note"></use></svg>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="draft-creator-bans red-bans">
+                            <template x-for="i in 2" :key="`creator-r-ban-rev-${5-i}`"> <div class="draft-creator-slot ban-slot"
+                                    :class="{
+                                       'filled': currentDraft.redBans[5-i].champion,
+                                       'has-notes': currentDraft.redBans[5-i].notes,
+                                       'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'red' && selectedChampionSource.type === 'bans' && selectedChampionSource.index === (5-i),
+                                       'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'red' && selectedTargetSlot.type === 'bans' && selectedTargetSlot.index === (5-i) && !currentDraft.redBans[5-i].champion
+                                    }"
+                                    @click="handleSlotClick('red', 'bans', 5-i)"
+                                    @contextmenu.prevent="clearCreatorSlot('red', 'bans', 5-i)"
+                                    title="Click to place/move/target, Right-click to clear">
+                                   <template x-if="currentDraft.redBans[5-i].champion">
+                                       <img :src="getChampionIconUrl(currentDraft.redBans[5-i].champion, 'ban')" :alt="currentDraft.redBans[5-i].champion" draggable="false" onerror="this.style.opacity=0.5">
+                                   </template>
+                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'bans', 5-i)" title="Edit Notes">
+                                       <svg><use href="#icon-note"></use></svg>
+                                   </button>
+                               </div>
+                           </template>
+                           <div class="ban-group-separator horizontal"></div>
+                            <template x-for="i in 3" :key="`creator-r-ban-rev-${3-i}`"> <div class="draft-creator-slot ban-slot"
+                                    :class="{
+                                       'filled': currentDraft.redBans[3-i].champion,
+                                       'has-notes': currentDraft.redBans[3-i].notes,
+                                       'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'red' && selectedChampionSource.type === 'bans' && selectedChampionSource.index === (3-i),
+                                       'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'red' && selectedTargetSlot.type === 'bans' && selectedTargetSlot.index === (3-i) && !currentDraft.redBans[3-i].champion
+                                    }"
+                                    @click="handleSlotClick('red', 'bans', 3-i)"
+                                    @contextmenu.prevent="clearCreatorSlot('red', 'bans', 3-i)"
+                                    title="Click to place/move/target, Right-click to clear">
+                                   <template x-if="currentDraft.redBans[3-i].champion">
+                                       <img :src="getChampionIconUrl(currentDraft.redBans[3-i].champion, 'ban')" :alt="currentDraft.redBans[3-i].champion" draggable="false" onerror="this.style.opacity=0.5">
+                                   </template>
+                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'bans', 3-i)" title="Edit Notes">
+                                       <svg><use href="#icon-note"></use></svg>
+                                   </button>
+                               </div>
+                           </template>
+                       </div>
+                    </div>
+                    <div class="draft-creator-main-content">
+                        <div class="draft-creator-layout">
+                            <div class="draft-creator-side blue-side">
+                                <h3 class="side-title">Blue Side</h3>
+                                <div class="draft-creator-picks">
+                                    <template x-for="i in 5" :key="`creator-b-pick-${i}`">
+                                        <div class="pick-row blue">
+                                            <span class="pick-label" x-text="`B${i}`"></span>
+                                            <div class="draft-creator-slot pick-slot"
+                                                 :data-pick-order="`B${i}`"
+                                                 :class="{
+                                                    'filled': currentDraft.bluePicks[i-1].champion,
+                                                    'has-notes': currentDraft.bluePicks[i-1].notes,
+                                                    'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'blue' && selectedChampionSource.type === 'picks' && selectedChampionSource.index === (i-1),
+                                                    'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'blue' && selectedTargetSlot.type === 'picks' && selectedTargetSlot.index === (i-1) && !currentDraft.bluePicks[i-1].champion
+                                                 }"
+                                                 @click="handleSlotClick('blue', 'picks', i-1)"
+                                                 @contextmenu.prevent="clearCreatorSlot('blue', 'picks', i-1)"
+                                                 title="Click to place/move/target, Right-click to clear">
+                                                <template x-if="currentDraft.bluePicks[i-1].champion">
+                                                    <img :src="getChampionIconUrl(currentDraft.bluePicks[i-1].champion, 'pick')" :alt="currentDraft.bluePicks[i-1].champion" draggable="false" onerror="this.style.opacity=0.5">
+                                                </template>
+                                                 <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'picks', i-1)" title="Edit Notes">
+                                                    <svg><use href="#icon-note"></use></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div class="draft-creator-center">
+                                <div class="draft-creator-pool-controls">
+                                    <div class="draft-creator-search-container">
+                                        <svg class="search-icon"><use href="#icon-search"></use></svg>
+                                        <input type="text"
+                                               x-model.debounce.300ms="draftCreatorSearchTerm"
+                                               placeholder="Search..."
+                                               class="draft-creator-search-input">
+                                        <button x-show="draftCreatorSearchTerm"
+                                                @click="draftCreatorSearchTerm = ''"
+                                                class="clear-search-button"
+                                                aria-label="Clear search">
+                                            &times;
+                                        </button>
+                                    </div>
+                                    <div class="role-filters-container pool-filters">
+                                        <button @click="setDraftCreatorRoleFilter('Top')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Top'}" title="Filter by Top Lane">
+                                            <img :src="getRoleIconUrl('Top')" alt="Top Lane" class="filter-icon" draggable="false">
+                                        </button>
+                                         <button @click="setDraftCreatorRoleFilter('Jungle')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Jungle'}" title="Filter by Jungle">
+                                            <img :src="getRoleIconUrl('Jungle')" alt="Jungle" class="filter-icon" draggable="false">
+                                        </button>
+                                        <button @click="setDraftCreatorRoleFilter('Mid')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Mid'}" title="Filter by Mid Lane">
+                                            <img :src="getRoleIconUrl('Mid')" alt="Mid Lane" class="filter-icon" draggable="false">
+                                        </button>
+                                        <button @click="setDraftCreatorRoleFilter('Bot')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Bot'}" title="Filter by Bot Lane">
+                                            <img :src="getRoleIconUrl('Bot')" alt="Bot Lane" class="filter-icon" draggable="false">
+                                        </button>
+                                        <button @click="setDraftCreatorRoleFilter('Support')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Support'}" title="Filter by Support">
+                                            <img :src="getRoleIconUrl('Support')" alt="Support" class="filter-icon" draggable="false">
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="draft-creator-champion-grid">
+                                    <template x-for="champion in draftCreatorFilteredChampions" :key="champion.id">
+                                        <div class="draft-creator-champion-card"
+                                             :class="{
+                                                'selected-for-placement': selectedChampionForPlacement === champion.name,
+                                                'already-placed': isChampionPlacedInCurrentDraft(champion.name) && !(selectedChampionSource && selectedChampionSource.championName === champion.name) /* Simplified check */
+                                             }"
+                                             @click="selectChampionForPlacement(champion.name)"
+                                             :title="champion.name">
+                                             <img class="champion-icon"
+                                                 :src="getChampionIconUrl(champion.name, 'creator-pool')"
+                                                 :alt="champion.name"
+                                                 loading="lazy"
+                                                 draggable="false">
+                                            <span class="champion-name-text" x-text="champion.name"></span>
+                                        </div>
+                                    </template>
+                                    <p x-show="draftCreatorFilteredChampions.length === 0" class="text-gray-400 col-span-full text-center py-4" x-cloak>
+                                        No champions match filter/search.
+                                    </p>
+                                </div>
+                                <div class="draft-creator-controls">
+                                     <button @click="saveCurrentDraft()" class="control-button save-button" title="Save Current Draft">
+                                         <svg><use href="#icon-check"></use></svg> Save Draft
+                                     </button>
+                                     <button @click="resetCurrentDraft()" class="control-button reset-button" title="Reset Current Draft">
+                                         <svg><use href="#icon-trash"></use></svg> Reset
+                                     </button>
+                                 </div>
+                            </div>
+
+                            <div class="draft-creator-side red-side">
+                                <h3 class="side-title">Red Side</h3>
+                                <div class="draft-creator-picks">
+                                    <template x-for="i in 5" :key="`creator-r-pick-${i}`">
+                                        <div class="pick-row red">
+                                            <div class="draft-creator-slot pick-slot"
+                                                 :data-pick-order="`R${i}`"
+                                                 :class="{
+                                                    'filled': currentDraft.redPicks[i-1].champion,
+                                                    'has-notes': currentDraft.redPicks[i-1].notes,
+                                                    'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'red' && selectedChampionSource.type === 'picks' && selectedChampionSource.index === (i-1),
+                                                    'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'red' && selectedTargetSlot.type === 'picks' && selectedTargetSlot.index === (i-1) && !currentDraft.redPicks[i-1].champion
+                                                 }"
+                                                 @click="handleSlotClick('red', 'picks', i-1)"
+                                                 @contextmenu.prevent="clearCreatorSlot('red', 'picks', i-1)"
+                                                 title="Click to place/move/target, Right-click to clear">
+                                                <template x-if="currentDraft.redPicks[i-1].champion">
+                                                    <img :src="getChampionIconUrl(currentDraft.redPicks[i-1].champion, 'pick')" :alt="currentDraft.redPicks[i-1].champion" draggable="false" onerror="this.style.opacity=0.5">
+                                                </template>
+                                                 <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'picks', i-1)" title="Edit Notes">
+                                                    <svg><use href="#icon-note"></use></svg>
+                                                </button>
+                                            </div>
+                                            <span class="pick-label" x-text="`R${i}`"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                 </div>
+
+                 <div class="draft-creator-saved">
+                    <h3 class="saved-title">Saved Drafts (<span x-text="savedDrafts.length"></span>)</h3>
+                    <div class="saved-drafts-list">
+                         <p x-show="isLoadingSavedDrafts" class="text-gray-400 text-center p-4">Loading saved drafts...</p>
+                         <p x-show="!isLoadingSavedDrafts && savedDrafts.length === 0" class="text-gray-400 text-center p-4">No drafts saved yet.</p>
+                        <template x-for="draft in savedDrafts" :key="draft.id">
+                            <div class="saved-draft-item" :class="{'active-saved-draft': currentDraft.id === draft.id}">
+                                <span class="saved-draft-name" x-text="draft.name || 'Unnamed Draft'" @click="loadSavedDraft(draft.id)"></span>
+                                <div class="saved-draft-actions">
+                                    <button @click="deleteSavedDraft(draft.id)" title="Delete Draft">
+                                        <svg><use href="#icon-trash"></use></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                 <div x-show="notesModal.isOpen"
+                      class="notes-modal-overlay"
+                      x-transition:enter="transition ease-out duration-200"
+                      x-transition:enter-start="opacity-0"
+                      x-transition:enter-end="opacity-100"
+                      x-transition:leave="transition ease-in duration-150"
+                      x-transition:leave-start="opacity-100"
+                      x-transition:leave-end="opacity-0"
+                      @keydown.escape.window="closeNotesModal()"
+                      x-cloak>
+                     <div class="notes-modal-content" @click.outside="closeNotesModal()">
+                         <h3 class="notes-modal-title" x-text="notesModal.title">Edit Notes</h3>
+                         <textarea class="notes-modal-textarea" x-model="notesModal.currentNote" placeholder="Enter notes here..." x-ref="notesTextarea"></textarea>
+                         <div class="notes-modal-buttons">
+                             <button @click="saveNotesAndCloseModal()" class="modal-button modal-button-confirm">Save & Close</button>
+                             <button @click="closeNotesModal()" class="modal-button modal-button-cancel">Cancel</button>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+
         </div>
 
         <div x-show="modalType !== 'closed'"
@@ -705,7 +565,7 @@
                 <h3 class="modal-title" x-text="modalTitle">Modal Title</h3>
 
                 <div x-show="modalType === 'championSelect'" x-cloak>
-                    <div class="relative">
+                   <div class="relative">
                         <input type="text"
                                class="modal-input"
                                placeholder="Type champion name..."
@@ -715,7 +575,6 @@
                                @keydown.arrow-down.prevent="selectNextSuggestion()"
                                @keydown.arrow-up.prevent="selectPreviousSuggestion()"
                                x-ref="modalInput">
-
                         <div x-show="modalSuggestions.length > 0 && modalSearchTerm.length > 0"
                              class="suggestions-container"
                              x-transition:enter="transition ease-out duration-100"
@@ -730,7 +589,7 @@
                                      :class="{'active': modalSuggestionIndex === index}"
                                      @click="selectSuggestion(suggestion.name)"
                                      @mouseenter="modalSuggestionIndex = index">
-                                     <img class="suggestion-icon" :src="getChampionIconUrl(suggestion.name, 'list')" :alt="suggestion.name" onerror="this.style.opacity=0.5">
+                                     <img class="suggestion-icon" :src="getChampionIconUrl(suggestion.name, 'list')" :alt="suggestion.name" draggable="false" onerror="this.style.opacity=0.5">
                                      <span x-text="suggestion.name"></span>
                                 </div>
                             </template>
@@ -752,602 +611,14 @@
                         <button @click="confirmModalAction()"
                                 :class="{
                                     'modal-button': true,
-                                    'modal-button-danger': confirmationAction === 'resetDraftSeries' || confirmationAction === 'removeGame',
-                                    'modal-button-confirm': confirmationAction !== 'resetDraftSeries' && confirmationAction !== 'removeGame'
+                                    'modal-button-danger': confirmationAction === 'resetDraftSeries' || confirmationAction === 'removeGame' || confirmationAction === 'deleteSavedDraft',
+                                    'modal-button-confirm': confirmationAction !== 'resetDraftSeries' && confirmationAction !== 'removeGame' && confirmationAction !== 'deleteSavedDraft'
                                 }">Confirm</button>
                     </div>
                 </div>
 
             </div>
         </div>
-        </div>
 
-    <script>
-        // --- Firebase Configuration ---
-        const firebaseConfig = {
-          apiKey: "YOUR_API_KEY", // Replace with your actual API key if needed, but seems you have it hardcoded below
-          authDomain: "fearless-tools.firebaseapp.com",
-          projectId: "fearless-tools",
-          storageBucket: "fearless-tools.appspot.com",
-          messagingSenderId: "830913150506",
-          appId: "1:830913150506:web:6d6986862e404bc8ae0d53",
-          measurementId: "G-6Z91GFX42Q" // Optional
-        };
-
-        // --- Initialize Firebase ---
-        let firebaseApp;
-        let db;
-        try {
-            // Use hardcoded key from original script if needed, otherwise use above config
-            firebaseConfig.apiKey = "AIzaSyA8Sn1xWu628UB1MUABfvohYLzuchWVX18"; // Using the key from the original script
-            if (!firebase.apps.length) {
-                firebaseApp = firebase.initializeApp(firebaseConfig);
-            } else {
-                firebaseApp = firebase.app();
-            }
-            db = firebase.firestore();
-            console.log("Firebase Initialized Successfully.");
-        } catch (e) {
-            console.error("Firebase initialization failed:", e);
-            db = null; // Set db to null if initialization fails
-        }
-
-        // --- Firestore Helper Functions ---
-        const DRAFT_COLLECTION = "drafts";
-        const DRAFT_DOC_ID = 'current_draft'; // Consider making this dynamic later
-
-        // Fetches draft data from Firestore, providing default structure if not found or on error
-        async function fetchDraftDataFromFirestore() {
-            console.log(`Fetching draft data from ${DRAFT_COLLECTION}/${DRAFT_DOC_ID}...`);
-            const defaultData = {
-                draftSeries: [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }],
-                pickedChampions: []
-            };
-            if (!db) {
-                 console.error("Firestore not initialized. Returning default data.");
-                 return defaultData;
-            }
-            try {
-                const docRef = db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID);
-                const docSnap = await docRef.get();
-                if (docSnap.exists) {
-                    console.log("Firestore data found.");
-                    const data = docSnap.data();
-                    // Validate and sanitize loaded data before assigning
-                    const draftSeries = (Array.isArray(data.draftSeries) && data.draftSeries.length > 0)
-                        ? data.draftSeries.map(game => ({ // Ensure each game has the correct structure
-                              blueBans: Array.isArray(game?.blueBans) && game.blueBans.length === 5 ? game.blueBans : Array(5).fill(null),
-                              bluePicks: Array.isArray(game?.bluePicks) && game.bluePicks.length === 5 ? game.bluePicks : Array(5).fill(null),
-                              redBans: Array.isArray(game?.redBans) && game.redBans.length === 5 ? game.redBans : Array(5).fill(null),
-                              redPicks: Array.isArray(game?.redPicks) && game.redPicks.length === 5 ? game.redPicks : Array(5).fill(null),
-                          }))
-                        : defaultData.draftSeries; // Fallback to default if data is invalid
-                    const pickedChampions = Array.isArray(data.pickedChampions) ? data.pickedChampions : defaultData.pickedChampions;
-
-                    return { draftSeries, pickedChampions };
-                } else {
-                    console.log("No draft data found in Firestore, using defaults.");
-                    return defaultData;
-                }
-            } catch (error) {
-                console.error("Error fetching draft data from Firestore:", error);
-                 return defaultData; // Return default data on error
-            }
-        }
-
-        // Saves draft data to Firestore, ensuring structure integrity
-        async function saveDraftDataToFirestore(draftData) {
-             if (!db) { console.error("Firestore not initialized. Cannot save."); return; }
-             console.log(`Saving draft data to ${DRAFT_COLLECTION}/${DRAFT_DOC_ID}:`, draftData);
-             try {
-                 // Basic validation before saving to ensure correct structure
-                 const dataToSave = {
-                     pickedChampions: Array.isArray(draftData.pickedChampions) ? draftData.pickedChampions : [],
-                     draftSeries: (Array.isArray(draftData.draftSeries) && draftData.draftSeries.length > 0)
-                        ? draftData.draftSeries.map(game => ({ // Ensure structure within series
-                              blueBans: Array.isArray(game?.blueBans) && game.blueBans.length === 5 ? game.blueBans : Array(5).fill(null),
-                              bluePicks: Array.isArray(game?.bluePicks) && game.bluePicks.length === 5 ? game.bluePicks : Array(5).fill(null),
-                              redBans: Array.isArray(game?.redBans) && game.redBans.length === 5 ? game.redBans : Array(5).fill(null),
-                              redPicks: Array.isArray(game?.redPicks) && game.redPicks.length === 5 ? game.redPicks : Array(5).fill(null),
-                          }))
-                        : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }] // Default if invalid
-                 };
-                 // Use set with merge:true to update or create the document
-                 await db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID).set(dataToSave, { merge: true });
-                 console.log("Draft data saved successfully.");
-             } catch (error) {
-                 console.error("Error saving draft data to Firestore:", error);
-             }
-        }
-    </script>
-
-    <script>
-        function draftHelper() {
-            return {
-                // --- State ---
-                allChampions: [], // Holds data from champions.js
-                teamPool: {}, // Holds data from champions.js (teamTierList)
-                pickedChampions: [], // Manually highlighted champions (synced with Firestore)
-                currentFilter: 'all', // 'all', 'pool', or player role (e.g., 'Top')
-                roleFilter: 'all', // 'all' or specific role (e.g., 'Jungle')
-                searchTerm: '', // Input for champion search
-                sortOrder: 'name', // 'name' or 'tier'
-                currentView: 'pool', // 'pool' or 'draftTracker'
-                draftSeries: [ // Array of draft games (synced with Firestore)
-                    { blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }
-                ],
-                isLoading: true, // Flag for initial data loading
-                _saveTimeout: null, // Timeout ID for debounced Firestore save
-                _unsubscribeFirestore: null, // Function to detach Firestore listener
-                _defaultPoolInfo: { isInPool: false, tier: null, players: [], tierClass: 'tier-DEFAULT' }, // Default structure for pool info
-                _tierOrderValue: { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'DEFAULT': 0 }, // Numerical value for tier sorting
-
-                // Modal State
-                modalType: 'closed', // 'closed', 'championSelect', 'confirm'
-                modalTarget: { gameIndex: null, draftType: null, slotIndex: null }, // Tracks which draft slot the modal is for
-                modalSearchTerm: '', // Search term within the champion select modal
-                modalSuggestions: [], // Filtered champion suggestions for the modal
-                modalSuggestionIndex: -1, // Index of the currently highlighted suggestion
-                modalCurrentValue: null, // The champion currently in the targeted slot (if any)
-                confirmationMessage: '', // Message displayed in the confirmation modal
-                confirmationCallback: null, // Function to execute when confirmation is confirmed
-                confirmationAction: '', // Identifier for styling the confirm button (e.g., 'resetDraftSeries', 'removeGame')
-
-                // --- Computed Properties ---
-                // (Computed properties remain unchanged)
-                get unavailableChampions() {
-                    const unavailable = new Set();
-                    this.draftSeries.forEach(game => {
-                        (game?.bluePicks ?? []).forEach(pick => pick && unavailable.add(pick));
-                        (game?.redPicks ?? []).forEach(pick => pick && unavailable.add(pick));
-                    });
-                    return unavailable;
-                },
-                get sortedUnavailableChampions() {
-                    return Array.from(this.unavailableChampions).sort();
-                },
-                get unavailableChampionsByRole() {
-                    const grouped = { Top: [], Jungle: [], Mid: [], Bot: [], Support: [], Unknown: [] };
-                    const validRoles = new Set(['Top', 'Jungle', 'Mid', 'Bot', 'Support']);
-                    this.unavailableChampions.forEach(championName => {
-                        let assignedRole = 'Unknown';
-                        const teamRoles = Object.keys(this.teamPool).filter(role => this.teamPool[role]?.[championName]);
-                        const teamRoleCount = teamRoles.length;
-                        const champData = this.allChampions.find(c => c.name === championName);
-                        const mainRole = champData?.mainRole;
-                        if (teamRoleCount === 1) {
-                            assignedRole = teamRoles[0];
-                        } else if (teamRoleCount > 1) {
-                            if (mainRole && validRoles.has(mainRole)) { assignedRole = mainRole; }
-                            else { assignedRole = teamRoles[0] || 'Unknown'; }
-                        } else {
-                            if (mainRole && validRoles.has(mainRole)) { assignedRole = mainRole; }
-                            else { assignedRole = (champData?.roles?.find(r => validRoles.has(r))) || 'Unknown'; }
-                        }
-                        if (!grouped[assignedRole]) { assignedRole = 'Unknown'; }
-                        grouped[assignedRole].push(championName);
-                    });
-                    Object.values(grouped).forEach(arr => arr.sort());
-                    return grouped;
-                },
-                get filteredChampions() {
-                    if (!this.allChampions || this.allChampions.length === 0) return [];
-                    let processedChampions = this.allChampions.map(champ => ({
-                        ...champ,
-                        poolInfo: this.getChampionPoolInfo(champ.name, this.currentFilter, this.roleFilter),
-                        isChampUnavailable: this.isUnavailable(champ.name)
-                    }));
-                    if (this.currentFilter === 'pool') {
-                        processedChampions = processedChampions.filter(c => c.poolInfo.isInPool);
-                    } else if (this.currentFilter !== 'all') {
-                        processedChampions = processedChampions.filter(c => c.poolInfo.players.includes(this.currentFilter));
-                    }
-                    if (this.roleFilter !== 'all') {
-                        processedChampions = processedChampions.filter(c => Array.isArray(c.roles) && c.roles.includes(this.roleFilter));
-                    }
-                    if (this.searchTerm.trim() !== '') {
-                        const searchLower = this.searchTerm.trim().toLowerCase();
-                        processedChampions = processedChampions.filter(c => c.name.toLowerCase().includes(searchLower));
-                    }
-                    processedChampions.sort((a, b) => {
-                        if (this.sortOrder === 'tier') {
-                            const tierA = a.poolInfo?.tier || 'DEFAULT';
-                            const tierB = b.poolInfo?.tier || 'DEFAULT';
-                            const valueA = this._tierOrderValue[tierA] ?? 0;
-                            const valueB = this._tierOrderValue[tierB] ?? 0;
-                            if (valueA !== valueB) return valueB - valueA;
-                            return a.name.localeCompare(b.name);
-                        } else {
-                            return a.name.localeCompare(b.name);
-                        }
-                    });
-                    return processedChampions;
-                 },
-                 get modalTitle() {
-                     if (this.modalType === 'championSelect') {
-                         if (!this.modalTarget.draftType) return 'Select Champion';
-                         const side = this.modalTarget.draftType.includes('blue') ? 'Blue' : 'Red';
-                         const type = this.modalTarget.draftType.includes('Bans') ? 'Ban' : 'Pick';
-                         const slot = this.modalTarget.slotIndex + 1;
-                         return `Select Champion for ${side} ${type} ${slot}`;
-                     } else if (this.modalType === 'confirm') {
-                         return 'Confirm Action';
-                     }
-                     return 'Modal'; // Return default title only if needed during transition
-                 },
-
-                // --- Initialization ---
-                // (Initialization logic remains unchanged)
-                async init() {
-                    console.log('Alpine component initializing...');
-                    this.isLoading = true;
-                    this.allChampions = window.allLolChampions || [];
-                    this.teamPool = window.teamTierList || {};
-                    if (this.allChampions.length === 0) { console.error("Champion list (allLolChampions) failed to load from champions.js!"); }
-                    if (Object.keys(this.teamPool).length === 0) { console.warn("Team tier list (teamTierList) might be empty or failed to load from champions.js."); }
-
-                    try {
-                        const loadedData = await fetchDraftDataFromFirestore();
-                         this.pickedChampions = loadedData.pickedChampions || [];
-                         this.draftSeries = (Array.isArray(loadedData.draftSeries) && loadedData.draftSeries.length > 0 ? loadedData.draftSeries : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }])
-                             .map(game => ({
-                                 blueBans: Array.isArray(game?.blueBans) && game.blueBans.length === 5 ? game.blueBans : Array(5).fill(null),
-                                 bluePicks: Array.isArray(game?.bluePicks) && game.bluePicks.length === 5 ? game.bluePicks : Array(5).fill(null),
-                                 redBans: Array.isArray(game?.redBans) && game.redBans.length === 5 ? game.redBans : Array(5).fill(null),
-                                 redPicks: Array.isArray(game?.redPicks) && game.redPicks.length === 5 ? game.redPicks : Array(5).fill(null),
-                             }));
-                    } catch (error) {
-                        console.error("Error during initial Firestore fetch:", error);
-                         this.pickedChampions = [];
-                         this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
-                    }
-
-                    this.isLoading = false;
-                    console.log(`Loaded ${this.allChampions.length} champions.`);
-                    console.log('Draft Helper Initialized');
-
-                    const debouncedSave = () => {
-                        clearTimeout(this._saveTimeout);
-                        this._saveTimeout = setTimeout(() => {
-                             const dataToSave = {
-                                pickedChampions: JSON.parse(JSON.stringify(this.pickedChampions)),
-                                draftSeries: JSON.parse(JSON.stringify(this.draftSeries))
-                             };
-                             saveDraftDataToFirestore(dataToSave);
-                        }, 1500);
-                    };
-
-                    this.$watch('pickedChampions', debouncedSave);
-                    this.$watch('draftSeries', debouncedSave, { deep: true });
-
-                    if (db) {
-                        const docRef = db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID);
-                        this._unsubscribeFirestore = docRef.onSnapshot((doc) => {
-                            console.log("Real-time update received from Firestore.");
-                            if (doc.exists) {
-                                const data = doc.data();
-                                const newDraftSeries = (Array.isArray(data.draftSeries) && data.draftSeries.length > 0 ? data.draftSeries : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }])
-                                    .map(game => ({
-                                        blueBans: Array.isArray(game?.blueBans) && game.blueBans.length === 5 ? game.blueBans : Array(5).fill(null),
-                                        bluePicks: Array.isArray(game?.bluePicks) && game.bluePicks.length === 5 ? game.bluePicks : Array(5).fill(null),
-                                        redBans: Array.isArray(game?.redBans) && game.redBans.length === 5 ? game.redBans : Array(5).fill(null),
-                                        redPicks: Array.isArray(game?.redPicks) && game.redPicks.length === 5 ? game.redPicks : Array(5).fill(null),
-                                    }));
-                                const newPickedChampions = Array.isArray(data.pickedChampions) ? data.pickedChampions : [];
-
-                                if (JSON.stringify(this.draftSeries) !== JSON.stringify(newDraftSeries)) {
-                                    console.log("Updating local draftSeries from Firestore.");
-                                    this.draftSeries = newDraftSeries;
-                                }
-                                 if (JSON.stringify(this.pickedChampions) !== JSON.stringify(newPickedChampions)) {
-                                     console.log("Updating local pickedChampions from Firestore.");
-                                     this.pickedChampions = newPickedChampions;
-                                 }
-                            } else {
-                                console.log("Draft document deleted in Firestore. Resetting local state.");
-                                this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
-                                this.pickedChampions = [];
-                            }
-                        }, (error) => {
-                            console.error("Error listening to draft updates:", error);
-                        });
-                    } else {
-                        console.error("Firestore not initialized, cannot set up real-time listener.");
-                    }
-                 },
-                 destroy() {
-                    if (this._unsubscribeFirestore) {
-                        console.log("Unsubscribing from Firestore listener.");
-                        this._unsubscribeFirestore();
-                    }
-                     clearTimeout(this._saveTimeout);
-                 },
-
-                // --- Methods ---
-                // (setSortOrder, setFilter, isUnavailable, isPicked, togglePick, resetDraftSeriesAction, resetMarkedPicksAction, removeGameAction remain unchanged)
-                setSortOrder(order) { this.sortOrder = order; },
-                setFilter(playerFilterValue, roleFilterValue) {
-                    if (this.currentFilter === playerFilterValue && this.roleFilter === roleFilterValue && (playerFilterValue !== 'all' || roleFilterValue !== 'all')) {
-                        this.currentFilter = 'all'; this.roleFilter = 'all';
-                    } else {
-                        this.currentFilter = playerFilterValue; this.roleFilter = roleFilterValue;
-                    }
-                    console.log(`Filters set - Player/Team: ${this.currentFilter}, Role: ${this.roleFilter}`);
-                },
-                isUnavailable(championName) { return championName ? this.unavailableChampions.has(championName) : false; },
-                isPicked(championName) { return championName ? this.pickedChampions.includes(championName) : false; },
-                togglePick(championName) {
-                    if (!championName || this.isUnavailable(championName)) return;
-                    const index = this.pickedChampions.indexOf(championName);
-                    if (index === -1) {
-                        this.pickedChampions = [...this.pickedChampions, championName];
-                    } else {
-                        this.pickedChampions = this.pickedChampions.filter(name => name !== championName);
-                    }
-                 },
-                 resetDraftSeriesAction() {
-                     const defaultDraft = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
-                     this.draftSeries = JSON.parse(JSON.stringify(defaultDraft));
-                     this.searchTerm = '';
-                     console.log('Draft Series Reset');
-                     saveDraftDataToFirestore({ pickedChampions: this.pickedChampions, draftSeries: defaultDraft });
-                 },
-                 resetMarkedPicksAction() {
-                    if (this.pickedChampions.length > 0) {
-                        this.pickedChampions = [];
-                        console.log('Highlighted Picks Reset');
-                        saveDraftDataToFirestore({ pickedChampions: [], draftSeries: this.draftSeries });
-                    }
-                 },
-                 removeGameAction(gameIndex) {
-                    const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
-                    newDraftSeries.splice(gameIndex, 1);
-                    this.draftSeries = newDraftSeries;
-                    console.log(`Removed Game at index ${gameIndex}`);
-                 },
-
-                 // --- Modal Methods ---
-
-                 // Opens the champion select modal for a specific draft slot
-                 openChampionSelectModal(gameIndex, draftType, slotIndex) {
-                    if (gameIndex < 0 || gameIndex >= this.draftSeries.length || !this.draftSeries[gameIndex]?.[draftType]) {
-                        console.error("Invalid target for modal:", gameIndex, draftType, slotIndex);
-                        return;
-                    }
-                    this.modalType = 'championSelect'; // Set type *before* setting values
-                    this.modalTarget = { gameIndex, draftType, slotIndex };
-                    this.modalCurrentValue = this.draftSeries[gameIndex][draftType][slotIndex];
-                    this.modalSearchTerm = this.modalCurrentValue || '';
-                    this.modalSuggestions = [];
-                    this.modalSuggestionIndex = -1;
-                    this.confirmationMessage = '';
-                    this.confirmationCallback = null;
-                    this.confirmationAction = '';
-
-                    this.$nextTick(() => {
-                        this.$refs.modalInput?.focus();
-                        this.updateSuggestions();
-                    });
-                 },
-
-                 // Opens the confirmation modal
-                 openConfirmationModal(message, callback, actionIdentifier = 'confirm') {
-                     this.modalType = 'confirm'; // Set type *before* setting values
-                     this.confirmationMessage = message;
-                     this.confirmationCallback = callback;
-                     this.confirmationAction = actionIdentifier;
-                     // Clear potentially conflicting state
-                     this.modalTarget = { gameIndex: null, draftType: null, slotIndex: null };
-                     this.modalSearchTerm = '';
-                     this.modalSuggestions = [];
-                     this.modalSuggestionIndex = -1;
-                     this.modalCurrentValue = null;
-                 },
-
-                 // *** UPDATED: closeModal just sets the type to trigger the transition ***
-                 closeModal() {
-                    this.modalType = 'closed';
-                    // State reset is now handled by resetModalState triggered by x-transition:leave-end
-                 },
-
-                 // *** ADDED: resetModalState resets variables AFTER transition ***
-                 resetModalState() {
-                    console.log("Resetting modal state after transition.");
-                    this.modalTarget = { gameIndex: null, draftType: null, slotIndex: null };
-                    this.modalSearchTerm = '';
-                    this.modalSuggestions = [];
-                    this.modalSuggestionIndex = -1;
-                    this.modalCurrentValue = null;
-                    this.confirmationMessage = '';
-                    this.confirmationCallback = null;
-                    this.confirmationAction = '';
-                 },
-
-                 // (updateSuggestions, selectSuggestion, selectNextSuggestion, selectPreviousSuggestion remain unchanged)
-                 updateSuggestions() {
-                    if (this.modalType !== 'championSelect') return;
-                    const term = this.modalSearchTerm.trim().toLowerCase();
-                    if (term === '') {
-                        this.modalSuggestions = [];
-                        this.modalSuggestionIndex = -1;
-                        return;
-                    }
-                    // Filter available champions based on availability
-                    const availableChamps = this.allChampions.filter(champ =>
-                        !this.isUnavailable(champ.name) || champ.name === this.modalCurrentValue
-                    );
-                    // Filter by search term, sort alphabetically, then slice
-                    this.modalSuggestions = availableChamps
-                        .filter(champ => champ.name.toLowerCase().includes(term))
-                        .sort((a, b) => a.name.localeCompare(b.name)) // <-- ADDED SORTING
-                        .slice(0, 7);
-                    this.modalSuggestionIndex = -1; // Reset selection index
-                 },
-                 selectSuggestion(championName) {
-                    this.modalSearchTerm = championName;
-                    this.modalSuggestions = [];
-                    this.modalSuggestionIndex = -1;
-                    this.$refs.modalInput?.focus();
-                 },
-                 selectNextSuggestion() {
-                    if (this.modalSuggestions.length === 0) return;
-                    this.modalSuggestionIndex = (this.modalSuggestionIndex + 1) % this.modalSuggestions.length;
-                 },
-                 selectPreviousSuggestion() {
-                    if (this.modalSuggestions.length === 0) return;
-                    this.modalSuggestionIndex = (this.modalSuggestionIndex - 1 + this.modalSuggestions.length) % this.modalSuggestions.length;
-                 },
-
-                 // *** UPDATED: confirmModalAction now calls closeModal() which only triggers the transition ***
-                 confirmModalAction() {
-                    if (this.modalType === 'championSelect') {
-                        let selectedChampionName = this.modalSearchTerm.trim();
-                        if (this.modalSuggestionIndex !== -1 && this.modalSuggestions[this.modalSuggestionIndex]) {
-                            selectedChampionName = this.modalSuggestions[this.modalSuggestionIndex].name;
-                        }
-                        if (selectedChampionName === "") {
-                            this.clearModalSelection(); // clearModalSelection now also calls closeModal()
-                            return;
-                        }
-                        const canonicalChamp = this.allChampions?.find(champ => champ.name.toLowerCase() === selectedChampionName.toLowerCase());
-                        if (!canonicalChamp) {
-                            alert(`Champion "${selectedChampionName}" not found.`);
-                            this.modalSearchTerm = ''; this.updateSuggestions(); this.$refs.modalInput?.focus();
-                            return; // Keep modal open
-                        }
-                        const canonicalName = canonicalChamp.name;
-                        if (this.isUnavailable(canonicalName) && canonicalName !== this.modalCurrentValue) {
-                             alert(`${canonicalName} is already picked or banned in this series.`);
-                             return; // Keep modal open
-                        }
-                        const { gameIndex, draftType, slotIndex } = this.modalTarget;
-                        if (gameIndex !== null && draftType && slotIndex !== null) {
-                            const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
-                            newDraftSeries[gameIndex][draftType][slotIndex] = canonicalName;
-                            this.draftSeries = newDraftSeries;
-                            console.log(`Set ${canonicalName} for Game ${gameIndex + 1} ${draftType} slot ${slotIndex + 1}`);
-                        }
-                        this.closeModal(); // Trigger close transition (state reset happens on leave-end)
-
-                    } else if (this.modalType === 'confirm') {
-                        if (typeof this.confirmationCallback === 'function') {
-                            this.confirmationCallback();
-                        }
-                        this.closeModal(); // Trigger close transition (state reset happens on leave-end)
-                    }
-                 },
-
-                 // *** UPDATED: clearModalSelection now calls closeModal() ***
-                 clearModalSelection() {
-                    if (this.modalType !== 'championSelect') return;
-                    const { gameIndex, draftType, slotIndex } = this.modalTarget;
-                    if (gameIndex !== null && draftType && slotIndex !== null && this.draftSeries[gameIndex][draftType][slotIndex] !== null) {
-                        const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
-                        newDraftSeries[gameIndex][draftType][slotIndex] = null;
-                        this.draftSeries = newDraftSeries;
-                        console.log(`Cleared slot ${slotIndex + 1} for ${draftType} in Game ${gameIndex + 1}`);
-                    }
-                    this.closeModal(); // Trigger close transition (state reset happens on leave-end)
-                 },
-
-                 // (addNewGame, removeGame remain unchanged)
-                 addNewGame() {
-                     const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
-                     newDraftSeries.push({ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) });
-                     this.draftSeries = newDraftSeries;
-                 },
-                 removeGame(gameIndex) {
-                     if (this.draftSeries.length <= 1) { alert("Cannot remove the only game in the series."); return; }
-                     this.openConfirmationModal(
-                         `Are you sure you want to remove Game ${gameIndex + 1}? This cannot be undone.`,
-                         () => this.removeGameAction(gameIndex),
-                         'removeGame'
-                     );
-                 },
-
-                 // --- Helper Methods ---
-                 // (getChampionPoolInfo, getRoleIconUrl, getChampionIconUrl remain unchanged)
-                 getChampionPoolInfo(championName, currentFilter = 'all', roleFilter = 'all') {
-                    const defaultInfo = { ...this._defaultPoolInfo };
-                    if (!championName || !this.teamPool || typeof this.teamPool !== 'object') {
-                        return defaultInfo;
-                    }
-                    let players = [];
-                    let isInPool = false;
-                    let highestTier = null;
-                    let specificTier = null;
-                    const tierOrder = this._tierOrderValue;
-                    let lookupKey = null;
-                    if (currentFilter !== 'all' && currentFilter !== 'pool') {
-                        lookupKey = currentFilter;
-                    }
-                    for (const playerRole in this.teamPool) {
-                        if (this.teamPool[playerRole]?.[championName]) {
-                            isInPool = true;
-                            players.push(playerRole);
-                            const currentTier = this.teamPool[playerRole][championName]?.toUpperCase();
-                            if (currentTier && (!highestTier || (tierOrder[currentTier] ?? 0) > (tierOrder[highestTier] ?? 0))) {
-                                highestTier = currentTier;
-                            }
-                            if (playerRole === lookupKey) {
-                                specificTier = currentTier;
-                            }
-                        }
-                    }
-                    let displayTier = null;
-                    let tierClass = 'tier-DEFAULT';
-                    if (isInPool) {
-                        if (lookupKey && specificTier) {
-                            displayTier = specificTier;
-                        } else {
-                            displayTier = highestTier;
-                        }
-                        if (displayTier) {
-                            tierClass = `tier-${displayTier}`;
-                        }
-                    }
-                    return { isInPool, tier: displayTier, players, tierClass };
-                 },
-                 getRoleIconUrl(roleOrPlayerName) {
-                     if (!roleOrPlayerName) return "https://placehold.co/16x16/cccccc/777777?text=?";
-                     const nameLower = roleOrPlayerName.toLowerCase();
-                     const urls = {
-                         top: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-top-blue-hover.png",
-                         jungle: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-jungle-blue-hover.png",
-                         mid: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-middle-blue-hover.png",
-                         bot: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-bottom-blue-hover.png",
-                         support: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-utility-blue-hover.png",
-                         unknown: "https://placehold.co/16x16/cccccc/777777?text=?"
-                     };
-                     if (urls[nameLower]) return urls[nameLower];
-                     if (nameLower.includes('top')) return urls.top;
-                     if (nameLower.includes('jg') || nameLower.includes('jng') || nameLower.includes('jungle')) return urls.jungle;
-                     if (nameLower.includes('mid')) return urls.mid;
-                     if (nameLower.includes('bot') || nameLower.includes('adc')) return urls.bot;
-                     if (nameLower.includes('sup') || nameLower.includes('support')) return urls.support;
-                     return urls.unknown;
-                 },
-                 getChampionIconUrl(championName, context = 'grid') {
-                    const placeholderUrls = {
-                        grid: "https://placehold.co/64x64/374151/9ca3af?text=?",
-                        pick: "https://placehold.co/60x60/374151/9ca3af?text=?",
-                        ban: "https://placehold.co/38x38/374151/9ca3af?text=?",
-                        list: "https://placehold.co/22x22/374151/9ca3af?text=?"
-                    };
-                    const placeholderUrl = placeholderUrls[context] || placeholderUrls.grid;
-                    if (!championName || !Array.isArray(this.allChampions) || this.allChampions.length === 0) return placeholderUrl;
-                    const champData = this.allChampions.find(champ => champ?.name?.toLowerCase() === championName.toLowerCase());
-                    if (champData?.imageName) {
-                        const patchVersion = "15.8.1"; // TODO: Consider making patch version dynamic or configurable
-                        return `https://ddragon.leagueoflegends.com/cdn/${patchVersion}/img/champion/${champData.imageName}.png`;
-                    } else {
-                        console.warn(`Could not find image name for champion: ${championName}`);
-                        return placeholderUrl;
-                    }
-                 }
-            }
-        }
-    </script>
-
-</body>
+    </div> </body>
 </html>
