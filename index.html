@@ -14,7 +14,7 @@
     <script src="./firebase-init.js"></script>
     <script src="./alpine-component.js"></script>
 </head>
-<body class="bg-gray-950 text-gray-200">
+<body>
 
     <svg width="0" height="0" style="position:absolute">
       <defs>
@@ -317,9 +317,9 @@
                                     <template x-if="currentDraft.blueBans[i-1].champion">
                                         <img :src="getChampionIconUrl(currentDraft.blueBans[i-1].champion, 'ban')" :alt="currentDraft.blueBans[i-1].champion" draggable="false" onerror="this.style.opacity=0.5">
                                     </template>
-<!--                                     <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'bans', i-1)" title="Edit Notes">
+                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'bans', i-1)" title="Edit Notes">
                                         <svg><use href="#icon-note"></use></svg>
-                                    </button> -->
+                                    </button>
                                 </div>
                             </template>
                             <div class="ban-group-separator horizontal"></div>
@@ -337,9 +337,9 @@
                                     <template x-if="currentDraft.blueBans[i+2].champion">
                                         <img :src="getChampionIconUrl(currentDraft.blueBans[i+2].champion, 'ban')" :alt="currentDraft.blueBans[i+2].champion" draggable="false" onerror="this.style.opacity=0.5">
                                     </template>
-<!--                                     <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'bans', i+2)" title="Edit Notes">
+                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'bans', i+2)" title="Edit Notes">
                                         <svg><use href="#icon-note"></use></svg>
-                                    </button> -->
+                                    </button>
                                 </div>
                             </template>
                         </div>
@@ -357,9 +357,9 @@
                                    <template x-if="currentDraft.redBans[5-i].champion">
                                        <img :src="getChampionIconUrl(currentDraft.redBans[5-i].champion, 'ban')" :alt="currentDraft.redBans[5-i].champion" draggable="false" onerror="this.style.opacity=0.5">
                                    </template>
-<!--                                     <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'bans', 5-i)" title="Edit Notes">
+                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'bans', 5-i)" title="Edit Notes">
                                        <svg><use href="#icon-note"></use></svg>
-                                   </button> -->
+                                   </button>
                                </div>
                            </template>
                            <div class="ban-group-separator horizontal"></div>
@@ -376,9 +376,9 @@
                                    <template x-if="currentDraft.redBans[3-i].champion">
                                        <img :src="getChampionIconUrl(currentDraft.redBans[3-i].champion, 'ban')" :alt="currentDraft.redBans[3-i].champion" draggable="false" onerror="this.style.opacity=0.5">
                                    </template>
-<!--                                     <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'bans', 3-i)" title="Edit Notes">
+                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'bans', 3-i)" title="Edit Notes">
                                        <svg><use href="#icon-note"></use></svg>
-                                   </button> -->
+                                   </button>
                                </div>
                            </template>
                        </div>
@@ -405,9 +405,9 @@
                                                 <template x-if="currentDraft.bluePicks[i-1].champion">
                                                     <img :src="getChampionIconUrl(currentDraft.bluePicks[i-1].champion, 'pick')" :alt="currentDraft.bluePicks[i-1].champion" draggable="false" onerror="this.style.opacity=0.5">
                                                 </template>
-<!--                                                  <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'picks', i-1)" title="Edit Notes">
+                                                 <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'picks', i-1)" title="Edit Notes">
                                                     <svg><use href="#icon-note"></use></svg>
-                                                </button> -->
+                                                </button>
                                             </div>
                                         </div>
                                     </template>
@@ -497,9 +497,9 @@
                                                 <template x-if="currentDraft.redPicks[i-1].champion">
                                                     <img :src="getChampionIconUrl(currentDraft.redPicks[i-1].champion, 'pick')" :alt="currentDraft.redPicks[i-1].champion" draggable="false" onerror="this.style.opacity=0.5">
                                                 </template>
-<!--                                                  <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'picks', i-1)" title="Edit Notes">
+                                                 <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'picks', i-1)" title="Edit Notes">
                                                     <svg><use href="#icon-note"></use></svg>
-                                                </button> -->
+                                                </button>
                                             </div>
                                             <span class="pick-label" x-text="`R${i}`"></span>
                                         </div>
