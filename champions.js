@@ -36,7 +36,7 @@ const allLolChampionsWithRoles = [
   { id: 29, name: 'Elise', imageName: 'Elise', roles: ['Jungle', 'Support'], mainRole: 'Jungle' },
   { id: 30, name: 'Evelynn', imageName: 'Evelynn', roles: ['Jungle'], mainRole: 'Jungle' },
   { id: 31, name: 'Ezreal', imageName: 'Ezreal', roles: ['Bot'], mainRole: 'Bot' },
-  { id: 32, name: 'Fiddlesticks', imageName: 'Fiddlesticks', roles: ['Jungle', 'Support'], mainRole: 'Jungle' },
+  { id: 32, name: 'Fiddlesticks', imageName: 'Fiddlesticks', roles: ['Jungle', 'Support'], mainRole: 'Support' },
   { id: 33, name: 'Fiora', imageName: 'Fiora', roles: ['Top'], mainRole: 'Top' },
   { id: 34, name: 'Fizz', imageName: 'Fizz', roles: ['Mid'], mainRole: 'Mid' },
   { id: 35, name: 'Galio', imageName: 'Galio', roles: ['Mid', 'Support', 'Top'], mainRole: 'Mid' },
