@@ -10,7 +10,7 @@ window.draftHelper = function() {
         roleFilter: 'all', // 'all' or specific role (e.g., 'Jungle') (Champion Pool View)
         searchTerm: '', // Input for champion search (Champion Pool View)
         sortOrder: 'name', // 'name' or 'tier' (Champion Pool View)
-        currentView: 'pool', // Start on Draft Creator view
+        currentView: 'pool', // Start on Champion Pool view
         draftSeries: [ // Array of draft games (synced with Firestore) (Draft Tracker View)
             { blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }
         ],
@@ -64,6 +64,7 @@ window.draftHelper = function() {
         // --- Computed Properties ---
 
         // Calculates the set of champions unavailable due ONLY to picks in the draft series (Draft Tracker).
+        // This is used for the Champion Pool view's 'unavailable' state and the footer list.
         get unavailableChampions() {
             const unavailable = new Set();
             this.draftSeries.forEach(game => {
@@ -115,15 +116,18 @@ window.draftHelper = function() {
         },
 
         // Filters and sorts the main champion list based on current filters, search term, and sort order (Champion Pool View).
+        // ** UPDATED with flexible search **
         get filteredChampions() {
             // Ensure champion data is loaded
             if (!this.allChampions || this.allChampions.length === 0) return [];
+
+            // Helper function to normalize strings for searching
+            const normalizeString = (str) => str.toLowerCase().replace(/[^a-z0-9]/gi, '');
 
             // 1. Map all champions, adding pool info and unavailability status
             let processedChampions = this.allChampions.map(champ => ({
                 ...champ,
                 poolInfo: this.getChampionPoolInfo(champ.name, this.currentFilter, this.roleFilter),
-                // Note: isUnavailable check here still uses the computed property which now excludes bans
                 isChampUnavailable: this.isUnavailable(champ.name)
             }));
 
@@ -131,20 +135,18 @@ window.draftHelper = function() {
             if (this.currentFilter === 'pool') {
                 processedChampions = processedChampions.filter(c => c.poolInfo.isInPool);
             } else if (this.currentFilter !== 'all') {
-                // Since filters are mutually exclusive, only one can be active besides 'all' or 'pool'
                 processedChampions = processedChampions.filter(c => c.poolInfo.players.includes(this.currentFilter));
             }
 
             // 3. Filter by Role ('roleFilter')
             if (this.roleFilter !== 'all') {
-                // Since filters are mutually exclusive, only one can be active besides 'all'
                 processedChampions = processedChampions.filter(c => Array.isArray(c.roles) && c.roles.includes(this.roleFilter));
             }
 
-            // 4. Filter by Search Term
+            // 4. Filter by Search Term (using normalized strings)
             if (this.searchTerm.trim() !== '') {
-                const searchLower = this.searchTerm.trim().toLowerCase();
-                processedChampions = processedChampions.filter(c => c.name.toLowerCase().includes(searchLower));
+                const normalizedSearch = normalizeString(this.searchTerm.trim());
+                processedChampions = processedChampions.filter(c => normalizeString(c.name).includes(normalizedSearch));
             }
 
             // 5. Sort the results
@@ -155,11 +157,9 @@ window.draftHelper = function() {
                     const valueA = this._tierOrderValue[tierA] ?? 0;
                     const valueB = this._tierOrderValue[tierB] ?? 0;
                     if (valueA !== valueB) return valueB - valueA; // Higher tier value first
-                    // If tiers are equal, sort by name
-                    return a.name.localeCompare(b.name);
+                    return a.name.localeCompare(b.name); // If tiers are equal, sort by name
                 } else {
-                    // Default sort by name
-                    return a.name.localeCompare(b.name);
+                    return a.name.localeCompare(b.name); // Default sort by name
                 }
             });
 
@@ -171,7 +171,6 @@ window.draftHelper = function() {
              if (this.modalType === 'championSelect') {
                  if (!this.modalTarget.draftType) return 'Select Champion';
                  const side = this.modalTarget.draftType.includes('blue') ? 'Blue' : 'Red';
-                 // Determine if it's a ban or pick slot for the title
                  const type = this.modalTarget.draftType.includes('Bans') ? 'Ban' : 'Pick';
                  const slot = this.modalTarget.slotIndex + 1;
                  return `Select Champion for ${side} ${type} ${slot}`;
@@ -184,8 +183,12 @@ window.draftHelper = function() {
         // --- Draft Creator Computed Properties ---
 
         // Filters the champion pool specifically for the Draft Creator view.
+        // ** Ensured flexible search is applied here too **
         get draftCreatorFilteredChampions() {
             if (!this.allChampions || this.allChampions.length === 0) return [];
+
+            // Helper function to normalize strings for searching
+            const normalizeString = (str) => str.toLowerCase().replace(/[^a-z0-9]/gi, '');
 
             let champs = [...this.allChampions]; // Start with a copy
 
@@ -194,10 +197,10 @@ window.draftHelper = function() {
                 champs = champs.filter(c => Array.isArray(c.roles) && c.roles.includes(this.draftCreatorRoleFilter));
             }
 
-            // Filter by search term
+            // Filter by search term (using normalized strings)
             if (this.draftCreatorSearchTerm.trim() !== '') {
-                const searchLower = this.draftCreatorSearchTerm.trim().toLowerCase();
-                champs = champs.filter(c => c.name.toLowerCase().includes(searchLower));
+                const normalizedSearch = normalizeString(this.draftCreatorSearchTerm.trim());
+                champs = champs.filter(c => normalizeString(c.name).includes(normalizedSearch));
             }
 
             // Sort alphabetically
@@ -386,9 +389,9 @@ window.draftHelper = function() {
         },
 
 
-        // Checks if a champion is unavailable (picked in draft - bans excluded).
+        // Checks if a champion is unavailable (picked in draft - bans excluded). Used for Champion Pool view.
         isUnavailable(championName) {
-            // Uses the updated computed property `unavailableChampions` which only includes picks.
+            // Uses the computed property `unavailableChampions` which only includes picks across the series.
             return championName ? this.unavailableChampions.has(championName) : false;
         },
 
@@ -412,7 +415,7 @@ window.draftHelper = function() {
             // Note: Firestore save is handled by the $watch('pickedChampions', ...) in init()
          },
 
-         // *** NEW: Un-highlights a champion if it's currently highlighted (Right Click) ***
+         // Un-highlights a champion if it's currently highlighted (Right Click)
          unpickChampion(championName) {
             // Cannot unpick unavailable champs
             if (!championName || this.isUnavailable(championName)) return;
@@ -558,55 +561,74 @@ window.draftHelper = function() {
          },
 
          // Updates the suggestions list in the champion select modal based on the search term.
+         // ** IMPROVED SEARCH LOGIC **
          updateSuggestions() {
             if (this.modalType !== 'championSelect') return; // Only run for the correct modal type
-            const term = this.modalSearchTerm.trim().toLowerCase();
+
+            const term = this.modalSearchTerm.trim(); // Keep original case for display, but trim
             if (term === '') {
-                // Clear suggestions if search term is empty
                 this.modalSuggestions = [];
                 this.modalSuggestionIndex = -1;
                 return;
             }
 
-            // Determine champions unavailable for *this specific slot*
-            // This includes picks AND bans from the series, EXCEPT the champion currently in this slot
+            // Helper function to normalize strings for searching
+            const normalizeString = (str) => str.toLowerCase().replace(/[^a-z0-9]/gi, '');
+
+            const normalizedTerm = normalizeString(term);
+
+            // Determine champions unavailable for *this specific slot* (Corrected Ban Logic)
             const unavailableForThisSlot = new Set();
-            this.draftSeries.forEach((game, gIdx) => {
+            const currentGameIndex = this.modalTarget.gameIndex;
+            const currentDraftType = this.modalTarget.draftType;
+            const currentSlotIndex = this.modalTarget.slotIndex;
+            const isBanSlot = currentDraftType.includes('Bans');
+
+            // 1. Check picks and bans within the CURRENT game
+            const currentGame = this.draftSeries[currentGameIndex];
+            if (currentGame) {
                 ['bluePicks', 'redPicks', 'blueBans', 'redBans'].forEach(type => {
-                    (game?.[type] ?? []).forEach((champ, sIdx) => {
-                        // Check if this is the exact slot we are editing
-                        const isCurrentSlot = gIdx === this.modalTarget.gameIndex &&
-                                             type === this.modalTarget.draftType &&
-                                             sIdx === this.modalTarget.slotIndex;
-                        // Add to unavailable set if it's not the current slot and has a champion
+                    (currentGame[type] ?? []).forEach((champ, sIdx) => {
+                        const isCurrentSlot = type === currentDraftType && sIdx === currentSlotIndex;
                         if (champ && !isCurrentSlot) {
                             unavailableForThisSlot.add(champ);
                         }
                     });
                 });
-            });
+            }
 
+            // 2. If editing a PICK slot, also check picks from OTHER games
+            if (!isBanSlot) {
+                this.draftSeries.forEach((game, gIdx) => {
+                    if (gIdx !== currentGameIndex) {
+                        ['bluePicks', 'redPicks'].forEach(type => {
+                            (game?.[type] ?? []).forEach(champ => {
+                                if (champ) { unavailableForThisSlot.add(champ); }
+                            });
+                        });
+                    }
+                });
+            }
 
             // Filter all champions:
-            // - Must NOT be unavailable for this specific slot
             const availableChamps = this.allChampions.filter(champ =>
                 !unavailableForThisSlot.has(champ.name)
             );
 
-            // Filter by search term, sort alphabetically, and limit to 7 suggestions
+            // Filter by normalized search term, sort alphabetically, limit to 7
             this.modalSuggestions = availableChamps
-                .filter(champ => champ.name.toLowerCase().includes(term))
-                .sort((a, b) => a.name.localeCompare(b.name)) // Sort suggestions alphabetically
-                .slice(0, 7); // Limit number of suggestions shown
-            this.modalSuggestionIndex = -1; // Reset selection index whenever suggestions update
+                .filter(champ => normalizeString(champ.name).includes(normalizedTerm))
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .slice(0, 7);
+            this.modalSuggestionIndex = -1;
          },
 
          // Selects a suggestion, updating the search term and closing the suggestion list.
          selectSuggestion(championName) {
-            this.modalSearchTerm = championName; // Set input value to the selected suggestion
-            this.modalSuggestions = []; // Hide suggestions
-            this.modalSuggestionIndex = -1; // Reset index
-            this.$refs.modalInput?.focus(); // Keep focus on the input
+            this.modalSearchTerm = championName;
+            this.modalSuggestions = [];
+            this.modalSuggestionIndex = -1;
+            this.$refs.modalInput?.focus();
          },
 
          // Navigates down through the suggestions list using arrow keys.
@@ -625,66 +647,75 @@ window.draftHelper = function() {
          confirmModalAction() {
             if (this.modalType === 'championSelect') {
                 let selectedChampionName = this.modalSearchTerm.trim();
-                // If a suggestion is highlighted, use its name instead of the raw input
                 if (this.modalSuggestionIndex !== -1 && this.modalSuggestions[this.modalSuggestionIndex]) {
                     selectedChampionName = this.modalSuggestions[this.modalSuggestionIndex].name;
                 }
-                // If the final name is empty, treat it as clearing the slot
                 if (selectedChampionName === "") {
-                    this.clearModalSelection(); // clearModalSelection also closes the modal
+                    this.clearModalSelection();
                     return;
                 }
-                // Find the canonical champion data (case-insensitive)
-                const canonicalChamp = this.allChampions?.find(champ => champ.name.toLowerCase() === selectedChampionName.toLowerCase());
-                if (!canonicalChamp) {
-                    // Champion not found in the master list
-                    alert(`Champion "${selectedChampionName}" not found.`); // Use alert for simplicity here
-                    this.modalSearchTerm = ''; // Clear invalid input
-                    this.updateSuggestions(); // Update suggestions (likely empty now)
-                    this.$refs.modalInput?.focus();
-                    return; // Keep modal open for correction
-                }
-                const canonicalName = canonicalChamp.name; // Use the official name
 
-                // Re-check unavailability specifically for the target slot
+                let canonicalChamp = this.allChampions?.find(champ => champ.name.toLowerCase() === selectedChampionName.toLowerCase());
+                 if (!canonicalChamp) {
+                     const normalizeString = (str) => str.toLowerCase().replace(/[^a-z0-9]/gi, '');
+                     const normalizedSelected = normalizeString(selectedChampionName);
+                     canonicalChamp = this.allChampions?.find(champ => normalizeString(champ.name).startsWith(normalizedSelected));
+                 }
+
+                if (!canonicalChamp) {
+                    alert(`Champion "${selectedChampionName}" not found.`);
+                    this.modalSearchTerm = '';
+                    this.updateSuggestions();
+                    this.$refs.modalInput?.focus();
+                    return;
+                }
+                const canonicalName = canonicalChamp.name;
+
+                // Re-check unavailability (Corrected Ban Logic)
                 const unavailableForThisSlot = new Set();
-                this.draftSeries.forEach((game, gIdx) => {
+                const { gameIndex, draftType, slotIndex } = this.modalTarget;
+                const isBanSlot = draftType.includes('Bans');
+                const currentGame = this.draftSeries[gameIndex];
+                 if (currentGame) {
                     ['bluePicks', 'redPicks', 'blueBans', 'redBans'].forEach(type => {
-                        (game?.[type] ?? []).forEach((champ, sIdx) => {
-                            const isCurrentSlot = gIdx === this.modalTarget.gameIndex &&
-                                                 type === this.modalTarget.draftType &&
-                                                 sIdx === this.modalTarget.slotIndex;
-                            if (champ && !isCurrentSlot) {
-                                unavailableForThisSlot.add(champ);
-                            }
+                        (currentGame[type] ?? []).forEach((champ, sIdx) => {
+                            const isCurrentSlot = type === draftType && sIdx === slotIndex;
+                            if (champ && !isCurrentSlot) { unavailableForThisSlot.add(champ); }
                         });
                     });
-                });
+                 }
+                if (!isBanSlot) {
+                    this.draftSeries.forEach((game, gIdx) => {
+                        if (gIdx !== gameIndex) {
+                            ['bluePicks', 'redPicks'].forEach(type => {
+                                (game?.[type] ?? []).forEach(champ => {
+                                    if (champ) { unavailableForThisSlot.add(champ); }
+                                });
+                            });
+                        }
+                    });
+                }
 
-                // Check if the selected champion is already picked/banned elsewhere
                 if (unavailableForThisSlot.has(canonicalName)) {
-                     alert(`${canonicalName} is already picked or banned in this series.`); // Use alert
-                     return; // Keep modal open
+                     const reason = isBanSlot ? 'picked or banned in this game' : 'picked or banned in this game, or picked in another game';
+                     alert(`${canonicalName} is already ${reason}.`);
+                     return;
                 }
 
                 // Update the draft series state
-                const { gameIndex, draftType, slotIndex } = this.modalTarget;
                 if (gameIndex !== null && draftType && slotIndex !== null) {
-                    // Create a deep copy to modify
                     const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
-                    newDraftSeries[gameIndex][draftType][slotIndex] = canonicalName; // Set the canonical name
-                    this.draftSeries = newDraftSeries; // Update the reactive property
+                    newDraftSeries[gameIndex][draftType][slotIndex] = canonicalName;
+                    this.draftSeries = newDraftSeries;
                     console.log(`Set ${canonicalName} for Game ${gameIndex + 1} ${draftType} slot ${slotIndex + 1}`);
-                    // Note: Firestore save is handled by the $watch('draftSeries', ...) in init()
                 }
-                this.closeModal(); // Close the modal
+                this.closeModal();
 
             } else if (this.modalType === 'confirm') {
-                // Execute the stored callback function if it exists
                 if (typeof this.confirmationCallback === 'function') {
                     this.confirmationCallback();
                 }
-                this.closeModal(); // Close the modal
+                this.closeModal();
             }
          },
 
@@ -692,39 +723,32 @@ window.draftHelper = function() {
          clearModalSelection() {
             if (this.modalType !== 'championSelect') return;
             const { gameIndex, draftType, slotIndex } = this.modalTarget;
-            // Check if the slot actually needs clearing
             if (gameIndex !== null && draftType && slotIndex !== null && this.draftSeries[gameIndex][draftType][slotIndex] !== null) {
-                // Create a deep copy to modify
                 const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
-                newDraftSeries[gameIndex][draftType][slotIndex] = null; // Set slot to null
-                this.draftSeries = newDraftSeries; // Update reactive property
+                newDraftSeries[gameIndex][draftType][slotIndex] = null;
+                this.draftSeries = newDraftSeries;
                 console.log(`Cleared slot ${slotIndex + 1} for ${draftType} in Game ${gameIndex + 1} from modal.`);
-                // Note: Firestore save is handled by the $watch('draftSeries', ...) in init()
             }
-            this.closeModal(); // Close the modal
+            this.closeModal();
          },
 
          // Adds a new empty game to the draft series (Draft Tracker).
          addNewGame() {
-             // Create a deep copy and append a new game object
              const newDraftSeries = JSON.parse(JSON.stringify(this.draftSeries));
              newDraftSeries.push({ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) });
-             this.draftSeries = newDraftSeries; // Update reactive property
-             // Note: Firestore save is handled by the $watch('draftSeries', ...) in init()
+             this.draftSeries = newDraftSeries;
          },
 
          // Initiates the process to remove a game via the confirmation modal (Draft Tracker).
          removeGame(gameIndex) {
-             // Prevent removing the last game
              if (this.draftSeries.length <= 1) {
-                 alert("Cannot remove the only game in the series."); // Use alert
+                 alert("Cannot remove the only game in the series.");
                  return;
              }
-             // Open the confirmation modal
              this.openConfirmationModal(
                  `Are you sure you want to remove Game ${gameIndex + 1}? This cannot be undone.`,
-                 () => this.removeGameAction(gameIndex), // Pass the action to execute on confirm
-                 'removeGame' // Identifier for styling
+                 () => this.removeGameAction(gameIndex),
+                 'removeGame'
              );
          },
 
@@ -769,10 +793,9 @@ window.draftHelper = function() {
                 ['picks', 'bans'].forEach(t => {
                     this.currentDraft[`${s}${t.charAt(0).toUpperCase() + t.slice(1)}`].forEach((slot, i) => {
                         if (slot.champion === championName) {
-                            // Check if it's not the target slot we are about to place into
                             if (!(s === targetSide && t === targetType && i === targetIndex)) {
                                 slot.champion = null;
-                                slot.notes = ''; // Clear notes from old slot
+                                slot.notes = '';
                                 console.log(`Removed ${championName} from previous slot: ${s} ${t} ${i + 1}`);
                             }
                         }
@@ -782,7 +805,7 @@ window.draftHelper = function() {
 
             // 2. Place the champion in the target slot
             targetSlotRef.champion = championName;
-            targetSlotRef.notes = ''; // Clear notes on new placement
+            targetSlotRef.notes = '';
             console.log(`Placed ${championName} into ${targetSide} ${targetType} ${targetIndex + 1}.`);
         },
 
@@ -797,78 +820,59 @@ window.draftHelper = function() {
             // --- Case 1: A target slot is already selected ---
             if (this.selectedTargetSlot) {
                 const { side, type, index } = this.selectedTargetSlot;
-
-                // If the clicked champion is already in the target slot, do nothing (or maybe deselect target?)
-                // For now, let's just ignore the click if the champ is already there.
                 const targetSlotRef = this.currentDraft[`${side}${type.charAt(0).toUpperCase() + type.slice(1)}`][index];
                 if (targetSlotRef.champion === championName) {
                     console.log(`Champion ${championName} is already in the targeted slot.`);
                     return;
                 }
-
-                // Place the clicked champion directly into the selected target slot
                 this._placeChampionInSlot(championName, side, type, index);
-
-                // Clear the target slot selection
                 this.selectedTargetSlot = null;
-                // Ensure other selections are also cleared
                 this.selectedChampionForPlacement = null;
                 this.selectedChampionSource = null;
                 console.log(`Placed ${championName} directly into pre-selected target slot.`);
-                return; // Action complete
+                return;
             }
 
-            // --- Case 2: No target slot selected, proceed with original logic ---
-
-            // If this champion is already selected for placement, deselect it.
+            // --- Case 2: No target slot selected ---
             if (this.selectedChampionForPlacement === championName) {
                 this.selectedChampionForPlacement = null;
                 console.log(`Deselected ${championName} for placement.`);
                 return;
             }
-
-            // If another champion is currently selected for moving, clear that selection first.
             if (this.selectedChampionSource) {
                 this.selectedChampionSource = null;
             }
 
-            // If the clicked champion is already placed somewhere in the draft
             if (this.isChampionPlacedInCurrentDraft(championName)) {
-                 // Find the source of the placed champion
                  let foundSource = null;
                  ['blue', 'red'].forEach(side => {
                      ['picks', 'bans'].forEach(type => {
                          this.currentDraft[`${side}${type.charAt(0).toUpperCase() + type.slice(1)}`].forEach((slot, index) => {
-                             if (slot.champion === championName) {
-                                 foundSource = { side, type, index };
-                             }
+                             if (slot.champion === championName) { foundSource = { side, type, index }; }
                          });
                      });
                  });
-
                  if (foundSource) {
-                     this.selectedChampionSource = foundSource; // Select the *source slot* for moving
-                     this.selectedChampionForPlacement = null; // Ensure placement mode is off
-                     this.selectedTargetSlot = null; // Ensure target mode is off
+                     this.selectedChampionSource = foundSource;
+                     this.selectedChampionForPlacement = null;
+                     this.selectedTargetSlot = null;
                      console.log(`Selected placed champion ${championName} from ${foundSource.side} ${foundSource.type} ${foundSource.index + 1} for moving.`);
                  } else {
                      console.warn(`Champion ${championName} is marked as placed but couldn't find its source.`);
-                     this.selectedChampionForPlacement = null; // Clear selection if source not found
+                     this.selectedChampionForPlacement = null;
                      this.selectedChampionSource = null;
                      this.selectedTargetSlot = null;
                  }
             } else {
-                // Champion is not placed, select it for placement.
                 this.selectedChampionForPlacement = championName;
-                this.selectedChampionSource = null; // Ensure move mode is off
-                this.selectedTargetSlot = null; // Ensure target mode is off
+                this.selectedChampionSource = null;
+                this.selectedTargetSlot = null;
                 console.log(`Selected ${championName} for placement.`);
             }
         },
 
         /**
          * Handles clicks on draft slots (picks/bans) in the Draft Creator.
-         * Logic depends on whether a champion is selected from the pool, from another slot, or if no champion is selected.
          * @param {string} targetSide - 'blue' or 'red'.
          * @param {string} targetType - 'picks' or 'bans'.
          * @param {number} targetIndex - Index of the clicked slot.
@@ -877,31 +881,24 @@ window.draftHelper = function() {
             const targetSlotRef = this.currentDraft[`${targetSide}${targetType.charAt(0).toUpperCase() + targetType.slice(1)}`][targetIndex];
             const currentTargetChampion = targetSlotRef.champion;
 
-            // --- Case 1: A champion is selected from the POOL for PLACEMENT ---
+            // --- Case 1: Champion selected from POOL for PLACEMENT ---
             if (this.selectedChampionForPlacement) {
                 const champToPlace = this.selectedChampionForPlacement;
-
-                // If the target slot already has the *same* champion, deselect (do nothing to slot).
                 if (currentTargetChampion === champToPlace) {
                     this.selectedChampionForPlacement = null;
                     console.log(`Clicked target slot with the same champion (${champToPlace}). Deselected.`);
                     return;
                 }
-
-                // Place the champion (handles removal from old slot)
                 this._placeChampionInSlot(champToPlace, targetSide, targetType, targetIndex);
-
-                // Clear the selection state
                 this.selectedChampionForPlacement = null;
-                this.selectedTargetSlot = null; // Clear target slot if any
+                this.selectedTargetSlot = null;
             }
-            // --- Case 2: A champion is selected from a SOURCE SLOT for MOVING ---
+            // --- Case 2: Champion selected from SOURCE SLOT for MOVING ---
             else if (this.selectedChampionSource) {
                 const sourceSlotRef = this.currentDraft[`${this.selectedChampionSource.side}${this.selectedChampionSource.type.charAt(0).toUpperCase() + this.selectedChampionSource.type.slice(1)}`][this.selectedChampionSource.index];
                 const champToMove = sourceSlotRef.champion;
                 const notesToMove = sourceSlotRef.notes;
 
-                // If clicking the SAME slot, deselect it for moving.
                 if (this.selectedChampionSource.side === targetSide &&
                     this.selectedChampionSource.type === targetType &&
                     this.selectedChampionSource.index === targetIndex) {
@@ -910,57 +907,40 @@ window.draftHelper = function() {
                     return;
                 }
 
-                // If the target slot contains a DIFFERENT champion, swap them.
-                if (currentTargetChampion && currentTargetChampion !== champToMove) {
+                if (currentTargetChampion && currentTargetChampion !== champToMove) { // Swap
                     const targetNotes = targetSlotRef.notes;
-                    console.log(`Swapping ${champToMove} (from ${this.selectedChampionSource.side} ${this.selectedChampionSource.type} ${this.selectedChampionSource.index + 1}) with ${currentTargetChampion} (in ${targetSide} ${targetType} ${targetIndex + 1}).`);
-
-                    // Place target's champ/notes into source slot
+                    console.log(`Swapping ${champToMove} with ${currentTargetChampion}.`);
                     sourceSlotRef.champion = currentTargetChampion;
                     sourceSlotRef.notes = targetNotes;
-
-                    // Place source's champ/notes into target slot
                     targetSlotRef.champion = champToMove;
                     targetSlotRef.notes = notesToMove;
-
-                }
-                // If the target slot is EMPTY, move the champion.
-                else {
-                     console.log(`Moving ${champToMove} from ${this.selectedChampionSource.side} ${this.selectedChampionSource.type} ${this.selectedChampionSource.index + 1} to ${targetSide} ${targetType} ${targetIndex + 1}.`);
-                    // Place source's champ/notes into target slot
+                } else { // Move to empty slot
+                     console.log(`Moving ${champToMove} to ${targetSide} ${targetType} ${targetIndex + 1}.`);
                     targetSlotRef.champion = champToMove;
                     targetSlotRef.notes = notesToMove;
-
-                    // Clear the source slot
                     sourceSlotRef.champion = null;
                     sourceSlotRef.notes = '';
                 }
-
-                // Clear the selection state
                 this.selectedChampionSource = null;
-                this.selectedTargetSlot = null; // Clear target slot if any
+                this.selectedTargetSlot = null;
             }
-            // --- Case 3: NO champion is selected (neither from pool nor from slot) ---
+            // --- Case 3: NO champion selected ---
             else {
-                 // If the clicked slot has a champion, select IT for moving.
-                 if (currentTargetChampion) {
+                 if (currentTargetChampion) { // Select filled slot for moving
                      this.selectedChampionSource = { side: targetSide, type: targetType, index: targetIndex };
-                     this.selectedTargetSlot = null; // Clear target selection
-                     console.log(`Selected ${currentTargetChampion} from ${targetSide} ${targetType} ${targetIndex + 1} for moving.`);
-                 }
-                 // If the clicked slot is EMPTY, select IT for targeting.
-                 else {
-                     // If this slot is already selected for targeting, deselect it
+                     this.selectedTargetSlot = null;
+                     console.log(`Selected ${currentTargetChampion} for moving.`);
+                 } else { // Select empty slot for targeting
                      if (this.selectedTargetSlot &&
                          this.selectedTargetSlot.side === targetSide &&
                          this.selectedTargetSlot.type === targetType &&
                          this.selectedTargetSlot.index === targetIndex) {
                           this.selectedTargetSlot = null;
-                          console.log(`Deselected empty slot ${targetSide} ${targetType} ${targetIndex + 1} for targeting.`);
+                          console.log(`Deselected empty slot.`);
                      } else {
                           this.selectedTargetSlot = { side: targetSide, type: targetType, index: targetIndex };
-                          this.selectedChampionSource = null; // Clear move selection
-                          console.log(`Selected empty slot ${targetSide} ${targetType} ${targetIndex + 1} for targeting.`);
+                          this.selectedChampionSource = null;
+                          console.log(`Selected empty slot for targeting.`);
                      }
                  }
             }
@@ -968,40 +948,24 @@ window.draftHelper = function() {
 
         /**
          * Clears a specific pick/ban slot in the Draft Creator when right-clicked.
-         * Also clears any active selections (placement, source, target).
          * @param {string} side - 'blue' or 'red'.
          * @param {string} type - 'picks' or 'bans'.
          * @param {number} index - Index of the slot.
          */
         clearCreatorSlot(side, type, index) {
             const slotRef = this.currentDraft[`${side}${type.charAt(0).toUpperCase() + type.slice(1)}`]?.[index];
+            if (!slotRef) { console.error("Invalid target for clearCreatorSlot:", side, type, index); return; }
 
-            if (!slotRef) {
-                console.error("Invalid target for clearCreatorSlot:", side, type, index);
-                return;
-            }
-
-            // Clear champion and notes if present
             if (slotRef.champion) {
                 const clearedChampion = slotRef.champion;
                 slotRef.champion = null;
                 slotRef.notes = '';
-                console.log(`Cleared champion ${clearedChampion} from ${side} ${type} slot ${index + 1} via right-click.`);
+                console.log(`Cleared champion ${clearedChampion} from ${side} ${type} slot ${index + 1}.`);
             }
-
-            // Always clear all selection states on right-click
-            if (this.selectedChampionForPlacement) {
-                this.selectedChampionForPlacement = null;
-                console.log("Right-click cleared champion for placement selection.");
-            }
-            if (this.selectedChampionSource) {
-                this.selectedChampionSource = null;
-                console.log("Right-click cleared source champion for moving selection.");
-            }
-            if (this.selectedTargetSlot) {
-                this.selectedTargetSlot = null;
-                console.log("Right-click cleared target slot selection.");
-            }
+            // Always clear selections on right-click
+            if (this.selectedChampionForPlacement) { this.selectedChampionForPlacement = null; console.log("Cleared placement selection."); }
+            if (this.selectedChampionSource) { this.selectedChampionSource = null; console.log("Cleared source selection."); }
+            if (this.selectedTargetSlot) { this.selectedTargetSlot = null; console.log("Cleared target selection."); }
         },
 
         // --- Draft Creator Saving/Loading/Resetting ---
@@ -1016,52 +980,35 @@ window.draftHelper = function() {
                  redBans: Array(5).fill(null).map(() => ({ champion: null, notes: '' })),
                  generalNotes: '', createdAt: null
              };
-             // Clear all selection states
              this.selectedChampionForPlacement = null;
              this.selectedChampionSource = null;
              this.selectedTargetSlot = null;
-             this.draftCreatorSearchTerm = ''; // Reset search term as well
-             this.draftCreatorRoleFilter = 'all'; // Reset role filter
+             this.draftCreatorSearchTerm = '';
+             this.draftCreatorRoleFilter = 'all';
              console.log("Current draft reset.");
-             // Optionally prompt for confirmation first
         },
 
         // Saves the current draft to Firestore.
         async saveCurrentDraft() {
             const fbSaveDraft = window.saveDraftToCreatorCollection;
-            if (typeof fbSaveDraft !== 'function') {
-                alert("Error: Save function not available.");
-                return;
-            }
+            if (typeof fbSaveDraft !== 'function') { alert("Error: Save function not available."); return; }
 
-            // Prompt for a name if it's a new draft or the default name
             if (!this.currentDraft.id || this.currentDraft.name === "New Draft" || this.currentDraft.name === "Unnamed Draft") {
                 const draftName = prompt("Enter a name for this draft:", this.currentDraft.name !== "New Draft" ? this.currentDraft.name : "");
-                if (draftName === null) return; // User cancelled
+                if (draftName === null) return;
                 this.currentDraft.name = draftName.trim() || "Unnamed Draft";
             }
 
             try {
-                // Create a clean copy for saving (important for Firestore timestamps)
                  const draftToSave = JSON.parse(JSON.stringify(this.currentDraft));
-                 // Remove local-only fields if necessary (like createdAt if it's already a Firestore timestamp object)
-                 if (draftToSave.createdAt && typeof draftToSave.createdAt === 'object') {
-                     // If it's already a Firestore Timestamp, keep it, otherwise Firestore handles it
-                 } else {
-                      delete draftToSave.createdAt; // Let Firestore set it on first save
+                 if (!(draftToSave.createdAt && typeof draftToSave.createdAt === 'object')) {
+                      delete draftToSave.createdAt;
                  }
-
-
-                const savedDraft = await fbSaveDraft(draftToSave); // Pass the copy
-
-                // Update the current draft with the ID and potentially new timestamp from Firestore
+                const savedDraft = await fbSaveDraft(draftToSave);
                 this.currentDraft.id = savedDraft.id;
-                this.currentDraft.createdAt = savedDraft.createdAt; // Update with server timestamp
-
-                // Refresh the saved drafts list
+                this.currentDraft.createdAt = savedDraft.createdAt;
                 await this.refreshSavedDrafts();
                 alert(`Draft "${this.currentDraft.name}" saved successfully!`);
-
             } catch (error) {
                 console.error("Error saving draft:", error);
                 alert("Failed to save draft. See console for details.");
@@ -1073,32 +1020,21 @@ window.draftHelper = function() {
             const fbFetchSavedDrafts = window.fetchSavedDraftsFromFirestore;
             if (typeof fbFetchSavedDrafts === 'function') {
                 this.isLoadingSavedDrafts = true;
-                try {
-                    this.savedDrafts = await fbFetchSavedDrafts();
-                } catch (error) {
-                    console.error("Error refreshing saved drafts:", error);
-                } finally {
-                    this.isLoadingSavedDrafts = false;
-                }
+                try { this.savedDrafts = await fbFetchSavedDrafts(); }
+                catch (error) { console.error("Error refreshing saved drafts:", error); }
+                finally { this.isLoadingSavedDrafts = false; }
             }
         },
 
         // Loads a specific draft from Firestore into the currentDraft state.
         async loadSavedDraft(draftId) {
             const fbLoadDraft = window.loadSpecificDraftFromFirestore;
-            if (typeof fbLoadDraft !== 'function') {
-                alert("Error: Load function not available.");
-                return;
-            }
+            if (typeof fbLoadDraft !== 'function') { alert("Error: Load function not available."); return; }
             if (!draftId) return;
-
-            // Optional: Confirm overwrite if current draft has unsaved changes
-            // (Add check later if needed)
 
             try {
                 const loadedData = await fbLoadDraft(draftId);
                 if (loadedData) {
-                    // Ensure the loaded data has the correct structure
                     this.currentDraft = {
                         id: draftId,
                         name: loadedData.name || "Unnamed Draft",
@@ -1107,18 +1043,16 @@ window.draftHelper = function() {
                         redPicks: this.sanitizeDraftArray(loadedData.redPicks, 5),
                         redBans: this.sanitizeDraftArray(loadedData.redBans, 5),
                         generalNotes: loadedData.generalNotes || '',
-                        createdAt: loadedData.createdAt || null // Keep Firestore timestamp if exists
+                        createdAt: loadedData.createdAt || null
                     };
-                    // Clear selections on load
                     this.selectedChampionForPlacement = null;
                     this.selectedChampionSource = null;
                     this.selectedTargetSlot = null;
-                    this.draftCreatorSearchTerm = ''; // Reset search/filter
+                    this.draftCreatorSearchTerm = '';
                     this.draftCreatorRoleFilter = 'all';
                     console.log(`Loaded draft "${this.currentDraft.name}" (${draftId})`);
                 } else {
                     alert("Could not find or load the selected draft.");
-                    // Optionally remove the draft from the local list if it failed to load
                     this.savedDrafts = this.savedDrafts.filter(d => d.id !== draftId);
                 }
             } catch (error) {
@@ -1130,17 +1064,9 @@ window.draftHelper = function() {
         // Helper to ensure loaded draft arrays have the correct structure and length.
         sanitizeDraftArray(arr, expectedLength) {
             const defaultSlot = () => ({ champion: null, notes: '' });
-            if (!Array.isArray(arr)) {
-                return Array(expectedLength).fill(null).map(defaultSlot);
-            }
-            // Ensure each item has champion and notes, pad/truncate to expected length
-            const sanitized = arr.map(item => ({
-                champion: item?.champion || null,
-                notes: item?.notes || ''
-            }));
-            while (sanitized.length < expectedLength) {
-                sanitized.push(defaultSlot());
-            }
+            if (!Array.isArray(arr)) { return Array(expectedLength).fill(null).map(defaultSlot); }
+            const sanitized = arr.map(item => ({ champion: item?.champion || null, notes: item?.notes || '' }));
+            while (sanitized.length < expectedLength) { sanitized.push(defaultSlot()); }
             return sanitized.slice(0, expectedLength);
         },
 
@@ -1148,27 +1074,19 @@ window.draftHelper = function() {
         // Deletes a saved draft from Firestore and the local list.
         async deleteSavedDraft(draftId) {
              const fbDeleteDraft = window.deleteDraftFromCreatorCollection;
-             if (typeof fbDeleteDraft !== 'function') {
-                 alert("Error: Delete function not available.");
-                 return;
-             }
+             if (typeof fbDeleteDraft !== 'function') { alert("Error: Delete function not available."); return; }
              if (!draftId) return;
 
              const draftToDelete = this.savedDrafts.find(d => d.id === draftId);
              const draftName = draftToDelete ? draftToDelete.name : 'this draft';
 
-             // Use confirmation modal
              this.openConfirmationModal(
                  `Are you sure you want to permanently delete "${draftName}"? This cannot be undone.`,
-                 async () => { // Callback function for confirmation
+                 async () => {
                      try {
                          await fbDeleteDraft(draftId);
-                         // Remove from local list
                          this.savedDrafts = this.savedDrafts.filter(d => d.id !== draftId);
-                         // If the deleted draft was the currently loaded one, reset the editor
-                         if (this.currentDraft.id === draftId) {
-                             this.resetCurrentDraft();
-                         }
+                         if (this.currentDraft.id === draftId) { this.resetCurrentDraft(); }
                          console.log(`Deleted draft ${draftId}`);
                          alert(`Draft "${draftName}" deleted successfully.`);
                      } catch (error) {
@@ -1176,7 +1094,7 @@ window.draftHelper = function() {
                          alert("Failed to delete draft. See console for details.");
                      }
                  },
-                 'deleteSavedDraft' // Action identifier for styling
+                 'deleteSavedDraft'
              );
          },
 
@@ -1206,16 +1124,13 @@ window.draftHelper = function() {
                     if (slotRef) {
                         noteSource = slotRef.notes;
                         const champName = slotRef.champion ? ` for ${slotRef.champion}` : '';
-                        // Adjusted label for clarity
                         const slotLabel = `${side.charAt(0).toUpperCase()}${type.charAt(0).toUpperCase()}${index + 1}`;
                         title = `Edit Notes${champName} (${slotLabel})`;
-                    } else {
-                         throw new Error("Invalid slot reference");
-                    }
+                    } else { throw new Error("Invalid slot reference"); }
                 }
             } catch (error) {
                  console.error("Error accessing notes source:", error);
-                 this.notesModal.isOpen = false; // Close modal if error occurs
+                 this.notesModal.isOpen = false;
                  alert("Could not open notes for this slot.");
                  return;
             }
@@ -1223,16 +1138,12 @@ window.draftHelper = function() {
             this.notesModal.currentNote = noteSource;
             this.notesModal.title = title;
 
-            // Focus the textarea after the modal is rendered
-            this.$nextTick(() => {
-                this.$refs.notesTextarea?.focus();
-            });
+            this.$nextTick(() => { this.$refs.notesTextarea?.focus(); });
         },
 
         // Closes the notes modal without saving.
         closeNotesModal() {
             this.notesModal.isOpen = false;
-            // Reset state just in case
             this.notesModal.side = null;
             this.notesModal.type = null;
             this.notesModal.index = null;
@@ -1248,19 +1159,13 @@ window.draftHelper = function() {
                     this.currentDraft.generalNotes = currentNote;
                 } else if (side && type && index !== null) {
                     const slotRef = this.currentDraft[`${side}${type.charAt(0).toUpperCase() + type.slice(1)}`]?.[index];
-                     if (slotRef) {
-                         slotRef.notes = currentNote;
-                     } else {
-                         throw new Error("Invalid slot reference on save");
-                     }
-                } else {
-                    throw new Error("Invalid state for saving notes");
-                }
+                     if (slotRef) { slotRef.notes = currentNote; }
+                     else { throw new Error("Invalid slot reference on save"); }
+                } else { throw new Error("Invalid state for saving notes"); }
                 console.log(`Notes saved for ${side} ${type} ${index !== null ? index + 1 : ''}`);
             } catch (error) {
                  console.error("Error saving notes:", error);
                  alert("Failed to save notes.");
-                 // Don't close modal on error? Or close anyway? Let's close.
             } finally {
                  this.closeNotesModal();
             }
@@ -1271,120 +1176,85 @@ window.draftHelper = function() {
 
          /**
           * Gets tier list information for a champion based on current filters (Champion Pool View).
-          * Prioritizes the specific player/role filter if active.
           * @param {string} championName - The name of the champion.
           * @param {string} currentFilter - The active player/team filter ('all', 'pool', 'Top', 'Jungle', etc.).
           * @param {string} roleFilter - The active role filter ('all', 'Top', 'Jungle', etc.).
           * @returns {object} - { isInPool, tier, players, tierClass }
           */
          getChampionPoolInfo(championName, currentFilter = 'all', roleFilter = 'all') {
-            const defaultInfo = { ...this._defaultPoolInfo }; // Start with default values
-            if (!championName || !this.teamPool || typeof this.teamPool !== 'object') {
-                return defaultInfo; // Return default if data is missing
-            }
+            const defaultInfo = { ...this._defaultPoolInfo };
+            if (!championName || !this.teamPool || typeof this.teamPool !== 'object') { return defaultInfo; }
 
-            let players = []; // List of players (roles) who have this champ in their pool
-            let isInPool = false; // Is the champion in *any* player's pool?
-            let highestTier = null; // Highest tier found across all relevant players
-            let specificTier = null; // Tier for the specifically filtered player/role
-            const tierOrder = this._tierOrderValue; // Numerical tier values for comparison
-            let lookupKey = null; // The key (player/role) to prioritize for tier display
+            let players = [];
+            let isInPool = false;
+            let highestTier = null;
+            let specificTier = null;
+            const tierOrder = this._tierOrderValue;
+            let lookupKey = null;
 
-            // Determine the lookupKey based on filters (now mutually exclusive):
-            if (currentFilter !== 'all' && currentFilter !== 'pool') {
-                lookupKey = currentFilter;
-            } else if (roleFilter !== 'all') {
-                lookupKey = roleFilter;
-            }
+            if (currentFilter !== 'all' && currentFilter !== 'pool') { lookupKey = currentFilter; }
+            else if (roleFilter !== 'all') { lookupKey = roleFilter; }
 
-            // Iterate through each player (role) in the team pool
             for (const playerRole in this.teamPool) {
-                // Check if the current player has this champion in their pool
                 if (this.teamPool[playerRole]?.[championName]) {
-                    isInPool = true; // Mark as in pool
-                    players.push(playerRole); // Add player to the list
-                    const currentTier = this.teamPool[playerRole][championName]?.toUpperCase(); // Get tier (uppercase)
+                    isInPool = true;
+                    players.push(playerRole);
+                    const currentTier = this.teamPool[playerRole][championName]?.toUpperCase();
 
-                    // Update highest tier if this player's tier is higher
                     if (currentTier && (!highestTier || (tierOrder[currentTier] ?? 0) > (tierOrder[highestTier] ?? 0))) {
                         highestTier = currentTier;
                     }
-
-                    // If this player is the one we're specifically looking for (lookupKey), store their tier
-                    if (playerRole === lookupKey) {
-                        specificTier = currentTier;
-                    }
+                    if (playerRole === lookupKey) { specificTier = currentTier; }
                 }
             }
 
-            // Determine the final tier to display and its CSS class
             let displayTier = null;
-            let tierClass = 'tier-DEFAULT'; // Default CSS class
+            let tierClass = 'tier-DEFAULT';
             if (isInPool) {
-                // If a specific player/role was filtered (lookupKey exists) and we found their tier, use it.
-                if (lookupKey && specificTier) {
-                    displayTier = specificTier;
-                } else {
-                    // Otherwise (no specific filter or tier not found for the specific filter),
-                    // display the highest tier found among all players who have the champ.
-                    displayTier = highestTier;
-                }
-                // Set the CSS class based on the determined display tier
-                if (displayTier) {
-                    tierClass = `tier-${displayTier}`;
-                }
+                displayTier = (lookupKey && specificTier) ? specificTier : highestTier;
+                if (displayTier) { tierClass = `tier-${displayTier}`; }
             }
 
-            // Return the collected information
             return { isInPool, tier: displayTier, players, tierClass };
          },
 
          // Gets the URL for a role icon based on role or player name.
          getRoleIconUrl(roleOrPlayerName) {
-             if (!roleOrPlayerName) return "https://placehold.co/16x16/cccccc/777777?text=?"; // Placeholder
+             if (!roleOrPlayerName) return "https://placehold.co/16x16/cccccc/777777?text=?";
              const nameLower = roleOrPlayerName.toLowerCase();
-             // Standard role icon URLs
              const urls = {
                  top: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-top-blue-hover.png",
                  jungle: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-jungle-blue-hover.png",
                  mid: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-middle-blue-hover.png",
                  bot: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-bottom-blue-hover.png",
                  support: "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-utility-blue-hover.png",
-                 unknown: "https://placehold.co/16x16/cccccc/777777?text=?" // Placeholder for unknown
+                 unknown: "https://placehold.co/16x16/cccccc/777777?text=?"
              };
-             // Direct match for role names
              if (urls[nameLower]) return urls[nameLower];
-             // Fallback checks for player names containing role keywords
              if (nameLower.includes('top')) return urls.top;
              if (nameLower.includes('jg') || nameLower.includes('jng') || nameLower.includes('jungle')) return urls.jungle;
              if (nameLower.includes('mid')) return urls.mid;
              if (nameLower.includes('bot') || nameLower.includes('adc')) return urls.bot;
              if (nameLower.includes('sup') || nameLower.includes('support')) return urls.support;
-             // Default to unknown if no match
              return urls.unknown;
          },
 
          // Gets the Data Dragon URL for a champion icon.
          getChampionIconUrl(championName, context = 'grid') {
-            // Placeholder URLs for different contexts (sizes)
              const placeholderUrls = {
-                 grid: "https://placehold.co/64x64/374151/9ca3af?text=?",        // Champion Pool Grid
-                 pick: "https://placehold.co/60x60/374151/9ca3af?text=?",        // Draft Tracker/Creator Pick Slot
-                 ban: "https://placehold.co/38x38/374151/9ca3af?text=?",         // Draft Tracker/Creator Ban Slot
-                 list: "https://placehold.co/22x22/374151/9ca3af?text=?",        // Footer Lists / Modal Suggestions
-                 'creator-pool': "https://placehold.co/56x56/374151/9ca3af?text=?" // Draft Creator Pool Card
+                 grid: "https://placehold.co/64x64/374151/9ca3af?text=?",
+                 pick: "https://placehold.co/60x60/374151/9ca3af?text=?",
+                 ban: "https://placehold.co/38x38/374151/9ca3af?text=?",
+                 list: "https://placehold.co/22x22/374151/9ca3af?text=?",
+                 'creator-pool': "https://placehold.co/56x56/374151/9ca3af?text=?"
              };
-            const placeholderUrl = placeholderUrls[context] || placeholderUrls.grid; // Use grid placeholder as default
-            // Return placeholder if champion name or data is missing
+            const placeholderUrl = placeholderUrls[context] || placeholderUrls.grid;
             if (!championName || !Array.isArray(this.allChampions) || this.allChampions.length === 0) return placeholderUrl;
-            // Find champion data (case-insensitive)
             const champData = this.allChampions.find(champ => champ?.name?.toLowerCase() === championName.toLowerCase());
-            // Construct Data Dragon URL if image name exists
             if (champData?.imageName) {
-                const patchVersion = "15.8.1"; // TODO: Consider making patch version dynamic or configurable
+                const patchVersion = "15.8.1"; // TODO: Make dynamic?
                 return `https://ddragon.leagueoflegends.com/cdn/${patchVersion}/img/champion/${champData.imageName}.png`;
             } else {
-                // Log warning and return placeholder if image name is missing
                 console.warn(`Could not find image name for champion: ${championName}`);
                 return placeholderUrl;
             }
