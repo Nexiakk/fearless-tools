@@ -291,7 +291,7 @@
  .draft-section { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 0.25rem; }
  .draft-slots { display: flex; justify-content: center; align-items: center; gap: 2px; margin-bottom: 0.5rem; flex-wrap: nowrap; width: 100%; }
  .ban-group-separator { width: 8px; height: 1px; background-color: #3a3a3a;}
- .draft-slot { border: 1px dashed #444444; border-radius: 4px; background-color: #282828; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, border-width 0.2s; flex-shrink: 0; }
+ .draft-slot { border: 1px dashed #444444; border-radius: 4px; background-color: #000000; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, border-width 0.2s; flex-shrink: 0; }
  .draft-slot:hover { border-color: #666666; background-color: #3a3a3a; }
  .ban-slot { width: 44px; height: 44px; }
  .ban-slot img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; filter: grayscale(100%); }
@@ -311,7 +311,7 @@
  .add-game-button:hover { background-color: #3a3a3a; border-color: #555555; transform: translateY(-1px); }
 
  .slot-placeholder-image {
-    width: 80%; height: 80%; object-fit: contain; opacity: 0.2;
+    width: 80%; height: 80%; object-fit: contain; opacity: 1.0;
     border-radius: 4px;
  }
 
@@ -451,11 +451,11 @@
 
  /* Ban Slot Specifics */
  .draft-creator-slot.ban-slot {
-     width: 70px; height: 70px; background-color: #121212; /* Darker ban background */
+     width: 70px; height: 70px; background-color: #000000; /* Darker ban background */
      border-color: #3a3a3a; /* Darker default border */
  }
  .draft-creator-slot.ban-slot:not(.filled):not(.selected-for-targeting):hover {
-     background-color: #1e1e1e; border-color: #444444;
+     background-color: #000000; border-color: #444444;
  }
  .draft-creator-slot.ban-slot.filled {
      border-color: #3a3a3a !important; /* Dull Gray border */
@@ -467,11 +467,11 @@
  .draft-creator-slot.pick-slot {
      width: 110px; height: 110px;
      background-image: url('./media/no_champion.png');
-     background-color: #121212; /* Darker empty pick background */
+     background-color: #000000; /* Darker empty pick background */
      border-color: #444444; /* Darker default border */
  }
  .draft-creator-slot.pick-slot:not(.filled):not(.selected-for-targeting):hover {
-     border-color: #666666; background-color: #3a3a3a;
+     border-color: #666666; background-color: #000000;
  }
  .draft-creator-slot.pick-slot img { width: 100%; height: 100%; object-fit: cover; }
 
