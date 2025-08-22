@@ -50,14 +50,6 @@
 
             <div x-show="currentView === 'pool'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="absolute w-full top-0 left-0">
                 <div class="controls-container">
-                    <div class="controls-row-top">
-                        <button @click="setFilter('pool', 'player')" class="filter-button" :class="{'active': currentFilter === 'pool'}">Team Pool</button>
-                        <button @click="setFilter('Top', 'player')" class="filter-button" :class="{'active': currentFilter === 'Top'}">Mietek</button>
-                        <button @click="setFilter('Jungle', 'player')" class="filter-button" :class="{'active': currentFilter === 'Jungle'}">Lulas</button>
-                        <button @click="setFilter('Mid', 'player')" class="filter-button" :class="{'active': currentFilter === 'Mid'}">Kaymin</button>
-                        <button @click="setFilter('Bot', 'player')" class="filter-button" :class="{'active': currentFilter === 'Bot'}">Exofeng</button>
-                        <button @click="setFilter('Support', 'player')" class="filter-button" :class="{'active': currentFilter === 'Support'}">Kasing</button>
-                    </div>
                     <div class="controls-row-bottom">
                         <div class="relative search-container">
                             <svg class="search-icon"><use href="#icon-search"></use></svg>
