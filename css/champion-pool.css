@@ -291,7 +291,6 @@ img.player-badge {
   gap: 4px;
   flex-shrink: 0;
   max-height: 25%;
-  /* min-height: 50px; */ /* REMOVED - This property prevents a smooth collapse animation. */
   overflow-y: auto; /* Allows this box to scroll if it has too many champs */
 }
 

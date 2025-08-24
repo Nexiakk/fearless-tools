@@ -13,6 +13,7 @@ window.draftHelper = function () {
     sortOrder: "name",
     currentView: "pool",
     isLoading: true,
+    patchVersion: "14.10.1", // A sensible fallback patch version.
     _saveTimeout: null,
     _unsubscribeFirestore: null,
     _defaultPoolInfo: { isInPool: false, tier: null, players: [], tierClass: "tier-DEFAULT" },
@@ -186,7 +187,21 @@ window.draftHelper = function () {
       console.log("Alpine component initializing...");
       this.isLoading = true;
 
-      // Load settings from localStorage first
+      // Fetch the latest patch version first.
+      try {
+        const response = await fetch("https://ddragon.leagueoflegends.com/api/versions.json");
+        if (!response.ok) throw new Error("Network response was not ok");
+        const versions = await response.json();
+        if (versions && versions.length > 0) {
+          this.patchVersion = versions[0];
+          console.log(`Successfully fetched latest patch version: ${this.patchVersion}`);
+        }
+      } catch (error) {
+        console.error("Failed to fetch latest patch version, using fallback:", error);
+        // Fallback version is already set in the state.
+      }
+
+      // Load settings from localStorage
       const savedSettings = localStorage.getItem("fearlessSettings");
       if (savedSettings) {
         // Merge saved settings with defaults to avoid errors if new settings are added
@@ -407,6 +422,18 @@ window.draftHelper = function () {
         this.selectedForPlacement = null; // Deselect if clicking the same one
       } else {
         this.selectedForPlacement = championName;
+      }
+    },
+
+    revertUnavailableChampion(championName) {
+      if (!championName) return;
+
+      // Remove the champion from the unavailable list
+      this.draftSeries = this.draftSeries.filter((name) => name !== championName);
+
+      // If the reverted champion was the one selected for placement, clear the selection
+      if (this.selectedForPlacement === championName) {
+        this.selectedForPlacement = null;
       }
     },
 
@@ -890,8 +917,7 @@ window.draftHelper = function () {
       if (!championName || !Array.isArray(this.allChampions) || this.allChampions.length === 0) return placeholderUrl;
       const champData = this.allChampions.find((champ) => champ?.name?.toLowerCase() === championName.toLowerCase());
       if (champData?.imageName) {
-        const patchVersion = "15.8.1"; // TODO: Make dynamic?
-        return `https://ddragon.leagueoflegends.com/cdn/${patchVersion}/img/champion/${champData.imageName}.png`;
+        return `https://ddragon.leagueoflegends.com/cdn/${this.patchVersion}/img/champion/${champData.imageName}.png`;
       } else {
         console.warn(`Could not find image name for champion: ${championName}`);
         return placeholderUrl;
