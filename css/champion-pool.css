@@ -55,8 +55,9 @@
   align-items: center;
   margin: 2px;
   cursor: pointer;
-  width: 74px;
-  height: 90px;
+  /* MODIFIED: Increased size */
+  width: 98px;
+  height: 110px;
   padding: 3px;
   border-radius: 6px;
   vertical-align: top;
@@ -64,19 +65,22 @@
   overflow: visible;
 }
 .champion-card img.champion-icon {
-  width: 64px;
-  height: 64px;
+  /* MODIFIED: Increased icon size */
+  width: 86px;
+  height: 86px;
   border-radius: 4px;
   display: block;
   z-index: 1;
   position: relative;
   border: 1px solid #3a3a3a;
   transition: filter 0.2s ease-in-out, border-color 0.2s ease-in-out;
-  margin-bottom: 1px;
+  /* MODIFIED: Reduced margin to bring name closer */
+  margin-bottom: 2px;
 }
 .champion-card .champion-name-text {
-  font-size: 0.7rem;
-  line-height: 0.9rem;
+  /* MODIFIED: Increased font size */
+  font-size: 0.8rem;
+  line-height: 1rem;
   font-weight: 500;
   text-align: center;
   width: 100%;
@@ -138,7 +142,6 @@ img.player-badge {
   box-shadow: none !important;
   background-color: #282828 !important;
   border-color: #1e1e1e !important;
-  cursor: not-allowed;
 }
 .champion-card.unavailable img.champion-icon {
   filter: grayscale(95%);
@@ -191,8 +194,9 @@ img.player-badge {
 }
 
 /* --- [NEW] Settings Toggles --- */
+/* MODIFIED: Reverts tier borders to default instead of removing them */
 .champion-card.no-borders .champion-icon {
-  border-color: transparent !important;
+  border-color: #3a3a3a !important;
 }
 .champion-card.hide-badges .badge,
 .champion-card.hide-badges .player-badge-container {

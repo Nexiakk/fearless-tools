@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="css/drafting-tool.css" />
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@headlessui/alpine@2.1/dist/headlessui.min.js"></script>
     <script src="js/data/champions.js"></script>
     <script src="js/firebase/firebase-init.js"></script>
@@ -448,7 +448,7 @@
 
           <div x-show="settingsTab === 'pool'" class="mt-4 space-y-2 text-gray-300">
             <div class="flex items-center justify-between py-3 border-b border-gray-700">
-              <label for="toggle-borders" class="font-medium">Show Card Borders</label>
+              <label for="toggle-borders" class="font-medium">Show Tier Borders</label>
               <div class="relative inline-block w-10 mr-2 align-middle select-none">
                 <input type="checkbox" x-model="settings.pool.showBorders" name="toggle-borders" id="toggle-borders" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
                 <label for="toggle-borders" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
