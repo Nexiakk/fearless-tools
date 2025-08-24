@@ -128,26 +128,29 @@
                 </template>
               </div>
 
-              <template x-for="role in rolesForPanel" :key="role">
-                <div class="unavailable-role-group">
-                  <div class="unavailable-role-header">
-                    <img :src="getRoleIconUrl(role)" class="unavailable-role-icon" :alt="role" />
-                    <span x-text="role"></span>
+              <!-- Wrapper for scrollable role groups -->
+              <div class="unavailable-roles-wrapper">
+                <template x-for="role in rolesForPanel" :key="role">
+                  <div class="unavailable-role-group">
+                    <div class="unavailable-role-header">
+                      <img :src="getRoleIconUrl(role)" class="unavailable-role-icon" :alt="role" />
+                      <span x-text="role"></span>
+                    </div>
+                    <div class="unavailable-slots-grid">
+                      <template x-for="i in 10" :key="`${role}-slot-${i}`">
+                        <div class="unavailable-slot" @click="placeChampion(role, i - 1)" @contextmenu.prevent="clearUnavailableSlot(role, i - 1)" title="Click to place selected champion, Right-click to clear">
+                          <template x-if="unavailablePanelState[role][i - 1]">
+                            <img :src="getChampionIconUrl(unavailablePanelState[role][i - 1])" :alt="unavailablePanelState[role][i - 1]" x-cloak draggable="false" />
+                          </template>
+                          <template x-if="!unavailablePanelState[role][i - 1]">
+                            <img src="./media/no_champion.png" alt="Empty slot" class="placeholder-icon" x-cloak draggable="false" />
+                          </template>
+                        </div>
+                      </template>
+                    </div>
                   </div>
-                  <div class="unavailable-slots-grid">
-                    <template x-for="i in 10" :key="`${role}-slot-${i}`">
-                      <div class="unavailable-slot" @click="placeChampion(role, i - 1)" @contextmenu.prevent="clearUnavailableSlot(role, i - 1)" title="Click to place selected champion, Right-click to clear">
-                        <template x-if="unavailablePanelState[role][i - 1]">
-                          <img :src="getChampionIconUrl(unavailablePanelState[role][i - 1])" :alt="unavailablePanelState[role][i - 1]" x-cloak draggable="false" />
-                        </template>
-                        <template x-if="!unavailablePanelState[role][i - 1]">
-                          <img src="./media/no_champion.png" alt="Empty slot" class="placeholder-icon" x-cloak draggable="false" />
-                        </template>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-              </template>
+                </template>
+              </div>
             </div>
           </div>
         </div>

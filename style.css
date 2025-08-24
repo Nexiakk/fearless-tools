@@ -404,9 +404,12 @@ img.filter-icon {
   gap: 0.25rem;
 }
 
-/* [MODIFIED] Holding Area for Unplaced Champions */
+/* [MODIFIED & STICKY] Holding Area for Unplaced Champions */
 .unavailable-holding-area {
-  background-color: #121212;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #1e1e1e; /* Match panel background to hide content scrolling underneath */
   border: 1px solid #3a3a3a;
   border-radius: 6px;
   padding: 6px;
@@ -415,10 +418,11 @@ img.filter-icon {
   flex-wrap: wrap;
   gap: 4px;
   flex-shrink: 0;
-  overflow-y: auto;
   max-height: 25%;
   min-height: 50px;
+  overflow-y: auto; /* Allows this box to scroll if it has too many champs */
 }
+
 .holding-area-champ {
   width: 38px;
   height: 38px;
@@ -436,13 +440,10 @@ img.filter-icon {
   transform: scale(1.05);
 }
 
-/* [NEW] Wrapper for the role groups to control vertical distribution */
+/* [NEW] Wrapper for the scrollable role groups */
 .unavailable-roles-wrapper {
-  flex-grow: 1; /* Takes up all remaining vertical space */
-  min-height: 0; /* Important for flex-grow in a flex column */
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around; /* Distributes items evenly with space */
+  flex-grow: 1;
+  min-height: 0;
 }
 
 .unavailable-role-group {
@@ -470,7 +471,6 @@ img.filter-icon {
   flex-wrap: wrap; /* Allows wrapping to the second row */
   gap: 3px;
   /* This width calculation ensures exactly 5 slots per row */
-  /* (50px slot width * 5) + (4px gap * 4) = 266px */
   width: 310px;
 }
 /* [REWRITTEN] Slot size is now fixed */
