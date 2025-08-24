@@ -30,16 +30,14 @@ window.draftHelper = function () {
     },
     selectedForPlacement: null, // Holds the name of the champion selected from the holding area
 
-    // Modal State
-    modalType: "closed",
-    modalTarget: { gameIndex: null, draftType: null, slotIndex: null },
-    modalSearchTerm: "",
-    modalSuggestions: [],
-    modalSuggestionIndex: -1,
-    modalCurrentValue: null,
-    confirmationMessage: "",
-    confirmationCallback: null,
-    confirmationAction: "",
+    // --- [NEW] Headless UI Modal State ---
+    isSettingsOpen: false,
+    confirmationModal: {
+        isOpen: false,
+        message: '',
+        confirmAction: null,
+        isDanger: false,
+    },
 
     // Draft Creator State
     draftCreatorRoleFilter: "all",
@@ -47,18 +45,10 @@ window.draftHelper = function () {
     currentDraft: {
       id: null,
       name: "New Draft",
-      bluePicks: Array(5)
-        .fill(null)
-        .map(() => ({ champion: null, notes: "" })),
-      blueBans: Array(5)
-        .fill(null)
-        .map(() => ({ champion: null, notes: "" })),
-      redPicks: Array(5)
-        .fill(null)
-        .map(() => ({ champion: null, notes: "" })),
-      redBans: Array(5)
-        .fill(null)
-        .map(() => ({ champion: null, notes: "" })),
+      bluePicks: Array(5).fill(null).map(() => ({ champion: null, notes: "" })),
+      blueBans: Array(5).fill(null).map(() => ({ champion: null, notes: "" })),
+      redPicks: Array(5).fill(null).map(() => ({ champion: null, notes: "" })),
+      redBans: Array(5).fill(null).map(() => ({ champion: null, notes: "" })),
       generalNotes: "",
       createdAt: null,
     },
@@ -156,19 +146,6 @@ window.draftHelper = function () {
         }
       });
       return processedChampions;
-    },
-
-    get modalTitle() {
-      if (this.modalType === "championSelect") {
-        if (!this.modalTarget.draftType) return "Select Champion";
-        const side = this.modalTarget.draftType.includes("blue") ? "Blue" : "Red";
-        const type = this.modalTarget.draftType.includes("Bans") ? "Ban" : "Pick";
-        const slot = this.modalTarget.slotIndex + 1;
-        return `Select Champion for ${side} ${type} ${slot}`;
-      } else if (this.modalType === "confirm") {
-        return "Confirm Action";
-      }
-      return "Modal";
     },
 
     get draftCreatorFilteredChampions() {
@@ -384,56 +361,27 @@ window.draftHelper = function () {
       }
     },
 
-    // --- Obsolete/Placeholder Methods ---
-    removeGameAction(gameIndex) {
-      console.warn("removeGameAction is obsolete.");
+    // --- [NEW] Headless UI Modal Methods ---
+    openConfirmationModal({ message, confirmAction, isDanger = false }) {
+        this.confirmationModal.message = message;
+        this.confirmationModal.confirmAction = confirmAction;
+        this.confirmationModal.isDanger = isDanger;
+        this.confirmationModal.isOpen = true;
     },
-    clearSlot(gameIndex, draftType, slotIndex) {
-      console.warn("clearSlot is obsolete.");
+    closeConfirmationModal() {
+        this.confirmationModal.isOpen = false;
+        // Reset after a short delay to allow for transitions
+        setTimeout(() => {
+            this.confirmationModal.message = '';
+            this.confirmationModal.confirmAction = null;
+            this.confirmationModal.isDanger = false;
+        }, 200);
     },
-    openChampionSelectModal(gameIndex, draftType, slotIndex) {
-      console.warn("openChampionSelectModal is obsolete.");
-    },
-    openConfirmationModal(message, callback, actionIdentifier = "confirm") {
-      this.modalType = "confirm";
-      this.confirmationMessage = message;
-      this.confirmationCallback = callback;
-      this.confirmationAction = actionIdentifier;
-    },
-    closeModal() {
-      this.modalType = "closed";
-    },
-    resetModalState() {
-      this.confirmationMessage = "";
-      this.confirmationCallback = null;
-      this.confirmationAction = "";
-    },
-    updateSuggestions() {
-      console.warn("updateSuggestions is obsolete.");
-    },
-    selectSuggestion(championName) {
-      console.warn("selectSuggestion is obsolete.");
-    },
-    selectNextSuggestion() {
-      console.warn("selectNextSuggestion is obsolete.");
-    },
-    selectPreviousSuggestion() {
-      console.warn("selectPreviousSuggestion is obsolete.");
-    },
-    confirmModalAction() {
-      if (this.modalType === "confirm" && typeof this.confirmationCallback === "function") {
-        this.confirmationCallback();
-      }
-      this.closeModal();
-    },
-    clearModalSelection() {
-      console.warn("clearModalSelection is obsolete.");
-    },
-    addNewGame() {
-      console.warn("addNewGame is obsolete.");
-    },
-    removeGame(gameIndex) {
-      console.warn("removeGame is obsolete.");
+    confirmAction() {
+        if (typeof this.confirmationModal.confirmAction === 'function') {
+            this.confirmationModal.confirmAction();
+        }
+        this.closeConfirmationModal();
     },
 
     // --- Draft Creator Methods (unchanged) ---
@@ -689,25 +637,20 @@ window.draftHelper = function () {
         return;
       }
       if (!draftId) return;
-      const draftToDelete = this.savedDrafts.find((d) => d.id === draftId);
-      const draftName = draftToDelete ? draftToDelete.name : "this draft";
-      this.openConfirmationModal(
-        `Are you sure you want to permanently delete "${draftName}"? This cannot be undone.`,
-        async () => {
-          try {
-            await fbDeleteDraft(draftId);
-            this.savedDrafts = this.savedDrafts.filter((d) => d.id !== draftId);
-            if (this.currentDraft.id === draftId) {
-              this.resetCurrentDraft();
-            }
-            alert(`Draft "${draftName}" deleted successfully.`);
-          } catch (error) {
-            console.error(`Error deleting draft ${draftId}:`, error);
-            alert("Failed to delete draft. See console for details.");
-          }
-        },
-        "deleteSavedDraft"
-      );
+      
+      try {
+        const draftToDelete = this.savedDrafts.find((d) => d.id === draftId);
+        const draftName = draftToDelete ? draftToDelete.name : "this draft";
+        await fbDeleteDraft(draftId);
+        this.savedDrafts = this.savedDrafts.filter((d) => d.id !== draftId);
+        if (this.currentDraft.id === draftId) {
+            this.resetCurrentDraft();
+        }
+        alert(`Draft "${draftName}" deleted successfully.`);
+      } catch (error) {
+        console.error(`Error deleting draft ${draftId}:`, error);
+        alert("Failed to delete draft. See console for details.");
+      }
     },
     toggleNotesVisibility(side, type, index) {
       this.notesModal.isOpen = true;

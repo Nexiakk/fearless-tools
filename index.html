@@ -10,6 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@headlessui/alpine@v1.7.17/dist/headlessui.min.js"></script>
     <script src="./champions.js"></script>
     <script src="./firebase-init.js"></script>
     <script src="./alpine-component.js"></script>
@@ -31,16 +32,32 @@
         <symbol id="icon-edit" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 1 1 2.828 2.828l-.793.793-2.828-2.828.793-.793ZM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828Z" /></symbol>
         <symbol id="icon-search" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" /></symbol>
         <symbol id="icon-check" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" /></symbol>
+        <symbol id="icon-settings" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+          />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </symbol>
       </defs>
     </svg>
 
     <!-- Centered Navigation Bar -->
     <header class="top-navbar">
-      <div class="navbar-container">
+      <div class="navbar-container relative">
         <nav class="navbar-nav">
           <button @click="currentView = 'pool'" :class="{'nav-link': true, 'active': currentView === 'pool'}">Champion Pool</button>
           <button @click="currentView = 'drafting'" :class="{'nav-link': true, 'active': currentView === 'drafting'}">Drafting</button>
         </nav>
+        <div class="absolute right-4">
+          <button @click="isSettingsOpen = true" class="text-gray-400 hover:text-white transition-colors" title="Settings">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <use href="#icon-settings"></use>
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -76,8 +93,8 @@
                 <span class="sort-label">Sort By:</span>
                 <button @click="setSortOrder('name')" class="sort-button" :class="{'active': sortOrder === 'name'}">Name</button>
                 <button @click="setSortOrder('tier')" class="sort-button" :class="{'active': sortOrder === 'tier'}">Tier</button>
-                <button @click="openConfirmationModal('Are you sure you want to reset highlighted picks?', () => resetMarkedPicksAction())" class="reset-button reset-marked bg-blue-700 hover:bg-blue-600 text-white ml-2" aria-label="Reset highlighted picks">Reset Highlighted</button>
-                <button @click="openConfirmationModal('Reset unavailable champions? This cannot be undone.', () => resetDraftSeriesAction(), 'resetDraftSeries')" class="reset-button reset-series bg-yellow-700 hover:bg-yellow-600 text-white ml-2" aria-label="Reset unavailable champions">Reset Unavailable</button>
+                <button @click="openConfirmationModal({ message: 'Are you sure you want to reset highlighted picks?', confirmAction: () => resetMarkedPicksAction() })" class="reset-button reset-marked bg-blue-700 hover:bg-blue-600 text-white ml-2" aria-label="Reset highlighted picks">Reset Highlighted</button>
+                <button @click="openConfirmationModal({ message: 'Reset unavailable champions? This cannot be undone.', confirmAction: () => resetDraftSeriesAction(), isDanger: true })" class="reset-button reset-series bg-yellow-700 hover:bg-yellow-600 text-white ml-2" aria-label="Reset unavailable champions">Reset Unavailable</button>
               </div>
             </div>
           </div>
@@ -383,7 +400,7 @@
                 <div class="saved-draft-item" :class="{'active-saved-draft': currentDraft.id === draft.id}">
                   <span class="saved-draft-name" x-text="draft.name || 'Unnamed Draft'" @click="loadSavedDraft(draft.id)"></span>
                   <div class="saved-draft-actions">
-                    <button @click="deleteSavedDraft(draft.id)" title="Delete Draft">
+                    <button @click="openConfirmationModal({ message: `Are you sure you want to permanently delete '${draft.name || 'this draft'}'? This cannot be undone.`, confirmAction: () => deleteSavedDraft(draft.id), isDanger: true })" title="Delete Draft">
                       <svg><use href="#icon-trash"></use></svg>
                     </button>
                   </div>
@@ -394,9 +411,9 @@
 
           <div x-show="notesModal.isOpen" class="notes-modal-overlay" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @keydown.escape.window="closeNotesModal()" x-cloak>
             <div class="notes-modal-content" @click.outside="closeNotesModal()">
-              <h3 class="notes-modal-title" x-text="notesModal.title">Edit Notes</h3>
+              <h3 class="modal-title" x-text="notesModal.title">Edit Notes</h3>
               <textarea class="notes-modal-textarea" x-model="notesModal.currentNote" placeholder="Enter notes here..." x-ref="notesTextarea"></textarea>
-              <div class="notes-modal-buttons">
+              <div class="modal-buttons">
                 <button @click="saveNotesAndCloseModal()" class="modal-button modal-button-confirm">Save & Close</button>
                 <button @click="closeNotesModal()" class="modal-button modal-button-cancel">Cancel</button>
               </div>
@@ -404,48 +421,50 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Global Modals -->
-      <div x-show="modalType !== 'closed'" class="modal-overlay" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0 resetModalState()" @keydown.escape.window="closeModal()" x-cloak>
-        <div class="modal-content" @click.outside="closeModal()">
-          <h3 class="modal-title" x-text="modalTitle">Modal Title</h3>
+    <!-- Headless UI Modals -->
+    <!-- Confirmation Modal -->
+    <div x-show="confirmationModal.isOpen" x-dialog @keydown.escape.window="closeConfirmationModal()" class="relative z-50">
+      <div x-show="confirmationModal.isOpen" x-transition.opacity class="fixed inset-0 bg-black/60"></div>
+      <div class="fixed inset-0 flex w-screen items-center justify-center p-4">
+        <div x-show="confirmationModal.isOpen" x-transition @click.outside="closeConfirmationModal()" x-dialog.panel class="w-full max-w-md rounded-lg bg-gray-800 border border-gray-700 p-6 shadow-lg">
+          <h3 x-dialog.title class="text-xl font-semibold text-white">Confirm Action</h3>
+          <p class="mt-2 text-gray-300" x-text="confirmationModal.message"></p>
+          <div class="mt-6 flex justify-end gap-3">
+            <button @click="closeConfirmationModal()" class="modal-button modal-button-cancel">Cancel</button>
+            <button @click="confirmAction()" :class="confirmationModal.isDanger ? 'modal-button-danger' : 'modal-button-confirm'" class="modal-button">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-          <div x-show="modalType === 'championSelect'" x-cloak>
-            <div class="relative">
-              <input type="text" class="modal-input" placeholder="Type champion name..." x-model="modalSearchTerm" @input="updateSuggestions()" @keydown.enter.prevent="confirmModalAction()" @keydown.arrow-down.prevent="selectNextSuggestion()" @keydown.arrow-up.prevent="selectPreviousSuggestion()" x-ref="modalInput" />
-              <div x-show="modalSuggestions.length > 0 && modalSearchTerm.length > 0" class="suggestions-container" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-1" x-cloak>
-                <template x-for="(suggestion, index) in modalSuggestions" :key="suggestion.id">
-                  <div class="suggestion-item" :class="{'active': modalSuggestionIndex === index}" @click="selectSuggestion(suggestion.name)" @mouseenter="modalSuggestionIndex = index">
-                    <img class="suggestion-icon" :src="getChampionIconUrl(suggestion.name, 'list')" :alt="suggestion.name" draggable="false" onerror="this.style.opacity=0.5" />
-                    <span x-text="suggestion.name"></span>
-                  </div>
-                </template>
+    <!-- Settings Modal -->
+    <div x-show="isSettingsOpen" x-dialog @keydown.escape.window="isSettingsOpen = false" class="relative z-50">
+      <div x-show="isSettingsOpen" x-transition.opacity class="fixed inset-0 bg-black/60"></div>
+      <div class="fixed inset-0 flex w-screen items-center justify-center p-4">
+        <div x-show="isSettingsOpen" x-transition @click.outside="isSettingsOpen = false" x-dialog.panel class="w-full max-w-md rounded-lg bg-gray-800 border border-gray-700 p-6 shadow-lg">
+          <h3 x-dialog.title class="text-xl font-semibold text-white">Settings</h3>
+          <div class="mt-4 space-y-4 text-gray-300">
+            <div class="flex items-center justify-between py-3 border-b border-gray-700">
+              <label for="toggle-dark-mode" class="font-medium">Dark Mode</label>
+              <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                <input type="checkbox" name="toggle-dark-mode" id="toggle-dark-mode" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked />
+                <label for="toggle-dark-mode" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
               </div>
             </div>
-            <div class="modal-buttons mt-4">
-              <button @click="clearModalSelection()" class="modal-button modal-button-clear" x-show="modalCurrentValue" x-cloak>Clear Slot</button>
-              <div class="ml-auto flex gap-3">
-                <button @click="confirmModalAction()" class="modal-button modal-button-confirm">Confirm</button>
-                <button @click="closeModal()" class="modal-button modal-button-cancel">Cancel</button>
-              </div>
+            <div class="flex items-center justify-between py-3">
+              <label for="language-select" class="font-medium">Language</label>
+              <select id="language-select" class="bg-gray-700 border border-gray-600 rounded-md p-1 text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <option>English</option>
+                <option>Español</option>
+                <option>Français</option>
+              </select>
             </div>
           </div>
-
-          <div x-show="modalType === 'confirm'" x-cloak>
-            <p class="modal-confirmation-message" x-text="confirmationMessage"></p>
-            <div class="modal-buttons">
-              <button @click="closeModal()" class="modal-button modal-button-cancel">Cancel</button>
-              <button
-                @click="confirmModalAction()"
-                :class="{
-                                    'modal-button': true,
-                                    'modal-button-danger': confirmationAction === 'resetDraftSeries' || confirmationAction === 'removeGame' || confirmationAction === 'deleteSavedDraft',
-                                    'modal-button-confirm': confirmationAction !== 'resetDraftSeries' && confirmationAction !== 'removeGame' && confirmationAction !== 'deleteSavedDraft'
-                                }"
-              >
-                Confirm
-              </button>
-            </div>
+          <div class="mt-6 flex justify-end gap-3">
+            <button @click="isSettingsOpen = false" class="modal-button modal-button-cancel">Cancel</button>
+            <button @click="isSettingsOpen = false" class="modal-button modal-button-confirm">Save</button>
           </div>
         </div>
       </div>

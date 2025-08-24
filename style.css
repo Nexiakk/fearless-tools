@@ -391,7 +391,7 @@ img.filter-icon {
 
 /* [MODIFIED] Unavailable Champions Panel */
 .unavailable-champions-panel {
-  flex: 1.08; /* Ratio: Takes up less width */
+  flex: 1.09; /* Ratio: Takes up less width */
   min-width: 0; /* Prevents flexbox overflow issues */
   height: 100%; /* Fills the height of the parent wrapper */
   overflow-y: auto; /* Allow scrolling as a fallback */
@@ -424,8 +424,8 @@ img.filter-icon {
 }
 
 .holding-area-champ {
-  width: 38px;
-  height: 38px;
+  width: 45px;
+  height: 45px;
   border-radius: 4px;
   cursor: pointer;
   border: 2px solid transparent;
@@ -1239,94 +1239,7 @@ img.filter-icon {
   gap: 0.75rem;
 }
 
-/* --- Global Modal Styles (Champion Select / Confirmation) --- */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
-.modal-content {
-  background-color: #1e1e1e; /* Darker modal background */
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-  width: 90%;
-  max-width: 500px;
-  position: relative;
-  border: 1px solid #3a3a3a; /* Add subtle border */
-}
-.modal-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: #e0e0e0;
-}
-.modal-confirmation-message {
-  color: #cccccc;
-  margin-bottom: 1.5rem;
-  line-height: 1.6;
-}
-.modal-input {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
-  border: 1px solid #3a3a3a;
-  background-color: #282828;
-  color: #e0e0e0;
-  margin-bottom: 0.5rem;
-  transition: border-color 0.2s;
-}
-.modal-input:focus {
-  outline: none;
-  border-color: #d97706;
-  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.3);
-}
-.suggestions-container {
-  position: absolute;
-  left: 1.5rem;
-  right: 1.5rem;
-  top: calc(100% - 1rem);
-  background-color: #282828; /* Darker suggestions background */
-  border: 1px solid #3a3a3a;
-  border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
-  max-height: 150px;
-  overflow-y: auto;
-  z-index: 60;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-}
-.suggestion-item {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  color: #cccccc;
-  transition: background-color 0.15s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.suggestion-item:hover,
-.suggestion-item.active {
-  background-color: #3a3a3a; /* Darker hover */
-  color: #ffffff;
-}
-.suggestion-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
-}
-.modal-buttons {
-  margin-top: 1.5rem;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
+/* --- [NEW] Global Modal Button Styles --- */
 .modal-button {
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
@@ -1350,14 +1263,6 @@ img.filter-icon {
 .modal-button-danger:hover {
   filter: brightness(1.1);
 }
-/* Amber clear button */
-.modal-button-clear {
-  background-color: #f59e0b;
-  color: #422006;
-} /* amber-500 */
-.modal-button-clear:hover {
-  filter: brightness(1.1);
-}
 /* Neutral cancel button */
 .modal-button-cancel {
   background-color: #444444;
@@ -1366,17 +1271,12 @@ img.filter-icon {
 .modal-button-cancel:hover {
   background-color: #555555;
 }
-.suggestions-container::-webkit-scrollbar {
-  width: 6px;
+
+/* [NEW] Settings Toggle Switch Style */
+.toggle-checkbox:checked {
+  right: 0;
+  border-color: #d97706;
 }
-.suggestions-container::-webkit-scrollbar-track {
-  background: #1e1e1e;
-  border-radius: 3px;
-}
-.suggestions-container::-webkit-scrollbar-thumb {
-  background-color: #555555;
-  border-radius: 3px;
-}
-.suggestions-container::-webkit-scrollbar-thumb:hover {
-  background-color: #777777;
+.toggle-checkbox:checked + .toggle-label {
+  background-color: #d97706;
 }
