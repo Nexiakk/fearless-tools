@@ -1,616 +1,449 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fearless Tools</title>
-    <link rel="icon" type="image/x-icon" href="/cwel.png">
+    <link rel="icon" type="image/x-icon" href="/cwel.png" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="./champions.js"></script>
     <script src="./firebase-init.js"></script>
     <script src="./alpine-component.js"></script>
-</head>
-<body>
-
-    <svg width="0" height="0" style="position:absolute">
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute">
       <defs>
-        <symbol id="icon-plus" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" clip-rule="evenodd" /> </symbol>
-        <symbol id="icon-close" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /> </symbol>
-        <symbol id="icon-save" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM8.5 3.75a.75.75 0 0 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5Zm3 1.5a.75.75 0 0 0-1.5 0v7.5a.75.75 0 0 0 1.5 0v-7.5Z" clip-rule="evenodd" /> </symbol> <symbol id="icon-note" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M5.75 3A2.75 2.75 0 0 0 3 5.75v8.5A2.75 2.75 0 0 0 5.75 17h8.5A2.75 2.75 0 0 0 17 14.25v-8.5A2.75 2.75 0 0 0 14.25 3H5.75ZM5 5.75c0-.414.336-.75.75-.75h8.5c.414 0 .75.336.75.75v8.5c0 .414-.336.75-.75.75h-8.5c-.414 0-.75-.336-.75-.75V5.75Zm3.25 2a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5Z" clip-rule="evenodd" /> </symbol>
-        <symbol id="icon-load" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm7.5 1.5V7h3.5L12 3.5ZM5 7.75A.75.75 0 0 1 5.75 7h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 5 7.75Zm0 3A.75.75 0 0 1 5.75 10h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 5 10.75Zm0 3A.75.75 0 0 1 5.75 13h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 5 13.75Z" clip-rule="evenodd" /> </symbol>
-        <symbol id="icon-trash" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75V4.5h8V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.5.66 1.5 1.5v.75h-3v-.75C8.5 4.66 9.16 4 10 4ZM4.118 6A1 1 0 0 0 3.13 6.886l.434 9.548A2 2 0 0 0 5.558 18h8.884a2 2 0 0 0 1.994-1.566l.434-9.548A1 1 0 0 0 15.882 6H4.118ZM8.75 9.75a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1a.75.75 0 0 1-.75-.75Zm3 0a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" /> </symbol>
-        <symbol id="icon-edit" viewBox="0 0 20 20"> <path d="M13.586 3.586a2 2 0 1 1 2.828 2.828l-.793.793-2.828-2.828.793-.793ZM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828Z" /> </symbol>
-        <symbol id="icon-search" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" /> </symbol>
-        <symbol id="icon-check" viewBox="0 0 20 20"> <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" /> </symbol>
-    </defs>
+        <symbol id="icon-plus" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" clip-rule="evenodd" /></symbol>
+        <symbol id="icon-close" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /></symbol>
+        <symbol id="icon-save" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM8.5 3.75a.75.75 0 0 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5Zm3 1.5a.75.75 0 0 0-1.5 0v7.5a.75.75 0 0 0 1.5 0v-7.5Z" clip-rule="evenodd" /></symbol>
+        <symbol id="icon-note" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.75 3A2.75 2.75 0 0 0 3 5.75v8.5A2.75 2.75 0 0 0 5.75 17h8.5A2.75 2.75 0 0 0 17 14.25v-8.5A2.75 2.75 0 0 0 14.25 3H5.75ZM5 5.75c0-.414.336-.75.75-.75h8.5c.414 0 .75.336.75.75v8.5c0 .414-.336.75-.75.75h-8.5c-.414 0-.75-.336-.75-.75V5.75Zm3.25 2a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5Z" clip-rule="evenodd" /></symbol>
+        <symbol id="icon-load" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm7.5 1.5V7h3.5L12 3.5ZM5 7.75A.75.75 0 0 1 5.75 7h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 5 7.75Zm0 3A.75.75 0 0 1 5.75 10h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 5 10.75Zm0 3A.75.75 0 0 1 5.75 13h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 5 13.75Z" clip-rule="evenodd" />
+        </symbol>
+        <symbol id="icon-trash" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75V4.5h8V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.5.66 1.5 1.5v.75h-3v-.75C8.5 4.66 9.16 4 10 4ZM4.118 6A1 1 0 0 0 3.13 6.886l.434 9.548A2 2 0 0 0 5.558 18h8.884a2 2 0 0 0 1.994-1.566l.434-9.548A1 1 0 0 0 15.882 6H4.118ZM8.75 9.75a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1a.75.75 0 0 1-.75-.75Zm3 0a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+        </symbol>
+        <symbol id="icon-edit" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 1 1 2.828 2.828l-.793.793-2.828-2.828.793-.793ZM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828Z" /></symbol>
+        <symbol id="icon-search" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" /></symbol>
+        <symbol id="icon-check" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" /></symbol>
+      </defs>
     </svg>
 
     <div x-data="draftHelper()" x-init="init()" @destroy="destroy()" class="container mx-auto p-4 pt-8 main-content">
+      <div class="flex justify-center gap-4 mb-6">
+        <button @click="currentView = 'pool'" :class="{'filter-button': true, 'active': currentView === 'pool'}">Champion Pool</button>
+        <button @click="currentView = 'draftTracker'" :class="{'filter-button': true, 'active': currentView === 'draftTracker'}">Draft Tracker</button>
+        <button @click="currentView = 'drafting'" :class="{'filter-button': true, 'active': currentView === 'drafting'}">Drafting</button>
+      </div>
 
-        <div class="flex justify-center gap-4 mb-6">
-            <button @click="currentView = 'pool'"
-                    :class="{'filter-button': true, 'active': currentView === 'pool'}">
-                Champion Pool
-            </button>
-            <button @click="currentView = 'draftTracker'"
-                    :class="{'filter-button': true, 'active': currentView === 'draftTracker'}">
-                Draft Tracker
-            </button>
-            <button @click="currentView = 'drafting'"
-                    :class="{'filter-button': true, 'active': currentView === 'drafting'}">
-                Drafting
-            </button>
+      <div class="relative">
+        <div x-show="currentView === 'pool'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="absolute w-full top-0 left-0">
+          <div class="controls-container">
+            <div class="controls-row-bottom">
+              <div class="relative search-container">
+                <svg class="search-icon"><use href="#icon-search"></use></svg>
+                <input type="text" x-model.debounce.300ms="searchTerm" placeholder="Search..." class="pool-search-input" /> <button x-show="searchTerm" @click="searchTerm = ''" class="clear-search-button" aria-label="Clear search">&times;</button>
+              </div>
+              <div class="role-filters-container">
+                <button @click="setFilter('Top', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Top'}" title="Filter by Top Lane">
+                  <img :src="getRoleIconUrl('Top')" alt="Top Lane" class="filter-icon" draggable="false" />
+                </button>
+                <button @click="setFilter('Jungle', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Jungle'}" title="Filter by Jungle">
+                  <img :src="getRoleIconUrl('Jungle')" alt="Jungle" class="filter-icon" draggable="false" />
+                </button>
+                <button @click="setFilter('Mid', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Mid'}" title="Filter by Mid Lane">
+                  <img :src="getRoleIconUrl('Mid')" alt="Mid Lane" class="filter-icon" draggable="false" />
+                </button>
+                <button @click="setFilter('Bot', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Bot'}" title="Filter by Bot Lane">
+                  <img :src="getRoleIconUrl('Bot')" alt="Bot Lane" class="filter-icon" draggable="false" />
+                </button>
+                <button @click="setFilter('Support', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Support'}" title="Filter by Support">
+                  <img :src="getRoleIconUrl('Support')" alt="Support" class="filter-icon" draggable="false" />
+                </button>
+              </div>
+              <div class="sort-reset-container">
+                <span class="sort-label">Sort By:</span>
+                <button @click="setSortOrder('name')" class="sort-button" :class="{'active': sortOrder === 'name'}">Name</button>
+                <button @click="setSortOrder('tier')" class="sort-button" :class="{'active': sortOrder === 'tier'}">Tier</button>
+                <button @click="openConfirmationModal('Are you sure you want to reset highlighted picks?', () => resetMarkedPicksAction())" class="reset-button reset-marked bg-blue-700 hover:bg-blue-600 text-white ml-2" aria-label="Reset highlighted picks">Reset Highlighted</button>
+                <button @click="openConfirmationModal('Reset unavailable champions? This cannot be undone.', () => resetDraftSeriesAction(), 'resetDraftSeries')" class="reset-button reset-series bg-yellow-700 hover:bg-yellow-600 text-white ml-2" aria-label="Reset unavailable champions">Reset Unavailable</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pool-view-wrapper">
+            <div class="champion-grid-container">
+              <div class="champion-grid-inner">
+                <p x-show="filteredChampions.length === 0" class="text-gray-400 col-span-full text-center py-4" x-cloak>No champions match your filter/search.</p>
+                <template x-for="champion in filteredChampions" :key="champion.id">
+                  <div
+                    x-transition:enter="transition ease-in-out duration-200"
+                    x-transition:enter-start="opacity-0 transform scale-95"
+                    x-transition:enter-end="opacity-100 transform scale-100"
+                    class="champion-card"
+                    :class="{
+                                        'unavailable': isUnavailable(champion.name),
+                                        'manually-marked': isHighlighted(champion.name),
+                                        'in-pool': champion.poolInfo && champion.poolInfo.isInPool,
+                                        'not-in-pool': (!champion.poolInfo || !champion.poolInfo.isInPool) && !isUnavailable(champion.name) && !isHighlighted(champion.name),
+                                        [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name)
+                                     }"
+                    @click="togglePick(champion.name)"
+                    @contextmenu.prevent="toggleHighlight(champion.name)"
+                    role="button"
+                    :aria-label="champion.name"
+                    :tabindex="0"
+                    x-cloak
+                    :title="champion.name"
+                  >
+                    <img class="champion-icon" :src="getChampionIconUrl(champion.name)" :alt="champion.name" loading="lazy" draggable="false" />
+                    <span class="champion-name-text text-gray-200" x-text="champion.name"></span>
+                    <span class="badge tier-badge" x-show="champion.poolInfo?.isInPool && champion.poolInfo.tier && !isUnavailable(champion.name)" x-text="champion.poolInfo?.tier" x-cloak></span>
+                    <div class="player-badge-container" x-show="champion.poolInfo?.isInPool && champion.poolInfo.players?.length > 0 && !isUnavailable(champion.name)" x-cloak>
+                      <template x-for="player in (champion.poolInfo?.players || [])" :key="player">
+                        <img class="player-badge" :src="getRoleIconUrl(player)" :alt="player" :title="player" draggable="false" />
+                      </template>
+                    </div>
+                    <span class="picked-overlay-text" x-show="isUnavailable(champion.name) || isHighlighted(champion.name)" x-text="isUnavailable(champion.name) ? 'UNAVAILABLE' : 'HIGHLIGHTED'" x-cloak></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class="unavailable-champions-panel">
+              <div class="unavailable-holding-area" x-show="unplacedChampions.length > 0" x-cloak x-transition>
+                <template x-for="championName in unplacedChampions" :key="championName">
+                  <img :src="getChampionIconUrl(championName, 'holding-area')" :alt="championName" :title="championName" class="holding-area-champ" :class="{'selected-for-placement': selectedForPlacement === championName}" @click="selectForPlacement(championName)" draggable="false" />
+                </template>
+              </div>
+
+              <template x-for="role in rolesForPanel" :key="role">
+                <div class="unavailable-role-group">
+                  <div class="unavailable-role-header">
+                    <img :src="getRoleIconUrl(role)" class="unavailable-role-icon" :alt="role" />
+                    <span x-text="role"></span>
+                  </div>
+                  <div class="unavailable-slots-grid">
+                    <template x-for="i in 10" :key="`${role}-slot-${i}`">
+                      <div class="unavailable-slot" @click="placeChampion(role, i - 1)" @contextmenu.prevent="clearUnavailableSlot(role, i - 1)" title="Click to place selected champion, Right-click to clear">
+                        <template x-if="unavailablePanelState[role][i - 1]">
+                          <img :src="getChampionIconUrl(unavailablePanelState[role][i - 1])" :alt="unavailablePanelState[role][i - 1]" x-cloak draggable="false" />
+                        </template>
+                        <template x-if="!unavailablePanelState[role][i - 1]">
+                          <img src="./media/no_champion.png" alt="Empty slot" class="placeholder-icon" x-cloak draggable="false" />
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
         </div>
 
-        <div class="relative">
+        <div x-show="currentView === 'draftTracker'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="draft-tracker absolute w-full top-0 left-0" x-cloak>
+          <div class="text-center p-8 bg-gray-800 rounded-lg border border-gray-700">
+            <h2 class="text-2xl font-bold text-yellow-400 mb-4">Draft Tracker - Under Construction</h2>
+            <p class="text-gray-300">This component is being phased out.</p>
+          </div>
+        </div>
 
-            <div x-show="currentView === 'pool'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="absolute w-full top-0 left-0">
-                <div class="controls-container">
-                    <div class="controls-row-bottom">
-                        <div class="relative search-container">
-                            <svg class="search-icon"><use href="#icon-search"></use></svg>
-                            <input type="text" x-model.debounce.300ms="searchTerm" placeholder="Search..." class="pool-search-input"> <button x-show="searchTerm" @click="searchTerm = ''" class="clear-search-button" aria-label="Clear search"> &times;
-                            </button>
-                        </div>
-                        <div class="role-filters-container">
-                            <button @click="setFilter('Top', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Top'}" title="Filter by Top Lane">
-                                <img :src="getRoleIconUrl('Top')" alt="Top Lane" class="filter-icon" draggable="false">
-                            </button>
-                            <button @click="setFilter('Jungle', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Jungle'}" title="Filter by Jungle">
-                                <img :src="getRoleIconUrl('Jungle')" alt="Jungle" class="filter-icon" draggable="false">
-                            </button>
-                            <button @click="setFilter('Mid', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Mid'}" title="Filter by Mid Lane">
-                                <img :src="getRoleIconUrl('Mid')" alt="Mid Lane" class="filter-icon" draggable="false">
-                            </button>
-                            <button @click="setFilter('Bot', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Bot'}" title="Filter by Bot Lane">
-                                <img :src="getRoleIconUrl('Bot')" alt="Bot Lane" class="filter-icon" draggable="false">
-                            </button>
-                            <button @click="setFilter('Support', 'role')" class="filter-button icon-button" :class="{'active': roleFilter === 'Support'}" title="Filter by Support">
-                                <img :src="getRoleIconUrl('Support')" alt="Support" class="filter-icon" draggable="false">
-                            </button>
-                        </div>
-                        <div class="sort-reset-container">
-                             <span class="sort-label">Sort By:</span>
-                             <button @click="setSortOrder('name')" class="sort-button" :class="{'active': sortOrder === 'name'}">Name</button>
-                             <button @click="setSortOrder('tier')" class="sort-button" :class="{'active': sortOrder === 'tier'}">Tier</button>
-                             <button @click="openConfirmationModal('Are you sure you want to reset highlighted picks?', () => resetMarkedPicksAction())" class="reset-button reset-marked bg-blue-700 hover:bg-blue-600 text-white ml-2" aria-label="Reset highlighted picks">
-                                 Reset Highlighted
-                             </button>
-                             <button @click="openConfirmationModal('Reset entire series draft? This cannot be undone.', () => resetDraftSeriesAction(), 'resetDraftSeries')" class="reset-button reset-series bg-yellow-700 hover:bg-yellow-600 text-white ml-2" aria-label="Reset series draft">
-                                 Reset Drafts
-                             </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="champion-grid-container">
-                    <div class="champion-grid-inner">
-                        <p x-show="filteredChampions.length === 0" class="text-gray-400 col-span-full text-center py-4" x-cloak>
-                            No champions match your filter/search.
-                        </p>
-                        <template x-for="champion in filteredChampions" :key="champion.id">
-                            <div x-transition:enter="transition ease-in-out duration-200"
-                                 x-transition:enter-start="opacity-0 transform scale-95"
-                                 x-transition:enter-end="opacity-100 transform scale-100"
-                                 x-transition:leave="transition ease-in-out duration-150"
-                                 x-transition:leave-start="opacity-100 transform scale-100"
-                                 x-transition:leave-end="opacity-0 transform scale-95"
-                                 class="champion-card"
-                                 :class="{
-                                    'unavailable': isUnavailable(champion.name),
-                                    'manually-marked': isPicked(champion.name) && !isUnavailable(champion.name),
-                                    'in-pool': champion.poolInfo && champion.poolInfo.isInPool,
-                                    'not-in-pool': (!champion.poolInfo || !champion.poolInfo.isInPool) && !isUnavailable(champion.name) && !isPicked(champion.name),
-                                    [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name)
-                                 }"
-                                 @click="!isUnavailable(champion.name) && togglePick(champion.name)"
-                                 @contextmenu.prevent="!isUnavailable(champion.name) && unpickChampion(champion.name)"
-                                 role="button"
-                                 :aria-disabled="isUnavailable(champion.name)"
-                                 :aria-pressed="isPicked(champion.name)"
-                                 :aria-label="`${champion.name} - ${champion.poolInfo && champion.poolInfo.isInPool ? ('Tier ' + champion.poolInfo.tier + ' (' + (champion.poolInfo.players || []).join(', ') + ')') : 'Not in Pool'}${isUnavailable(champion.name) ? ' (Unavailable)' : (isPicked(champion.name) ? ' (Marked)' : '')}`"
-                                 :tabindex="0"
-                                 x-cloak
-                                 :title="champion.name">
-                                 <img class="champion-icon" :src="getChampionIconUrl(champion.name)" :alt="champion.name" loading="lazy" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                 <div class="img-error-placeholder" style="display: none;">?</div>
-                                 <span class="champion-name-text text-gray-200" x-text="champion.name" :title="champion.name"></span>
-                                 <span class="badge tier-badge"
-                                       x-show="champion.poolInfo && champion.poolInfo.isInPool && champion.poolInfo.tier && !isUnavailable(champion.name)"
-                                       x-text="champion.poolInfo?.tier"
-                                       x-cloak>
-                                 </span>
-                                 <div class="player-badge-container"
-                                      x-show="champion.poolInfo && champion.poolInfo.isInPool && champion.poolInfo.players && champion.poolInfo.players.length > 0 && !isUnavailable(champion.name)"
-                                      x-cloak>
-                                    <template x-for="player in (champion.poolInfo?.players || [])" :key="player">
-                                        <img class="player-badge" :src="getRoleIconUrl(player)" :alt="player" :title="player" draggable="false" onerror="this.style.opacity='0.5'; this.style.backgroundColor='red';" />
-                                    </template>
-                                 </div>
-                                 <span class="picked-overlay-text" x-show="isUnavailable(champion.name) || isPicked(champion.name)" x-text="isUnavailable(champion.name) ? 'UNAVAILABLE' : 'MARKED'" x-cloak></span>
-                            </div>
-                        </template>
-                     </div>
-                 </div>
-                 <div class="footer-lists-container">
-                    <div class="footer-list-column footer-unavailable-column">
-                        <p class="h-full flex items-center justify-center text-lg text-gray-500" x-show="sortedUnavailableChampions.length === 0" x-cloak>No champions picked in draft yet.</p>
-                        <div class="footer-role-groups-container" x-show="sortedUnavailableChampions.length > 0" x-cloak>
-                            <template x-for="role in ['Top', 'Jungle', 'Mid', 'Bot', 'Support', 'Unknown']" :key="role">
-                                <div class="footer-role-group" x-show="unavailableChampionsByRole[role] && unavailableChampionsByRole[role].length > 0" x-cloak>
-                                    <div class="footer-role-header">
-                                         <img class="footer-role-icon" :src="getRoleIconUrl(role)" :alt="role" :title="role" draggable="false" onerror="this.style.opacity='0.5'; this.style.backgroundColor='gray';"/>
-                                         <span x-text="role"></span>
-                                    </div>
-                                    <div class="footer-unavailable-list">
-                                        <template x-for="name in unavailableChampionsByRole[role]" :key="name">
-                                            <div class="footer-list-item">
-                                                <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-                                                <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>
-                                                <span x-text="name"></span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                    <div class="footer-list-column footer-highlighted-column">
-                        <h2>Highlighted Champions (<span x-text="highlightedChampions.length"></span>)</h2>
-                        <p class="text-gray-400 text-sm" x-show="highlightedChampions.length === 0" x-cloak>No champions highlighted.</p>
-                        <div class="manual-picks-list" x-show="highlightedChampions.length > 0" x-cloak>
-                            <template x-for="name in highlightedChampions.slice().sort()" :key="name">
-                                <div class="footer-list-item">
-                                    <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-                                    <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>
-                                    <span x-text="name"></span>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </div>
+        <div x-show="currentView === 'drafting'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="draft-creator-view absolute w-full top-0 left-0" x-cloak>
+          <div class="draft-creator-main-wrapper">
+            <div class="draft-indicator-container">
+              <div class="indicator-rect blue-indicator"></div>
+              <div class="indicator-rect red-indicator"></div>
             </div>
 
-            <div x-show="currentView === 'draftTracker'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="draft-tracker absolute w-full top-0 left-0" x-cloak>
-                 <template x-for="(game, gameIndex) in draftSeries" :key="gameIndex">
-                    <div class="draft-game">
-                        <button @click="openConfirmationModal('Are you sure you want to remove Game ' + (gameIndex + 1) + '?', () => removeGameAction(gameIndex), 'removeGame')" x-show="gameIndex > 0" class="remove-game-button" title="Remove this game" aria-label="Remove this game" x-cloak>
-                            <svg><use href="#icon-close"></use></svg>
-                        </button>
-                        <div class="draft-columns">
-                            <div class="draft-side blue">
-                                 <div class="draft-section">
-                                     <div class="draft-slots">
-                                         <template x-for="i in 3" :key="`b-ban-slot-${i}`">
-                                            <div class="draft-slot ban-slot"
-                                                 :class="{'filled': game.blueBans[i-1]}"
-                                                 @click="openChampionSelectModal(gameIndex, 'blueBans', i-1)"
-                                                 @contextmenu.prevent="clearSlot(gameIndex, 'blueBans', i-1)"
-                                                 title="Click to select, Right-click to clear">
-                                                <template x-if="game.blueBans[i-1]"><img :src="getChampionIconUrl(game.blueBans[i-1], 'ban')" :alt="game.blueBans[i-1]" draggable="false" onerror="this.style.opacity=0.5"></template>
-                                                <template x-if="!game.blueBans[i-1]"><span class="slot-placeholder">&times;</span></template>
-                                            </div>
-                                         </template>
-                                         <div class="ban-group-separator"></div>
-                                         <template x-for="i in 2" :key="`b-ban-slot-${i+3}`">
-                                            <div class="draft-slot ban-slot"
-                                                 :class="{'filled': game.blueBans[i+2]}"
-                                                 @click="openChampionSelectModal(gameIndex, 'blueBans', i+2)"
-                                                 @contextmenu.prevent="clearSlot(gameIndex, 'blueBans', i+2)"
-                                                 title="Click to select, Right-click to clear">
-                                                <template x-if="game.blueBans[i+2]"><img :src="getChampionIconUrl(game.blueBans[i+2], 'ban')" :alt="game.blueBans[i+2]" draggable="false" onerror="this.style.opacity=0.5"></template>
-                                                <template x-if="!game.blueBans[i+2]"><span class="slot-placeholder">&times;</span></template>
-                                            </div>
-                                         </template>
-                                     </div>
-                                     <div class="draft-slots">
-                                         <template x-for="i in 5" :key="`b-pick-slot-${i}`">
-                                            <div class="draft-slot pick-slot"
-                                                 :class="{'filled': game.bluePicks[i-1]}"
-                                                 @click="openChampionSelectModal(gameIndex, 'bluePicks', i-1)"
-                                                 @contextmenu.prevent="clearSlot(gameIndex, 'bluePicks', i-1)"
-                                                 title="Click to select, Right-click to clear">
-                                                <template x-if="game.bluePicks[i-1]"><img :src="getChampionIconUrl(game.bluePicks[i-1], 'pick')" :alt="game.bluePicks[i-1]" draggable="false" onerror="this.style.opacity=0.5"></template>
-                                                <template x-if="!game.bluePicks[i-1]">
-                                                    <img src="./media/no_champion.png" alt="Empty slot" class="slot-placeholder-image" draggable="false">
-                                                </template>
-                                            </div>
-                                         </template>
-                                     </div>
-                                 </div>
-                            </div>
-                            <div class="game-indicator">
-                                 <h3 x-text="`Game ${gameIndex + 1}`"></h3>
-                            </div>
-                            <div class="draft-side red">
-                                 <div class="draft-section">
-                                     <div class="draft-slots">
-                                         <template x-for="i in 3" :key="`r-ban-slot-${i}`">
-                                            <div class="draft-slot ban-slot"
-                                                 :class="{'filled': game.redBans[i-1]}"
-                                                 @click="openChampionSelectModal(gameIndex, 'redBans', i-1)"
-                                                 @contextmenu.prevent="clearSlot(gameIndex, 'redBans', i-1)"
-                                                 title="Click to select, Right-click to clear">
-                                                <template x-if="game.redBans[i-1]"><img :src="getChampionIconUrl(game.redBans[i-1], 'ban')" :alt="game.redBans[i-1]" draggable="false" onerror="this.style.opacity=0.5"></template>
-                                                <template x-if="!game.redBans[i-1]"><span class="slot-placeholder">&times;</span></template>
-                                            </div>
-                                         </template>
-                                         <div class="ban-group-separator"></div>
-                                         <template x-for="i in 2" :key="`r-ban-slot-${i+3}`">
-                                            <div class="draft-slot ban-slot"
-                                                 :class="{'filled': game.redBans[i+2]}"
-                                                 @click="openChampionSelectModal(gameIndex, 'redBans', i+2)"
-                                                 @contextmenu.prevent="clearSlot(gameIndex, 'redBans', i+2)"
-                                                 title="Click to select, Right-click to clear">
-                                                <template x-if="game.redBans[i+2]"><img :src="getChampionIconUrl(game.redBans[i+2], 'ban')" :alt="game.redBans[i+2]" draggable="false" onerror="this.style.opacity=0.5"></template>
-                                                <template x-if="!game.redBans[i+2]"><span class="slot-placeholder">&times;</span></template>
-                                            </div>
-                                         </template>
-                                     </div>
-                                     <div class="draft-slots">
-                                         <template x-for="i in 5" :key="`r-pick-slot-${i}`">
-                                            <div class="draft-slot pick-slot"
-                                                 :class="{'filled': game.redPicks[i-1]}"
-                                                 @click="openChampionSelectModal(gameIndex, 'redPicks', i-1)"
-                                                 @contextmenu.prevent="clearSlot(gameIndex, 'redPicks', i-1)"
-                                                 title="Click to select, Right-click to clear">
-                                                <template x-if="game.redPicks[i-1]"><img :src="getChampionIconUrl(game.redPicks[i-1], 'pick')" :alt="game.redPicks[i-1]" draggable="false" onerror="this.style.opacity=0.5"></template>
-                                                 <template x-if="!game.redPicks[i-1]">
-                                                    <img src="./media/no_champion.png" alt="Empty slot" class="slot-placeholder-image" draggable="false">
-                                                </template>
-                                            </div>
-                                         </template>
-                                     </div>
-                                 </div>
-                            </div>
-                        </div>
-                     </div>
-                 </template>
-                 <div class="text-center mt-4">
-                    <button @click="addNewGame()" class="add-game-button" title="Add Game to Series">
-                        <svg><use href="#icon-plus"></use></svg>
-                    </button>
-                </div>
-            </div>
-
-            <div x-show="currentView === 'drafting'"
-                 x-transition:enter="transition ease-out duration-200"
-                 x-transition:enter-start="opacity-0"
-                 x-transition:enter-end="opacity-100"
-                 x-transition:leave="transition ease-in duration-150"
-                 x-transition:leave-start="opacity-100"
-                 x-transition:leave-end="opacity-0"
-                 class="draft-creator-view absolute w-full top-0 left-0"
-                 x-cloak>
-
-                 <div class="draft-creator-main-wrapper">
-
-                     <div class="draft-indicator-container">
-                         <div class="indicator-rect blue-indicator"></div>
-                         <div class="indicator-rect red-indicator"></div>
-                     </div>
-
-                    <div class="draft-creator-bans-header">
-                        <div class="draft-creator-bans blue-bans">
-                            <template x-for="i in 3" :key="`creator-b-ban-${i}`">
-                                <div class="draft-creator-slot ban-slot"
-                                     :class="{
+            <div class="draft-creator-bans-header">
+              <div class="draft-creator-bans blue-bans">
+                <template x-for="i in 3" :key="`creator-b-ban-${i}`">
+                  <div
+                    class="draft-creator-slot ban-slot"
+                    :class="{
                                         'filled': currentDraft.blueBans[i-1].champion,
                                         'has-notes': currentDraft.blueBans[i-1].notes,
                                         'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'blue' && selectedChampionSource.type === 'bans' && selectedChampionSource.index === (i-1),
                                         'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'blue' && selectedTargetSlot.type === 'bans' && selectedTargetSlot.index === (i-1) && !currentDraft.blueBans[i-1].champion
                                      }"
-                                     @click="handleSlotClick('blue', 'bans', i-1)"
-                                     @contextmenu.prevent="clearCreatorSlot('blue', 'bans', i-1)"
-                                     title="Click to place/move/target, Right-click to clear">
-                                    <template x-if="currentDraft.blueBans[i-1].champion">
-                                        <img :src="getChampionIconUrl(currentDraft.blueBans[i-1].champion, 'ban')" :alt="currentDraft.blueBans[i-1].champion" draggable="false" onerror="this.style.opacity=0.5">
-                                    </template>
-                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'bans', i-1)" title="Edit Notes">
-                                        <svg><use href="#icon-note"></use></svg>
-                                    </button>
-                                </div>
-                            </template>
-                            <div class="ban-group-separator horizontal"></div>
-                            <template x-for="i in 2" :key="`creator-b-ban-${i+3}`">
-                                <div class="draft-creator-slot ban-slot"
-                                     :class="{
+                    @click="handleSlotClick('blue', 'bans', i-1)"
+                    @contextmenu.prevent="clearCreatorSlot('blue', 'bans', i-1)"
+                    title="Click to place/move/target, Right-click to clear"
+                  >
+                    <template x-if="currentDraft.blueBans[i-1].champion">
+                      <img :src="getChampionIconUrl(currentDraft.blueBans[i-1].champion, 'ban')" :alt="currentDraft.blueBans[i-1].champion" draggable="false" onerror="this.style.opacity=0.5" />
+                    </template>
+                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'bans', i-1)" title="Edit Notes">
+                      <svg><use href="#icon-note"></use></svg>
+                    </button>
+                  </div>
+                </template>
+                <div class="ban-group-separator horizontal"></div>
+                <template x-for="i in 2" :key="`creator-b-ban-${i+3}`">
+                  <div
+                    class="draft-creator-slot ban-slot"
+                    :class="{
                                         'filled': currentDraft.blueBans[i+2].champion,
                                         'has-notes': currentDraft.blueBans[i+2].notes,
                                         'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'blue' && selectedChampionSource.type === 'bans' && selectedChampionSource.index === (i+2),
                                         'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'blue' && selectedTargetSlot.type === 'bans' && selectedTargetSlot.index === (i+2) && !currentDraft.blueBans[i+2].champion
                                       }"
-                                     @click="handleSlotClick('blue', 'bans', i+2)"
-                                     @contextmenu.prevent="clearCreatorSlot('blue', 'bans', i+2)"
-                                     title="Click to place/move/target, Right-click to clear">
-                                    <template x-if="currentDraft.blueBans[i+2].champion">
-                                        <img :src="getChampionIconUrl(currentDraft.blueBans[i+2].champion, 'ban')" :alt="currentDraft.blueBans[i+2].champion" draggable="false" onerror="this.style.opacity=0.5">
-                                    </template>
-                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'bans', i+2)" title="Edit Notes">
-                                        <svg><use href="#icon-note"></use></svg>
-                                    </button>
-                                </div>
-                            </template>
-                        </div>
-                        <div class="draft-creator-bans red-bans">
-                            <template x-for="i in 2" :key="`creator-r-ban-rev-${5-i}`"> <div class="draft-creator-slot ban-slot"
-                                    :class="{
+                    @click="handleSlotClick('blue', 'bans', i+2)"
+                    @contextmenu.prevent="clearCreatorSlot('blue', 'bans', i+2)"
+                    title="Click to place/move/target, Right-click to clear"
+                  >
+                    <template x-if="currentDraft.blueBans[i+2].champion">
+                      <img :src="getChampionIconUrl(currentDraft.blueBans[i+2].champion, 'ban')" :alt="currentDraft.blueBans[i+2].champion" draggable="false" onerror="this.style.opacity=0.5" />
+                    </template>
+                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'bans', i+2)" title="Edit Notes">
+                      <svg><use href="#icon-note"></use></svg>
+                    </button>
+                  </div>
+                </template>
+              </div>
+              <div class="draft-creator-bans red-bans">
+                <template x-for="i in 2" :key="`creator-r-ban-rev-${5-i}`">
+                  <div
+                    class="draft-creator-slot ban-slot"
+                    :class="{
                                        'filled': currentDraft.redBans[5-i].champion,
                                        'has-notes': currentDraft.redBans[5-i].notes,
                                        'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'red' && selectedChampionSource.type === 'bans' && selectedChampionSource.index === (5-i),
                                        'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'red' && selectedTargetSlot.type === 'bans' && selectedTargetSlot.index === (5-i) && !currentDraft.redBans[5-i].champion
                                     }"
-                                    @click="handleSlotClick('red', 'bans', 5-i)"
-                                    @contextmenu.prevent="clearCreatorSlot('red', 'bans', 5-i)"
-                                    title="Click to place/move/target, Right-click to clear">
-                                   <template x-if="currentDraft.redBans[5-i].champion">
-                                       <img :src="getChampionIconUrl(currentDraft.redBans[5-i].champion, 'ban')" :alt="currentDraft.redBans[5-i].champion" draggable="false" onerror="this.style.opacity=0.5">
-                                   </template>
-                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'bans', 5-i)" title="Edit Notes">
-                                       <svg><use href="#icon-note"></use></svg>
-                                   </button>
-                               </div>
-                           </template>
-                           <div class="ban-group-separator horizontal"></div>
-                            <template x-for="i in 3" :key="`creator-r-ban-rev-${3-i}`"> <div class="draft-creator-slot ban-slot"
-                                    :class="{
+                    @click="handleSlotClick('red', 'bans', 5-i)"
+                    @contextmenu.prevent="clearCreatorSlot('red', 'bans', 5-i)"
+                    title="Click to place/move/target, Right-click to clear"
+                  >
+                    <template x-if="currentDraft.redBans[5-i].champion">
+                      <img :src="getChampionIconUrl(currentDraft.redBans[5-i].champion, 'ban')" :alt="currentDraft.redBans[5-i].champion" draggable="false" onerror="this.style.opacity=0.5" />
+                    </template>
+                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'bans', 5-i)" title="Edit Notes">
+                      <svg><use href="#icon-note"></use></svg>
+                    </button>
+                  </div>
+                </template>
+                <div class="ban-group-separator horizontal"></div>
+                <template x-for="i in 3" :key="`creator-r-ban-rev-${3-i}`">
+                  <div
+                    class="draft-creator-slot ban-slot"
+                    :class="{
                                        'filled': currentDraft.redBans[3-i].champion,
                                        'has-notes': currentDraft.redBans[3-i].notes,
                                        'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'red' && selectedChampionSource.type === 'bans' && selectedChampionSource.index === (3-i),
                                        'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'red' && selectedTargetSlot.type === 'bans' && selectedTargetSlot.index === (3-i) && !currentDraft.redBans[3-i].champion
                                     }"
-                                    @click="handleSlotClick('red', 'bans', 3-i)"
-                                    @contextmenu.prevent="clearCreatorSlot('red', 'bans', 3-i)"
-                                    title="Click to place/move/target, Right-click to clear">
-                                   <template x-if="currentDraft.redBans[3-i].champion">
-                                       <img :src="getChampionIconUrl(currentDraft.redBans[3-i].champion, 'ban')" :alt="currentDraft.redBans[3-i].champion" draggable="false" onerror="this.style.opacity=0.5">
-                                   </template>
-                                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'bans', 3-i)" title="Edit Notes">
-                                       <svg><use href="#icon-note"></use></svg>
-                                   </button>
-                               </div>
-                           </template>
-                       </div>
-                    </div>
-                    <div class="draft-creator-main-content">
-                        <div class="draft-creator-layout">
-                            <div class="draft-creator-side blue-side">
-                                <h3 class="side-title">Blue Side</h3>
-                                <div class="draft-creator-picks">
-                                    <template x-for="i in 5" :key="`creator-b-pick-${i}`">
-                                        <div class="pick-row blue">
-                                            <span class="pick-label" x-text="`B${i}`"></span>
-                                            <div class="draft-creator-slot pick-slot"
-                                                 :data-pick-order="`B${i}`"
-                                                 :class="{
+                    @click="handleSlotClick('red', 'bans', 3-i)"
+                    @contextmenu.prevent="clearCreatorSlot('red', 'bans', 3-i)"
+                    title="Click to place/move/target, Right-click to clear"
+                  >
+                    <template x-if="currentDraft.redBans[3-i].champion">
+                      <img :src="getChampionIconUrl(currentDraft.redBans[3-i].champion, 'ban')" :alt="currentDraft.redBans[3-i].champion" draggable="false" onerror="this.style.opacity=0.5" />
+                    </template>
+                    <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'bans', 3-i)" title="Edit Notes">
+                      <svg><use href="#icon-note"></use></svg>
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <div class="draft-creator-main-content">
+              <div class="draft-creator-layout">
+                <div class="draft-creator-side blue-side">
+                  <h3 class="side-title">Blue Side</h3>
+                  <div class="draft-creator-picks">
+                    <template x-for="i in 5" :key="`creator-b-pick-${i}`">
+                      <div class="pick-row blue">
+                        <span class="pick-label" x-text="`B${i}`"></span>
+                        <div
+                          class="draft-creator-slot pick-slot"
+                          :data-pick-order="`B${i}`"
+                          :class="{
                                                     'filled': currentDraft.bluePicks[i-1].champion,
                                                     'has-notes': currentDraft.bluePicks[i-1].notes,
                                                     'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'blue' && selectedChampionSource.type === 'picks' && selectedChampionSource.index === (i-1),
                                                     'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'blue' && selectedTargetSlot.type === 'picks' && selectedTargetSlot.index === (i-1) && !currentDraft.bluePicks[i-1].champion
                                                  }"
-                                                 @click="handleSlotClick('blue', 'picks', i-1)"
-                                                 @contextmenu.prevent="clearCreatorSlot('blue', 'picks', i-1)"
-                                                 title="Click to place/move/target, Right-click to clear">
-                                                <template x-if="currentDraft.bluePicks[i-1].champion">
-                                                    <img :src="getChampionIconUrl(currentDraft.bluePicks[i-1].champion, 'pick')" :alt="currentDraft.bluePicks[i-1].champion" draggable="false" onerror="this.style.opacity=0.5">
-                                                </template>
-                                                 <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'picks', i-1)" title="Edit Notes">
-                                                    <svg><use href="#icon-note"></use></svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
+                          @click="handleSlotClick('blue', 'picks', i-1)"
+                          @contextmenu.prevent="clearCreatorSlot('blue', 'picks', i-1)"
+                          title="Click to place/move/target, Right-click to clear"
+                        >
+                          <template x-if="currentDraft.bluePicks[i-1].champion">
+                            <img :src="getChampionIconUrl(currentDraft.bluePicks[i-1].champion, 'pick')" :alt="currentDraft.bluePicks[i-1].champion" draggable="false" onerror="this.style.opacity=0.5" />
+                          </template>
+                          <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('blue', 'picks', i-1)" title="Edit Notes">
+                            <svg><use href="#icon-note"></use></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
 
-                            <div class="draft-creator-center">
-                                <div class="draft-creator-pool-controls">
-                                    <div class="draft-creator-search-container">
-                                        <svg class="search-icon"><use href="#icon-search"></use></svg>
-                                        <input type="text"
-                                               x-model.debounce.300ms="draftCreatorSearchTerm"
-                                               placeholder="Search..."
-                                               class="draft-creator-search-input">
-                                        <button x-show="draftCreatorSearchTerm"
-                                                @click="draftCreatorSearchTerm = ''"
-                                                class="clear-search-button"
-                                                aria-label="Clear search">
-                                            &times;
-                                        </button>
-                                    </div>
-                                    <div class="role-filters-container pool-filters">
-                                        <button @click="setDraftCreatorRoleFilter('Top')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Top'}" title="Filter by Top Lane">
-                                            <img :src="getRoleIconUrl('Top')" alt="Top Lane" class="filter-icon" draggable="false">
-                                        </button>
-                                         <button @click="setDraftCreatorRoleFilter('Jungle')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Jungle'}" title="Filter by Jungle">
-                                            <img :src="getRoleIconUrl('Jungle')" alt="Jungle" class="filter-icon" draggable="false">
-                                        </button>
-                                        <button @click="setDraftCreatorRoleFilter('Mid')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Mid'}" title="Filter by Mid Lane">
-                                            <img :src="getRoleIconUrl('Mid')" alt="Mid Lane" class="filter-icon" draggable="false">
-                                        </button>
-                                        <button @click="setDraftCreatorRoleFilter('Bot')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Bot'}" title="Filter by Bot Lane">
-                                            <img :src="getRoleIconUrl('Bot')" alt="Bot Lane" class="filter-icon" draggable="false">
-                                        </button>
-                                        <button @click="setDraftCreatorRoleFilter('Support')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Support'}" title="Filter by Support">
-                                            <img :src="getRoleIconUrl('Support')" alt="Support" class="filter-icon" draggable="false">
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="draft-creator-champion-grid">
-                                    <template x-for="champion in draftCreatorFilteredChampions" :key="champion.id">
-                                        <div class="draft-creator-champion-card"
-                                             :class="{
+                <div class="draft-creator-center">
+                  <div class="draft-creator-pool-controls">
+                    <div class="draft-creator-search-container">
+                      <svg class="search-icon"><use href="#icon-search"></use></svg>
+                      <input type="text" x-model.debounce.300ms="draftCreatorSearchTerm" placeholder="Search..." class="draft-creator-search-input" />
+                      <button x-show="draftCreatorSearchTerm" @click="draftCreatorSearchTerm = ''" class="clear-search-button" aria-label="Clear search">&times;</button>
+                    </div>
+                    <div class="role-filters-container pool-filters">
+                      <button @click="setDraftCreatorRoleFilter('Top')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Top'}" title="Filter by Top Lane">
+                        <img :src="getRoleIconUrl('Top')" alt="Top Lane" class="filter-icon" draggable="false" />
+                      </button>
+                      <button @click="setDraftCreatorRoleFilter('Jungle')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Jungle'}" title="Filter by Jungle">
+                        <img :src="getRoleIconUrl('Jungle')" alt="Jungle" class="filter-icon" draggable="false" />
+                      </button>
+                      <button @click="setDraftCreatorRoleFilter('Mid')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Mid'}" title="Filter by Mid Lane">
+                        <img :src="getRoleIconUrl('Mid')" alt="Mid Lane" class="filter-icon" draggable="false" />
+                      </button>
+                      <button @click="setDraftCreatorRoleFilter('Bot')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Bot'}" title="Filter by Bot Lane">
+                        <img :src="getRoleIconUrl('Bot')" alt="Bot Lane" class="filter-icon" draggable="false" />
+                      </button>
+                      <button @click="setDraftCreatorRoleFilter('Support')" class="filter-button icon-button" :class="{'active': draftCreatorRoleFilter === 'Support'}" title="Filter by Support">
+                        <img :src="getRoleIconUrl('Support')" alt="Support" class="filter-icon" draggable="false" />
+                      </button>
+                    </div>
+                  </div>
+                  <div class="draft-creator-champion-grid">
+                    <template x-for="champion in draftCreatorFilteredChampions" :key="champion.id">
+                      <div
+                        class="draft-creator-champion-card"
+                        :class="{
                                                 'selected-for-placement': selectedChampionForPlacement === champion.name,
                                                 'already-placed': isChampionPlacedInCurrentDraft(champion.name) && !(selectedChampionSource && selectedChampionSource.championName === champion.name) /* Simplified check */
                                              }"
-                                             @click="selectChampionForPlacement(champion.name)"
-                                             :title="champion.name">
-                                             <img class="champion-icon"
-                                                 :src="getChampionIconUrl(champion.name, 'creator-pool')"
-                                                 :alt="champion.name"
-                                                 loading="lazy"
-                                                 draggable="false">
-                                            <span class="champion-name-text" x-text="champion.name"></span>
-                                        </div>
-                                    </template>
-                                    <p x-show="draftCreatorFilteredChampions.length === 0" class="text-gray-400 col-span-full text-center py-4" x-cloak>
-                                        No champions match filter/search.
-                                    </p>
-                                </div>
-                                <div class="draft-creator-controls">
-                                     <button @click="saveCurrentDraft()" class="control-button save-button" title="Save Current Draft">
-                                         <svg><use href="#icon-check"></use></svg> Save Draft
-                                     </button>
-                                     <button @click="resetCurrentDraft()" class="control-button reset-button" title="Reset Current Draft">
-                                         <svg><use href="#icon-trash"></use></svg> Reset
-                                     </button>
-                                 </div>
-                            </div>
+                        @click="selectChampionForPlacement(champion.name)"
+                        :title="champion.name"
+                      >
+                        <img class="champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" loading="lazy" draggable="false" />
+                        <span class="champion-name-text" x-text="champion.name"></span>
+                      </div>
+                    </template>
+                    <p x-show="draftCreatorFilteredChampions.length === 0" class="text-gray-400 col-span-full text-center py-4" x-cloak>No champions match filter/search.</p>
+                  </div>
+                  <div class="draft-creator-controls">
+                    <button @click="saveCurrentDraft()" class="control-button save-button" title="Save Current Draft">
+                      <svg><use href="#icon-check"></use></svg> Save Draft
+                    </button>
+                    <button @click="resetCurrentDraft()" class="control-button reset-button" title="Reset Current Draft">
+                      <svg><use href="#icon-trash"></use></svg> Reset
+                    </button>
+                  </div>
+                </div>
 
-                            <div class="draft-creator-side red-side">
-                                <h3 class="side-title">Red Side</h3>
-                                <div class="draft-creator-picks">
-                                    <template x-for="i in 5" :key="`creator-r-pick-${i}`">
-                                        <div class="pick-row red">
-                                            <div class="draft-creator-slot pick-slot"
-                                                 :data-pick-order="`R${i}`"
-                                                 :class="{
+                <div class="draft-creator-side red-side">
+                  <h3 class="side-title">Red Side</h3>
+                  <div class="draft-creator-picks">
+                    <template x-for="i in 5" :key="`creator-r-pick-${i}`">
+                      <div class="pick-row red">
+                        <div
+                          class="draft-creator-slot pick-slot"
+                          :data-pick-order="`R${i}`"
+                          :class="{
                                                     'filled': currentDraft.redPicks[i-1].champion,
                                                     'has-notes': currentDraft.redPicks[i-1].notes,
                                                     'selected-for-move': selectedChampionSource && selectedChampionSource.side === 'red' && selectedChampionSource.type === 'picks' && selectedChampionSource.index === (i-1),
                                                     'selected-for-targeting': selectedTargetSlot && selectedTargetSlot.side === 'red' && selectedTargetSlot.type === 'picks' && selectedTargetSlot.index === (i-1) && !currentDraft.redPicks[i-1].champion
                                                  }"
-                                                 @click="handleSlotClick('red', 'picks', i-1)"
-                                                 @contextmenu.prevent="clearCreatorSlot('red', 'picks', i-1)"
-                                                 title="Click to place/move/target, Right-click to clear">
-                                                <template x-if="currentDraft.redPicks[i-1].champion">
-                                                    <img :src="getChampionIconUrl(currentDraft.redPicks[i-1].champion, 'pick')" :alt="currentDraft.redPicks[i-1].champion" draggable="false" onerror="this.style.opacity=0.5">
-                                                </template>
-                                                 <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'picks', i-1)" title="Edit Notes">
-                                                    <svg><use href="#icon-note"></use></svg>
-                                                </button>
-                                            </div>
-                                            <span class="pick-label" x-text="`R${i}`"></span>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
+                          @click="handleSlotClick('red', 'picks', i-1)"
+                          @contextmenu.prevent="clearCreatorSlot('red', 'picks', i-1)"
+                          title="Click to place/move/target, Right-click to clear"
+                        >
+                          <template x-if="currentDraft.redPicks[i-1].champion">
+                            <img :src="getChampionIconUrl(currentDraft.redPicks[i-1].champion, 'pick')" :alt="currentDraft.redPicks[i-1].champion" draggable="false" onerror="this.style.opacity=0.5" />
+                          </template>
+                          <button class="notes-toggle-button" @click.stop="toggleNotesVisibility('red', 'picks', i-1)" title="Edit Notes">
+                            <svg><use href="#icon-note"></use></svg>
+                          </button>
                         </div>
-                    </div>
-                 </div>
-
-                 <div class="draft-creator-saved">
-                    <h3 class="saved-title">Saved Drafts (<span x-text="savedDrafts.length"></span>)</h3>
-                    <div class="saved-drafts-list">
-                         <p x-show="isLoadingSavedDrafts" class="text-gray-400 text-center p-4">Loading saved drafts...</p>
-                         <p x-show="!isLoadingSavedDrafts && savedDrafts.length === 0" class="text-gray-400 text-center p-4">No drafts saved yet.</p>
-                        <template x-for="draft in savedDrafts" :key="draft.id">
-                            <div class="saved-draft-item" :class="{'active-saved-draft': currentDraft.id === draft.id}">
-                                <span class="saved-draft-name" x-text="draft.name || 'Unnamed Draft'" @click="loadSavedDraft(draft.id)"></span>
-                                <div class="saved-draft-actions">
-                                    <button @click="deleteSavedDraft(draft.id)" title="Delete Draft">
-                                        <svg><use href="#icon-trash"></use></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
+                        <span class="pick-label" x-text="`R${i}`"></span>
+                      </div>
+                    </template>
+                  </div>
                 </div>
+              </div>
+            </div>
+          </div>
 
-                 <div x-show="notesModal.isOpen"
-                      class="notes-modal-overlay"
-                      x-transition:enter="transition ease-out duration-200"
-                      x-transition:enter-start="opacity-0"
-                      x-transition:enter-end="opacity-100"
-                      x-transition:leave="transition ease-in duration-150"
-                      x-transition:leave-start="opacity-100"
-                      x-transition:leave-end="opacity-0"
-                      @keydown.escape.window="closeNotesModal()"
-                      x-cloak>
-                     <div class="notes-modal-content" @click.outside="closeNotesModal()">
-                         <h3 class="notes-modal-title" x-text="notesModal.title">Edit Notes</h3>
-                         <textarea class="notes-modal-textarea" x-model="notesModal.currentNote" placeholder="Enter notes here..." x-ref="notesTextarea"></textarea>
-                         <div class="notes-modal-buttons">
-                             <button @click="saveNotesAndCloseModal()" class="modal-button modal-button-confirm">Save & Close</button>
-                             <button @click="closeNotesModal()" class="modal-button modal-button-cancel">Cancel</button>
-                         </div>
-                     </div>
-                 </div>
-             </div>
+          <div class="draft-creator-saved">
+            <h3 class="saved-title">Saved Drafts (<span x-text="savedDrafts.length"></span>)</h3>
+            <div class="saved-drafts-list">
+              <p x-show="isLoadingSavedDrafts" class="text-gray-400 text-center p-4">Loading saved drafts...</p>
+              <p x-show="!isLoadingSavedDrafts && savedDrafts.length === 0" class="text-gray-400 text-center p-4">No drafts saved yet.</p>
+              <template x-for="draft in savedDrafts" :key="draft.id">
+                <div class="saved-draft-item" :class="{'active-saved-draft': currentDraft.id === draft.id}">
+                  <span class="saved-draft-name" x-text="draft.name || 'Unnamed Draft'" @click="loadSavedDraft(draft.id)"></span>
+                  <div class="saved-draft-actions">
+                    <button @click="deleteSavedDraft(draft.id)" title="Delete Draft">
+                      <svg><use href="#icon-trash"></use></svg>
+                    </button>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
 
+          <div x-show="notesModal.isOpen" class="notes-modal-overlay" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @keydown.escape.window="closeNotesModal()" x-cloak>
+            <div class="notes-modal-content" @click.outside="closeNotesModal()">
+              <h3 class="notes-modal-title" x-text="notesModal.title">Edit Notes</h3>
+              <textarea class="notes-modal-textarea" x-model="notesModal.currentNote" placeholder="Enter notes here..." x-ref="notesTextarea"></textarea>
+              <div class="notes-modal-buttons">
+                <button @click="saveNotesAndCloseModal()" class="modal-button modal-button-confirm">Save & Close</button>
+                <button @click="closeNotesModal()" class="modal-button modal-button-cancel">Cancel</button>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div x-show="modalType !== 'closed'"
-             class="modal-overlay"
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-150"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0 resetModalState()"
-             @keydown.escape.window="closeModal()"
-             x-cloak>
-            <div class="modal-content" @click.outside="closeModal()">
-                <h3 class="modal-title" x-text="modalTitle">Modal Title</h3>
+      <div x-show="modalType !== 'closed'" class="modal-overlay" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0 resetModalState()" @keydown.escape.window="closeModal()" x-cloak>
+        <div class="modal-content" @click.outside="closeModal()">
+          <h3 class="modal-title" x-text="modalTitle">Modal Title</h3>
 
-                <div x-show="modalType === 'championSelect'" x-cloak>
-                   <div class="relative">
-                        <input type="text"
-                               class="modal-input"
-                               placeholder="Type champion name..."
-                               x-model="modalSearchTerm"
-                               @input="updateSuggestions()"
-                               @keydown.enter.prevent="confirmModalAction()"
-                               @keydown.arrow-down.prevent="selectNextSuggestion()"
-                               @keydown.arrow-up.prevent="selectPreviousSuggestion()"
-                               x-ref="modalInput">
-                        <div x-show="modalSuggestions.length > 0 && modalSearchTerm.length > 0"
-                             class="suggestions-container"
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="opacity-0 -translate-y-1"
-                             x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="opacity-100 translate-y-0"
-                             x-transition:leave-end="opacity-0 -translate-y-1"
-                             x-cloak>
-                            <template x-for="(suggestion, index) in modalSuggestions" :key="suggestion.id">
-                                <div class="suggestion-item"
-                                     :class="{'active': modalSuggestionIndex === index}"
-                                     @click="selectSuggestion(suggestion.name)"
-                                     @mouseenter="modalSuggestionIndex = index">
-                                     <img class="suggestion-icon" :src="getChampionIconUrl(suggestion.name, 'list')" :alt="suggestion.name" draggable="false" onerror="this.style.opacity=0.5">
-                                     <span x-text="suggestion.name"></span>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                     <div class="modal-buttons mt-4">
-                        <button @click="clearModalSelection()" class="modal-button modal-button-clear" x-show="modalCurrentValue" x-cloak>Clear Slot</button>
-                        <div class="ml-auto flex gap-3">
-                            <button @click="confirmModalAction()" class="modal-button modal-button-confirm">Confirm</button>
-                            <button @click="closeModal()" class="modal-button modal-button-cancel">Cancel</button>
-                        </div>
-                    </div>
-                </div>
+          <div x-show="modalType === 'championSelect'" x-cloak>
+            <div class="relative">
+              <input type="text" class="modal-input" placeholder="Type champion name..." x-model="modalSearchTerm" @input="updateSuggestions()" @keydown.enter.prevent="confirmModalAction()" @keydown.arrow-down.prevent="selectNextSuggestion()" @keydown.arrow-up.prevent="selectPreviousSuggestion()" x-ref="modalInput" />
+              <div x-show="modalSuggestions.length > 0 && modalSearchTerm.length > 0" class="suggestions-container" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-1" x-cloak>
+                <template x-for="(suggestion, index) in modalSuggestions" :key="suggestion.id">
+                  <div class="suggestion-item" :class="{'active': modalSuggestionIndex === index}" @click="selectSuggestion(suggestion.name)" @mouseenter="modalSuggestionIndex = index">
+                    <img class="suggestion-icon" :src="getChampionIconUrl(suggestion.name, 'list')" :alt="suggestion.name" draggable="false" onerror="this.style.opacity=0.5" />
+                    <span x-text="suggestion.name"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <div class="modal-buttons mt-4">
+              <button @click="clearModalSelection()" class="modal-button modal-button-clear" x-show="modalCurrentValue" x-cloak>Clear Slot</button>
+              <div class="ml-auto flex gap-3">
+                <button @click="confirmModalAction()" class="modal-button modal-button-confirm">Confirm</button>
+                <button @click="closeModal()" class="modal-button modal-button-cancel">Cancel</button>
+              </div>
+            </div>
+          </div>
 
-                <div x-show="modalType === 'confirm'" x-cloak>
-                    <p class="modal-confirmation-message" x-text="confirmationMessage"></p>
-                     <div class="modal-buttons">
-                        <button @click="closeModal()" class="modal-button modal-button-cancel">Cancel</button>
-                        <button @click="confirmModalAction()"
-                                :class="{
+          <div x-show="modalType === 'confirm'" x-cloak>
+            <p class="modal-confirmation-message" x-text="confirmationMessage"></p>
+            <div class="modal-buttons">
+              <button @click="closeModal()" class="modal-button modal-button-cancel">Cancel</button>
+              <button
+                @click="confirmModalAction()"
+                :class="{
                                     'modal-button': true,
                                     'modal-button-danger': confirmationAction === 'resetDraftSeries' || confirmationAction === 'removeGame' || confirmationAction === 'deleteSavedDraft',
                                     'modal-button-confirm': confirmationAction !== 'resetDraftSeries' && confirmationAction !== 'removeGame' && confirmationAction !== 'deleteSavedDraft'
-                                }">Confirm</button>
-                    </div>
-                </div>
-
+                                }"
+              >
+                Confirm
+              </button>
             </div>
+          </div>
         </div>
-
-    </div> </body>
+      </div>
+    </div>
+  </body>
 </html>
