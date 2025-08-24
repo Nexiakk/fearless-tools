@@ -329,14 +329,47 @@ window.draftHelper = function () {
     },
     togglePick(championName) {
       if (!championName) return;
+
+      const champion = this.allChampions.find((c) => c.name === championName);
+      if (!champion) return;
+
       if (this.isHighlighted(championName)) {
         this.highlightedChampions = this.highlightedChampions.filter((name) => name !== championName);
       }
+
       const index = this.draftSeries.indexOf(championName);
       if (index === -1) {
         this.draftSeries = [...this.draftSeries, championName];
+        this.placeChampionInPanel(champion);
       } else {
         this.draftSeries = this.draftSeries.filter((name) => name !== championName);
+        this.removeChampionFromPanel(championName);
+      }
+    },
+    placeChampionInPanel(champion) {
+      const roles = [champion.mainRole, ...champion.roles.filter((r) => r !== champion.mainRole)];
+      for (const role of roles) {
+        if (this.unavailablePanelState[role]) {
+          for (let i = 0; i < 5; i++) {
+            if (this.unavailablePanelState[role][i] === null) {
+              this.unavailablePanelState[role][i] = champion.name;
+              return;
+            }
+            if (this.unavailablePanelState[role][i + 5] === null) {
+              this.unavailablePanelState[role][i + 5] = champion.name;
+              return;
+            }
+          }
+        }
+      }
+    },
+    removeChampionFromPanel(championName) {
+      for (const role in this.unavailablePanelState) {
+        const index = this.unavailablePanelState[role].indexOf(championName);
+        if (index !== -1) {
+          this.unavailablePanelState[role][index] = null;
+          return;
+        }
       }
     },
     toggleHighlight(championName) {

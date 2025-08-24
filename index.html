@@ -132,7 +132,6 @@
                         <img class="player-badge" :src="getRoleIconUrl(player)" :alt="player" :title="player" draggable="false" />
                       </template>
                     </div>
-                    <!-- Overlay text has been removed -->
                   </div>
                 </template>
               </div>
@@ -148,19 +147,27 @@
               <div class="unavailable-roles-wrapper">
                 <template x-for="role in rolesForPanel" :key="role">
                   <div class="unavailable-role-group">
-                    <div class="unavailable-role-header">
-                      <img :src="getRoleIconUrl(role)" class="unavailable-role-icon" :alt="role" />
-                      <span x-text="role"></span>
-                    </div>
+                    <img :src="getRoleIconUrl(role)" class="unavailable-role-icon" :alt="role" />
                     <div class="unavailable-slots-grid">
-                      <template x-for="i in 10" :key="`${role}-slot-${i}`">
-                        <div class="unavailable-slot" @click="handlePanelSlotClick(role, i - 1)" @contextmenu.prevent="clearUnavailableSlot(role, i - 1)" :class="{'selected-for-move': selectedChampionFromPanel && selectedChampionFromPanel.role === role && selectedChampionFromPanel.index === (i - 1)}" title="Click to place/move selected champion, Right-click to clear">
-                          <template x-if="unavailablePanelState[role][i - 1]">
-                            <img :src="getChampionIconUrl(unavailablePanelState[role][i - 1])" :alt="unavailablePanelState[role][i - 1]" x-cloak draggable="false" />
-                          </template>
-                          <template x-if="!unavailablePanelState[role][i - 1]">
-                            <img src="./assets/icons/no_champion.png" alt="Empty slot" class="placeholder-icon" x-cloak draggable="false" />
-                          </template>
+                      <template x-for="i in 5" :key="`${role}-col-${i}`">
+                        <div class="unavailable-slot-column">
+                          <div class="unavailable-slot" :data-slot-id="`${role}-${i-1}`" @click="handlePanelSlotClick(role, i - 1)" @contextmenu.prevent="clearUnavailableSlot(role, i - 1)" :class="{'selected-for-move': selectedChampionFromPanel && selectedChampionFromPanel.role === role && selectedChampionFromPanel.index === (i - 1)}" title="Click to place/move selected champion, Right-click to clear">
+                            <template x-if="unavailablePanelState[role][i - 1]">
+                              <img :src="getChampionIconUrl(unavailablePanelState[role][i - 1])" :alt="unavailablePanelState[role][i - 1]" x-cloak draggable="false" />
+                            </template>
+                            <template x-if="!unavailablePanelState[role][i - 1]">
+                              <img src="./assets/icons/no_champion.png" alt="Empty slot" class="placeholder-icon" x-cloak draggable="false" />
+                            </template>
+                          </div>
+                          <div class="unavailable-slot" :data-slot-id="`${role}-${i-1+5}`" @click="handlePanelSlotClick(role, i - 1 + 5)" @contextmenu.prevent="clearUnavailableSlot(role, i - 1 + 5)" :class="{'selected-for-move': selectedChampionFromPanel && selectedChampionFromPanel.role === role && selectedChampionFromPanel.index === (i - 1 + 5)}" title="Click to place/move selected champion, Right-click to clear">
+                            <template x-if="unavailablePanelState[role][i - 1 + 5]">
+                              <img :src="getChampionIconUrl(unavailablePanelState[role][i - 1 + 5])" :alt="unavailablePanelState[role][i - 1 + 5]" x-cloak draggable="false" />
+                            </template>
+                            <template x-if="!unavailablePanelState[role][i - 1 + 5]">
+                              <img src="./assets/icons/no_champion.png" alt="Empty slot" class="placeholder-icon" x-cloak draggable="false" />
+                            </template>
+                          </div>
+                          <span class="slot-label" x-text="`G${i}`"></span>
                         </div>
                       </template>
                     </div>

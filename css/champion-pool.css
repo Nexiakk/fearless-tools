@@ -263,7 +263,7 @@ img.player-badge {
 
 /* [MODIFIED] Unavailable Champions Panel */
 .unavailable-champions-panel {
-  flex: 1.09; /* Ratio: Takes up less width */
+  flex: 1.30; /* Ratio: Takes up less width */
   min-width: 0; /* Prevents flexbox overflow issues */
   height: 100%; /* Fills the height of the parent wrapper */
   overflow-y: auto; /* Allow scrolling as a fallback */
@@ -296,8 +296,8 @@ img.player-badge {
 }
 
 .holding-area-champ {
-  width: 45px;
-  height: 45px;
+  width: 52px;
+  height: 52px;
   border-radius: 4px;
   cursor: pointer;
   border: 2px solid transparent;
@@ -319,31 +319,28 @@ img.player-badge {
 }
 
 .unavailable-role-group {
-  flex-shrink: 0;
-}
-.unavailable-role-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.25rem;
-  font-weight: 600;
-  color: #aaaaaa;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid #3a3a3a;
+  margin-bottom: 1rem;
 }
 .unavailable-role-icon {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 }
 /* [REWRITTEN] Slot grid is now a flex container for left-alignment */
 .unavailable-slots-grid {
   display: flex;
-  flex-wrap: wrap; /* Allows wrapping to the second row */
+  flex-wrap: nowrap;
   gap: 3px;
-  /* This width calculation ensures exactly 5 slots per row */
-  width: 310px;
+  width: 100%;
+}
+.unavailable-slot-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
 }
 /* [REWRITTEN] Slot size is now fixed */
 .unavailable-slot {
@@ -358,6 +355,12 @@ img.player-badge {
   transition: background-color 0.2s, border-color 0.2s;
   overflow: hidden;
   cursor: pointer;
+}
+
+.slot-label {
+  margin-top: 2px;
+  font-size: 0.7rem;
+  color: #888888;
 }
 .unavailable-slot img {
   width: 100%;
