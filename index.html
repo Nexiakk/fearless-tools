@@ -159,10 +159,10 @@
                         </div>
                     </div>
                     <div class="footer-list-column footer-highlighted-column">
-                        <h2>Highlighted Champions (<span x-text="pickedChampions.length"></span>)</h2>
-                        <p class="text-gray-400 text-sm" x-show="pickedChampions.length === 0" x-cloak>No champions highlighted.</p>
-                        <div class="manual-picks-list" x-show="pickedChampions.length > 0" x-cloak>
-                            <template x-for="name in pickedChampions.slice().sort()" :key="name">
+                        <h2>Highlighted Champions (<span x-text="highlightedChampions.length"></span>)</h2>
+                        <p class="text-gray-400 text-sm" x-show="highlightedChampions.length === 0" x-cloak>No champions highlighted.</p>
+                        <div class="manual-picks-list" x-show="highlightedChampions.length > 0" x-cloak>
+                            <template x-for="name in highlightedChampions.slice().sort()" :key="name">
                                 <div class="footer-list-item">
                                     <img class="footer-list-icon" :src="getChampionIconUrl(name, 'list')" :alt="name" loading="lazy" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                                     <span class="footer-list-icon footer-list-icon-error" style="display: none;">?</span>

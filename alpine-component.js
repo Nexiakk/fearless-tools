@@ -5,7 +5,7 @@ window.draftHelper = function() {
         // --- State ---
         allChampions: [], // Holds data from champions.js (e.g., name, roles, imageName)
         teamPool: {}, // Holds data from champions.js (teamTierList)
-        pickedChampions: [], // Manually highlighted champions (synced with Firestore)
+        highlightedChampions: [], // Manually highlighted champions (synced with Firestore)
         currentFilter: 'all', // 'all', 'pool', or player role (e.g., 'Top') (Champion Pool View)
         roleFilter: 'all', // 'all' or specific role (e.g., 'Jungle') (Champion Pool View)
         searchTerm: '', // Input for champion search (Champion Pool View)
@@ -229,7 +229,7 @@ window.draftHelper = function() {
                 try {
                     const loadedData = await fbFetch();
                      // Sanitize and assign picked champions
-                     this.pickedChampions = loadedData.pickedChampions || [];
+                     this.highlightedChampions = loadedData.highlightedChampions || [];
                      // Sanitize and assign draft series data, ensuring correct structure
                      this.draftSeries = (Array.isArray(loadedData.draftSeries) && loadedData.draftSeries.length > 0 ? loadedData.draftSeries : [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }])
                          .map(game => ({ // Ensure each game object has the correct arrays
@@ -241,13 +241,13 @@ window.draftHelper = function() {
                 } catch (error) {
                     // Fallback to defaults on error
                     console.error("Error during initial Firestore fetch:", error);
-                     this.pickedChampions = [];
+                     this.highlightedChampions = [];
                      this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
                 }
             } else {
                 console.error("fetchDraftDataFromFirestore function not found globally.");
                 // Initialize with defaults if fetch function isn't available
-                this.pickedChampions = [];
+                this.highlightedChampions = [];
                 this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
             }
 
@@ -280,7 +280,7 @@ window.draftHelper = function() {
                      if (typeof fbSave === 'function') {
                         // Create deep copies to avoid reactivity issues when saving
                          const dataToSave = {
-                            pickedChampions: JSON.parse(JSON.stringify(this.pickedChampions)),
+                            highlightedChampions: JSON.parse(JSON.stringify(this.highlightedChampions)),
                             draftSeries: JSON.parse(JSON.stringify(this.draftSeries))
                          };
                          fbSave(dataToSave);
@@ -290,8 +290,8 @@ window.draftHelper = function() {
                 }, 1500); // Wait 1.5 seconds after the last change
             };
 
-            // Watch for changes in pickedChampions and draftSeries to trigger debounced save (Draft Tracker)
-            this.$watch('pickedChampions', debouncedSave);
+            // Watch for changes in highlightedChampions and draftSeries to trigger debounced save (Draft Tracker)
+            this.$watch('highlightedChampions', debouncedSave);
             this.$watch('draftSeries', debouncedSave, { deep: true }); // Deep watch for changes within the array/objects
 
             // Set up Firestore real-time listener if db instance is available (Draft Tracker)
@@ -312,7 +312,7 @@ window.draftHelper = function() {
                                 redBans: Array.isArray(game?.redBans) && game.redBans.length === 5 ? game.redBans : Array(5).fill(null),
                                 redPicks: Array.isArray(game?.redPicks) && game.redPicks.length === 5 ? game.redPicks : Array(5).fill(null),
                             }));
-                        const newPickedChampions = Array.isArray(data.pickedChampions) ? data.pickedChampions : [];
+                        const newhighlightedChampions = Array.isArray(data.highlightedChampions) ? data.highlightedChampions : [];
 
                         // Update local state only if it differs from Firestore to prevent unnecessary re-renders
                         // Use simple JSON stringify for comparison
@@ -320,15 +320,15 @@ window.draftHelper = function() {
                             console.log("Updating local draftSeries from Firestore.");
                             this.draftSeries = newDraftSeries;
                         }
-                         if (JSON.stringify(this.pickedChampions) !== JSON.stringify(newPickedChampions)) {
-                             console.log("Updating local pickedChampions from Firestore.");
-                             this.pickedChampions = newPickedChampions;
+                         if (JSON.stringify(this.highlightedChampions) !== JSON.stringify(newhighlightedChampions)) {
+                             console.log("Updating local highlightedChampions from Firestore.");
+                             this.highlightedChampions = newhighlightedChampions;
                          }
                     } else {
                         // Handle case where the document is deleted in Firestore
                         console.log("Draft document deleted in Firestore. Resetting local state.");
                         this.draftSeries = [{ blueBans: Array(5).fill(null), bluePicks: Array(5).fill(null), redBans: Array(5).fill(null), redPicks: Array(5).fill(null) }];
-                        this.pickedChampions = [];
+                        this.highlightedChampions = [];
                     }
                 }, (error) => {
                     console.error("Error listening to draft updates:", error);
@@ -397,22 +397,22 @@ window.draftHelper = function() {
 
         // Checks if a champion is manually highlighted (picked).
         isPicked(championName) {
-            return championName ? this.pickedChampions.includes(championName) : false;
+            return championName ? this.highlightedChampions.includes(championName) : false;
         },
 
         // Toggles the manual highlight (picked) status of a champion (Left Click).
         togglePick(championName) {
             // Cannot toggle unavailable (picked in draft) champs via this method
             if (!championName || this.isUnavailable(championName)) return;
-            const index = this.pickedChampions.indexOf(championName);
+            const index = this.highlightedChampions.indexOf(championName);
             if (index === -1) {
                 // Add to picked list
-                this.pickedChampions = [...this.pickedChampions, championName];
+                this.highlightedChampions = [...this.highlightedChampions, championName];
             } else {
                 // Remove from picked list
-                this.pickedChampions = this.pickedChampions.filter(name => name !== championName);
+                this.highlightedChampions = this.highlightedChampions.filter(name => name !== championName);
             }
-            // Note: Firestore save is handled by the $watch('pickedChampions', ...) in init()
+            // Note: Firestore save is handled by the $watch('highlightedChampions', ...) in init()
          },
 
          // Un-highlights a champion if it's currently highlighted (Right Click)
@@ -420,9 +420,9 @@ window.draftHelper = function() {
             // Cannot unpick unavailable champs
             if (!championName || this.isUnavailable(championName)) return;
 
-            // Only remove if it's currently in the pickedChampions array
-            if (this.pickedChampions.includes(championName)) {
-                this.pickedChampions = this.pickedChampions.filter(name => name !== championName);
+            // Only remove if it's currently in the highlightedChampions array
+            if (this.highlightedChampions.includes(championName)) {
+                this.highlightedChampions = this.highlightedChampions.filter(name => name !== championName);
                 console.log(`Unpicked ${championName} via right-click.`);
                 // Firestore save is handled by the watcher
             }
@@ -438,7 +438,7 @@ window.draftHelper = function() {
              // Manually trigger save immediately for resets
              const fbSave = window.saveDraftDataToFirestore;
              if(typeof fbSave === 'function') {
-                 fbSave({ pickedChampions: this.pickedChampions, draftSeries: defaultDraft });
+                 fbSave({ highlightedChampions: this.highlightedChampions, draftSeries: defaultDraft });
              } else {
                  console.error("saveDraftDataToFirestore function not found globally. Cannot save reset.");
              }
@@ -446,13 +446,13 @@ window.draftHelper = function() {
 
          // Clears the list of manually highlighted (picked) champions (Champion Pool).
          resetMarkedPicksAction() {
-            if (this.pickedChampions.length > 0) {
-                this.pickedChampions = [];
+            if (this.highlightedChampions.length > 0) {
+                this.highlightedChampions = [];
                 console.log('Highlighted Picks Reset');
                 // Manually trigger save immediately for resets
                 const fbSave = window.saveDraftDataToFirestore;
                  if(typeof fbSave === 'function') {
-                    fbSave({ pickedChampions: [], draftSeries: this.draftSeries });
+                    fbSave({ highlightedChampions: [], draftSeries: this.draftSeries });
                  } else {
                     console.error("saveDraftDataToFirestore function not found globally. Cannot save reset.");
                  }
