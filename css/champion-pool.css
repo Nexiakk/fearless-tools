@@ -263,7 +263,7 @@ img.player-badge {
 
 /* [MODIFIED] Unavailable Champions Panel */
 .unavailable-champions-panel {
-  flex: 1.30; /* Ratio: Takes up less width */
+  flex: 1.3; /* Ratio: Takes up less width */
   min-width: 0; /* Prevents flexbox overflow issues */
   height: 100%; /* Fills the height of the parent wrapper */
   overflow-y: auto; /* Allow scrolling as a fallback */
@@ -291,7 +291,7 @@ img.player-badge {
   gap: 4px;
   flex-shrink: 0;
   max-height: 25%;
-  min-height: 50px;
+  /* min-height: 50px; */ /* REMOVED - This property prevents a smooth collapse animation. */
   overflow-y: auto; /* Allows this box to scroll if it has too many champs */
 }
 
