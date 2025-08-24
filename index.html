@@ -132,7 +132,7 @@
                         <img class="player-badge" :src="getRoleIconUrl(player)" :alt="player" :title="player" draggable="false" />
                       </template>
                     </div>
-                  </div>
+                    </div>
                 </template>
               </div>
             </div>
@@ -151,7 +151,14 @@
                     <div class="unavailable-slots-grid">
                       <template x-for="i in 5" :key="`${role}-col-${i}`">
                         <div class="unavailable-slot-column">
-                          <div class="unavailable-slot" :data-slot-id="`${role}-${i-1}`" @click="handlePanelSlotClick(role, i - 1)" @contextmenu.prevent="clearUnavailableSlot(role, i - 1)" :class="{'selected-for-move': selectedChampionFromPanel && selectedChampionFromPanel.role === role && selectedChampionFromPanel.index === (i - 1)}" title="Click to place/move selected champion, Right-click to clear">
+                          <div
+                            class="unavailable-slot"
+                            :data-slot-id="`${role}-${i-1}`"
+                            @click="handlePanelSlotClick(role, i - 1)"
+                            @contextmenu.prevent="clearUnavailableSlot(role, i - 1)"
+                            :class="{'selected-for-move': selectedChampionFromPanel && selectedChampionFromPanel.role === role && selectedChampionFromPanel.index === (i - 1)}"
+                            title="Click to place/move selected champion, Right-click to clear"
+                          >
                             <template x-if="unavailablePanelState[role][i - 1]">
                               <img :src="getChampionIconUrl(unavailablePanelState[role][i - 1])" :alt="unavailablePanelState[role][i - 1]" x-cloak draggable="false" />
                             </template>
@@ -159,7 +166,14 @@
                               <img src="./assets/icons/no_champion.png" alt="Empty slot" class="placeholder-icon" x-cloak draggable="false" />
                             </template>
                           </div>
-                          <div class="unavailable-slot" :data-slot-id="`${role}-${i-1+5}`" @click="handlePanelSlotClick(role, i - 1 + 5)" @contextmenu.prevent="clearUnavailableSlot(role, i - 1 + 5)" :class="{'selected-for-move': selectedChampionFromPanel && selectedChampionFromPanel.role === role && selectedChampionFromPanel.index === (i - 1 + 5)}" title="Click to place/move selected champion, Right-click to clear">
+                          <div
+                            class="unavailable-slot"
+                            :data-slot-id="`${role}-${i-1+5}`"
+                            @click="handlePanelSlotClick(role, i - 1 + 5)"
+                            @contextmenu.prevent="clearUnavailableSlot(role, i - 1 + 5)"
+                            :class="{'selected-for-move': selectedChampionFromPanel && selectedChampionFromPanel.role === role && selectedChampionFromPanel.index === (i - 1 + 5)}"
+                            title="Click to place/move selected champion, Right-click to clear"
+                          >
                             <template x-if="unavailablePanelState[role][i - 1 + 5]">
                               <img :src="getChampionIconUrl(unavailablePanelState[role][i - 1 + 5])" :alt="unavailablePanelState[role][i - 1 + 5]" x-cloak draggable="false" />
                             </template>

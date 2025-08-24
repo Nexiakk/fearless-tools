@@ -325,9 +325,10 @@ img.player-badge {
   margin-bottom: 1rem;
 }
 .unavailable-role-icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
+  transform: translateY(-10px);
 }
 /* [REWRITTEN] Slot grid is now a flex container for left-alignment */
 .unavailable-slots-grid {
