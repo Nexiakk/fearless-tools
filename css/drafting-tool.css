@@ -1,0 +1,643 @@
+/* --- UPDATED: Draft Creator View Styles --- */
+.draft-creator-view {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+  height: 87vh;
+  position: relative;
+  padding: 1rem;
+  background-color: #121212; /* Base background */
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+  gap: 1rem;
+}
+
+/* Wrapper for Bans Header and Main Grid */
+.draft-creator-main-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+  height: 100%;
+  gap: 0.5rem;
+}
+
+/* Side Indicator Container */
+.draft-indicator-container {
+  display: flex;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-bottom: 0.5rem;
+}
+.indicator-rect {
+  flex: 1;
+  height: 100%;
+}
+.blue-indicator {
+  background-color: #3b82f6;
+} /* Keep blue/red accents */
+.red-indicator {
+  background-color: #ef4444;
+}
+
+/* Bans Header Container */
+.draft-creator-bans-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #1e1e1e; /* Component background */
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* Horizontal Bans Container (per side) */
+.draft-creator-bans {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Ban Group Separator */
+.ban-group-separator.horizontal {
+  width: 16px;
+  height: 1px;
+  background-color: #3a3a3a;
+  margin: 0 10px;
+  display: block;
+}
+.draft-creator-bans > div:first-child > .ban-group-separator.horizontal,
+.draft-creator-bans > div:last-child > .ban-group-separator.horizontal {
+  display: none;
+}
+
+/* Main Content Area (Holds Grid ONLY now) */
+.draft-creator-main-content {
+  flex-grow: 1;
+  overflow: hidden;
+  min-height: 0;
+  height: 100%;
+}
+
+/* Main 3-Column Grid Layout (Picks/Pool/Picks) */
+.draft-creator-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.4fr) minmax(300px, 3fr) minmax(200px, 1.4fr);
+  gap: 1rem;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Saved Drafts Sidebar */
+.draft-creator-saved {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background-color: #121212; /* Base background */
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+  overflow: hidden;
+  overflow-y: auto;
+  width: 250px;
+  flex-shrink: 0;
+  height: 100%;
+}
+.saved-title {
+  color: #e0e0e0;
+  font-weight: 600;
+}
+
+/* Individual Columns within the 3-column grid */
+.draft-creator-side,
+.draft-creator-center {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background-color: #1e1e1e; /* Component background */
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+  overflow: hidden;
+  height: 100%;
+}
+.draft-creator-side {
+  overflow-y: auto;
+}
+
+/* Side Titles (Hidden) */
+.side-title {
+  display: none;
+}
+
+/* Picks Layout */
+.draft-creator-picks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 100%;
+  padding-top: 0.5rem;
+}
+.pick-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 180px;
+}
+.pick-row.blue {
+  justify-content: flex-start;
+}
+.pick-row.red {
+  justify-content: flex-end;
+}
+.pick-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #aaaaaa;
+  width: 25px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.pick-row.blue .pick-label {
+  text-align: right;
+}
+.pick-row.red .pick-label {
+  text-align: left;
+}
+
+/* Spacing between pick groups */
+.pick-row:nth-child(1),
+.pick-row:nth-child(4) {
+  margin-bottom: 18px;
+}
+
+/* General Slot Styling */
+.draft-creator-slot {
+  border: 1px solid #444444; /* Default border */
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, background-image 0.2s;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+}
+.draft-creator-slot:not(.filled):hover {
+  /* Hover for empty slots */
+  border-color: #666666;
+  background-color: #3a3a3a;
+}
+.draft-creator-slot.filled {
+  border-width: 2px;
+  border-style: solid;
+  background-image: none !important;
+  background-color: #1e1e1e; /* Darker filled background */
+}
+
+/* Pick Order Importance Styling (Keep blue/red accents) */
+.draft-creator-slot.filled[data-pick-order="B1"],
+.draft-creator-slot.filled[data-pick-order="B4"],
+.draft-creator-slot.filled[data-pick-order="B5"] {
+  border-color: #60a5fa;
+}
+.draft-creator-slot.filled[data-pick-order="R1"],
+.draft-creator-slot.filled[data-pick-order="R2"],
+.draft-creator-slot.filled[data-pick-order="R4"] {
+  border-color: #f87171;
+}
+.draft-creator-slot.filled[data-pick-order="B2"],
+.draft-creator-slot.filled[data-pick-order="B3"] {
+  border-color: #3b82f6;
+  box-shadow: none;
+}
+.draft-creator-slot.filled[data-pick-order="R3"],
+.draft-creator-slot.filled[data-pick-order="R5"] {
+  border-color: #ef4444;
+  box-shadow: none;
+}
+
+/* Selection Styling (Keep yellowish accent) */
+.draft-creator-slot.selected-for-move,
+.draft-creator-slot.selected-for-targeting {
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.6); /* Amber glow */
+  border-color: #d97706 !important; /* Amber border */
+}
+.draft-creator-slot.selected-for-targeting {
+  border-style: dashed !important;
+  background-color: #444444; /* Darker target background */
+}
+.draft-creator-slot.selected-for-targeting:hover {
+  filter: brightness(1.1);
+}
+
+/* Ban Slot Specifics */
+.draft-creator-slot.ban-slot {
+  width: 70px;
+  height: 70px;
+  background-color: #000000; /* Darker ban background */
+  border-color: #3a3a3a; /* Darker default border */
+}
+.draft-creator-slot.ban-slot:not(.filled):not(.selected-for-targeting):hover {
+  background-color: #000000;
+  border-color: #444444;
+}
+.draft-creator-slot.ban-slot.filled {
+  border-color: #3a3a3a !important; /* Dull Gray border */
+  box-shadow: none !important;
+  filter: grayscale(50%);
+}
+.draft-creator-slot.ban-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(90%);
+}
+
+/* Pick Slot Specifics */
+.draft-creator-slot.pick-slot {
+  width: 110px;
+  height: 110px;
+  background-image: url("../assets/images/no_champion.png");
+  background-color: #000000; /* Darker empty pick background */
+  border-color: #444444; /* Darker default border */
+}
+.draft-creator-slot.pick-slot:not(.filled):not(.selected-for-targeting):hover {
+  border-color: #666666;
+  background-color: #000000;
+}
+.draft-creator-slot.pick-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Notes Toggle Button */
+.notes-toggle-button {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #aaaaaa;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  z-index: 3;
+  opacity: 0.7;
+}
+.draft-creator-slot:hover .notes-toggle-button {
+  opacity: 1;
+}
+.notes-toggle-button svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+.notes-toggle-button:hover {
+  background-color: rgba(0, 0, 0, 0.9);
+  color: #e0e0e0;
+}
+.draft-creator-slot.has-notes .notes-toggle-button {
+  color: #facc15;
+  opacity: 1;
+} /* Keep yellow accent for notes */
+
+/* Center Column: Pool Controls */
+.draft-creator-pool-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.25rem;
+  flex-shrink: 0;
+}
+.draft-creator-search-container {
+  position: relative;
+  flex-grow: 1;
+  min-width: 150px;
+}
+.draft-creator-search-input {
+  width: 100%;
+  padding: 6px 10px 6px 32px;
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+  background-color: #282828;
+  color: #e0e0e0;
+  font-size: 0.875rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.draft-creator-search-input:focus {
+  outline: none;
+  border-color: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.3);
+}
+.draft-creator-search-input::placeholder {
+  color: #888888;
+}
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  fill: #888888;
+  pointer-events: none;
+}
+.clear-search-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #888888;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.clear-search-button:hover {
+  color: #e0e0e0;
+}
+.role-filters-container.pool-filters {
+  flex-shrink: 0;
+  justify-content: flex-start;
+}
+
+/* Center Column: Champion Pool Grid */
+.draft-creator-champion-grid {
+  flex-grow: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+  gap: 6px;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  background-color: #121212; /* Base background for grid */
+  min-height: 0;
+}
+.draft-creator-champion-grid::-webkit-scrollbar {
+  width: 8px;
+}
+.draft-creator-champion-grid::-webkit-scrollbar-track {
+  background: #121212;
+  border-radius: 4px;
+}
+.draft-creator-champion-grid::-webkit-scrollbar-thumb {
+  background-color: #444444;
+  border-radius: 4px;
+}
+.draft-creator-champion-grid::-webkit-scrollbar-thumb:hover {
+  background-color: #555555;
+}
+
+/* Champion Card in Draft Creator Pool */
+.draft-creator-champion-card {
+  width: 64px;
+  height: 78px;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  background-color: #1e1e1e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px;
+  cursor: pointer;
+  transition: transform 0.15s ease-out, border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+.draft-creator-champion-card img.champion-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 3px;
+  margin-bottom: 2px;
+}
+.draft-creator-champion-card .champion-name-text {
+  font-size: 0.65rem;
+  line-height: 0.8rem;
+  text-align: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #cccccc;
+}
+.draft-creator-champion-card:hover:not(.already-placed):not(.selected-for-placement) {
+  transform: scale(1.05);
+  border-color: #555555;
+  background-color: #282828;
+  z-index: 5;
+}
+/* Amber selection */
+.draft-creator-champion-card.selected-for-placement {
+  border-color: #d97706;
+  background-color: #444444 !important;
+  box-shadow: 0 0 8px 2px rgba(217, 119, 6, 0.5);
+  transform: scale(1.05);
+  z-index: 6;
+}
+.draft-creator-champion-card.already-placed {
+  opacity: 0.4;
+  cursor: default;
+  border-color: #282828;
+  background-color: #121212;
+  transform: none;
+  box-shadow: none;
+}
+.draft-creator-champion-card.already-placed:hover {
+  transform: none;
+  z-index: auto;
+}
+.draft-creator-champion-card.already-placed img.champion-icon {
+  filter: grayscale(100%);
+}
+
+/* Center Column: Save/Reset Controls */
+.draft-creator-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  flex-shrink: 0;
+}
+.control-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+.control-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+/* Amber save button */
+.control-button.save-button {
+  background-color: #d97706;
+  color: white;
+}
+.control-button.reset-button {
+  background-color: #dc2626;
+  color: white;
+} /* Keep red reset */
+.control-button:hover {
+  filter: brightness(1.15);
+}
+
+/* Saved Drafts List */
+.saved-drafts-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-top: 0.5rem;
+  min-height: 0;
+}
+.saved-drafts-list::-webkit-scrollbar {
+  width: 5px;
+}
+.saved-drafts-list::-webkit-scrollbar-track {
+  background: #1e1e1e;
+  border-radius: 2px;
+}
+.saved-drafts-list::-webkit-scrollbar-thumb {
+  background-color: #444444;
+  border-radius: 2px;
+}
+.saved-draft-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  background-color: #282828;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.saved-draft-item:hover {
+  background-color: #3a3a3a;
+}
+/* Amber active saved draft */
+.saved-draft-item.active-saved-draft {
+  background-color: #92400e; /* amber-800 */
+  border-color: #d97706; /* amber-600 */
+}
+.saved-draft-name {
+  flex-grow: 1;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+.saved-draft-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.saved-draft-actions button {
+  background: none;
+  border: none;
+  color: #aaaaaa;
+  padding: 2px;
+  cursor: pointer;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+}
+.saved-draft-actions button:hover {
+  color: #e0e0e0;
+}
+.saved-draft-actions svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+/* Notes Modal */
+.notes-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 70;
+}
+.notes-modal-content {
+  background-color: #1e1e1e; /* Darker modal background */
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #3a3a3a; /* Add subtle border */
+}
+.notes-modal-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #e0e0e0;
+  text-align: center;
+}
+.notes-modal-textarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #3a3a3a;
+  background-color: #282828;
+  color: #e0e0e0;
+  margin-bottom: 1rem;
+  resize: vertical;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.notes-modal-textarea:focus {
+  outline: none;
+  border-color: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.3);
+}
+.notes-modal-buttons {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}

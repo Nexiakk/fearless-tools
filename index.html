@@ -4,19 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fearless Tools</title>
-    <link rel="icon" type="image/x-icon" href="/cwel.png" />
+    <link rel="icon" type="image/x-icon" href="/assets/images/cwel.png" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/champion-pool.css" />
+    <link rel="stylesheet" href="css/drafting-tool.css" />
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@headlessui/alpine@v1.7.17/dist/headlessui.min.js"></script>
-    <script src="./champions.js"></script>
-    <script src="./firebase-init.js"></script>
-    <script src="./alpine-component.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@headlessui/alpine@2.1/dist/headlessui.min.js"></script>
+    <script src="js/data/champions.js"></script>
+    <script src="js/firebase/firebase-init.js"></script>
+    <script src="js/components/draftHelper.js"></script>
   </head>
   <body x-data="draftHelper()" x-init="init()" @destroy="destroy()">
-    <!-- SVG Icon Definitions -->
     <svg width="0" height="0" style="position: absolute">
       <defs>
         <symbol id="icon-plus" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" clip-rule="evenodd" /></symbol>
@@ -44,7 +45,6 @@
       </defs>
     </svg>
 
-    <!-- Centered Navigation Bar -->
     <header class="top-navbar">
       <div class="navbar-container relative">
         <nav class="navbar-nav">
@@ -61,10 +61,8 @@
       </div>
     </header>
 
-    <!-- Main Content Area -->
     <div class="container mx-auto p-4 main-content">
       <div class="relative">
-        <!-- Champion Pool View -->
         <div x-show="currentView === 'pool'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="absolute w-full top-0 left-0">
           <div class="controls-container">
             <div class="controls-row-bottom">
@@ -147,7 +145,6 @@
                 </template>
               </div>
 
-              <!-- Wrapper for scrollable role groups -->
               <div class="unavailable-roles-wrapper">
                 <template x-for="role in rolesForPanel" :key="role">
                   <div class="unavailable-role-group">
@@ -157,17 +154,12 @@
                     </div>
                     <div class="unavailable-slots-grid">
                       <template x-for="i in 10" :key="`${role}-slot-${i}`">
-                        <div 
-                             class="unavailable-slot" 
-                             @click="handlePanelSlotClick(role, i - 1)" 
-                             @contextmenu.prevent="clearUnavailableSlot(role, i - 1)" 
-                             :class="{'selected-for-move': selectedChampionFromPanel && selectedChampionFromPanel.role === role && selectedChampionFromPanel.index === (i - 1)}"
-                             title="Click to place/move selected champion, Right-click to clear">
+                        <div class="unavailable-slot" @click="handlePanelSlotClick(role, i - 1)" @contextmenu.prevent="clearUnavailableSlot(role, i - 1)" :class="{'selected-for-move': selectedChampionFromPanel && selectedChampionFromPanel.role === role && selectedChampionFromPanel.index === (i - 1)}" title="Click to place/move selected champion, Right-click to clear">
                           <template x-if="unavailablePanelState[role][i - 1]">
                             <img :src="getChampionIconUrl(unavailablePanelState[role][i - 1])" :alt="unavailablePanelState[role][i - 1]" x-cloak draggable="false" />
                           </template>
                           <template x-if="!unavailablePanelState[role][i - 1]">
-                            <img src="./media/no_champion.png" alt="Empty slot" class="placeholder-icon" x-cloak draggable="false" />
+                            <img src="./assets/icons/no_champion.png" alt="Empty slot" class="placeholder-icon" x-cloak draggable="false" />
                           </template>
                         </div>
                       </template>
@@ -179,7 +171,6 @@
           </div>
         </div>
 
-        <!-- Drafting View -->
         <div x-show="currentView === 'drafting'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="draft-creator-view absolute w-full top-0 left-0" x-cloak>
           <div class="draft-creator-main-wrapper">
             <div class="draft-indicator-container">
@@ -430,8 +421,6 @@
       </div>
     </div>
 
-    <!-- Headless UI Modals -->
-    <!-- Confirmation Modal -->
     <div x-show="confirmationModal.isOpen" x-dialog @keydown.escape.window="closeConfirmationModal()" class="relative z-50" x-cloak>
       <div x-show="confirmationModal.isOpen" x-transition.opacity class="fixed inset-0 bg-black/60"></div>
       <div class="fixed inset-0 flex w-screen items-center justify-center p-4">
@@ -446,19 +435,17 @@
       </div>
     </div>
 
-    <!-- Settings Modal -->
     <div x-show="isSettingsOpen" x-dialog @keydown.escape.window="isSettingsOpen = false" class="relative z-50" x-cloak>
       <div x-show="isSettingsOpen" x-transition.opacity class="fixed inset-0 bg-black/60"></div>
       <div class="fixed inset-0 flex w-screen items-center justify-center p-4">
         <div x-show="isSettingsOpen" x-transition @click.outside="isSettingsOpen = false" x-dialog.panel class="w-full max-w-lg rounded-lg bg-gray-800 border border-gray-700 p-6 shadow-lg">
           <h3 x-dialog.title class="text-xl font-semibold text-white">Settings</h3>
-          
+
           <div class="settings-tabs">
             <button @click="settingsTab = 'pool'" class="settings-tab-button" :class="{'active': settingsTab === 'pool'}">Champion Pool</button>
             <button @click="settingsTab = 'drafting'" class="settings-tab-button" :class="{'active': settingsTab === 'drafting'}">General</button>
           </div>
 
-          <!-- Champion Pool Settings -->
           <div x-show="settingsTab === 'pool'" class="mt-4 space-y-2 text-gray-300">
             <div class="flex items-center justify-between py-3 border-b border-gray-700">
               <label for="toggle-borders" class="font-medium">Show Card Borders</label>
@@ -467,7 +454,7 @@
                 <label for="toggle-borders" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
               </div>
             </div>
-             <div class="flex items-center justify-between py-3 border-b border-gray-700">
+            <div class="flex items-center justify-between py-3 border-b border-gray-700">
               <label for="toggle-badges" class="font-medium">Show Tier & Player Badges</label>
               <div class="relative inline-block w-10 mr-2 align-middle select-none">
                 <input type="checkbox" x-model="settings.pool.showBadges" name="toggle-badges" id="toggle-badges" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
@@ -476,12 +463,11 @@
             </div>
           </div>
 
-          <!-- Drafting Settings -->
           <div x-show="settingsTab === 'drafting'" class="mt-4 space-y-2 text-gray-300">
             <div class="flex items-center justify-between py-3 border-b border-gray-700">
               <label for="toggle-dark-mode" class="font-medium">Dark Mode</label>
               <div class="relative inline-block w-10 mr-2 align-middle select-none">
-                <input type="checkbox" name="toggle-dark-mode" id="toggle-dark-mode" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked disabled/>
+                <input type="checkbox" name="toggle-dark-mode" id="toggle-dark-mode" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked disabled />
                 <label for="toggle-dark-mode" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-not-allowed opacity-50"></label>
               </div>
             </div>
