@@ -271,6 +271,16 @@ img.player-badge {
   color: #1e3a8a;
 }
 
+/* --- [NEW] Settings Toggles --- */
+.champion-card.no-borders .champion-icon {
+    border-color: transparent !important;
+}
+.champion-card.hide-badges .badge,
+.champion-card.hide-badges .player-badge-container {
+    display: none !important;
+}
+
+
 /* --- End UPDATED Champion Card Styling --- */
 
 /* --- Button Styles --- */
@@ -502,6 +512,10 @@ img.filter-icon {
 .unavailable-slot:hover {
   background-color: #282828;
   border-color: #666666;
+}
+.unavailable-slot.selected-for-move {
+  border-color: #d97706; /* Amber selection */
+  box-shadow: 0 0 8px 1px rgba(217, 119, 6, 0.6);
 }
 
 .unavailable-champions-panel::-webkit-scrollbar,
@@ -1271,6 +1285,31 @@ img.filter-icon {
 .modal-button-cancel:hover {
   background-color: #555555;
 }
+
+/* [NEW] Settings Modal Tabs */
+.settings-tabs {
+    display: flex;
+    border-bottom: 1px solid #3a3a3a;
+    margin-bottom: 1rem;
+}
+.settings-tab-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: none;
+    color: #a0a0a0;
+    cursor: pointer;
+    font-weight: 500;
+    transition: color 0.2s, border-color 0.2s;
+    border-bottom: 2px solid transparent;
+}
+.settings-tab-button.active {
+    color: #ffffff;
+    border-bottom-color: #d97706;
+}
+.settings-tab-button:hover:not(.active) {
+    color: #ffffff;
+}
+
 
 /* [NEW] Settings Toggle Switch Style */
 .toggle-checkbox:checked {

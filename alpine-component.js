@@ -29,9 +29,20 @@ window.draftHelper = function () {
       Support: Array(10).fill(null),
     },
     selectedForPlacement: null, // Holds the name of the champion selected from the holding area
+    selectedChampionFromPanel: null, // Holds { championName, role, index } for moving placed champions
 
     // --- [NEW] Headless UI Modal State ---
     isSettingsOpen: false,
+    settingsTab: 'pool', // 'pool' or 'drafting'
+    settings: {
+        pool: {
+            showBorders: true,
+            showBadges: true,
+        },
+        drafting: {
+            // Future drafting-specific settings can go here
+        }
+    },
     confirmationModal: {
         isOpen: false,
         message: '',
@@ -167,6 +178,15 @@ window.draftHelper = function () {
       console.log("Alpine component initializing...");
       this.isLoading = true;
 
+      // Load settings from localStorage first
+      const savedSettings = localStorage.getItem('fearlessSettings');
+      if (savedSettings) {
+          // Merge saved settings with defaults to avoid errors if new settings are added
+          const parsedSettings = JSON.parse(savedSettings);
+          this.settings.pool = { ...this.settings.pool, ...(parsedSettings.pool || {}) };
+          this.settings.drafting = { ...this.settings.drafting, ...(parsedSettings.drafting || {}) };
+      }
+
       this.allChampions = window.allLolChampions || [];
       this.teamPool = window.teamTierList || {};
 
@@ -229,6 +249,9 @@ window.draftHelper = function () {
       this.$watch("highlightedChampions", debouncedSave);
       this.$watch("draftSeries", debouncedSave);
       this.$watch("unavailablePanelState", debouncedSave, { deep: true }); // [NEW] Watch panel state
+      this.$watch('settings', () => {
+          localStorage.setItem('fearlessSettings', JSON.stringify(this.settings));
+      }, { deep: true });
 
       if (db) {
         const DRAFT_COLLECTION = "drafts";
@@ -332,24 +355,56 @@ window.draftHelper = function () {
       }
     },
 
-    // --- [NEW] Methods for Interactive Panel ---
+    // --- [REVISED] Methods for Interactive Panel ---
     selectForPlacement(championName) {
+      this.selectedChampionFromPanel = null; // Clear panel selection when selecting from holding area
       if (this.selectedForPlacement === championName) {
         this.selectedForPlacement = null; // Deselect if clicking the same one
       } else {
         this.selectedForPlacement = championName;
       }
     },
-    placeChampion(role, slotIndex) {
-      // Can only place if a champion is selected and the target slot is empty
-      if (this.selectedForPlacement && this.unavailablePanelState[role][slotIndex] === null) {
-        // Create a deep copy to modify safely and ensure reactivity
-        let newPanelState = JSON.parse(JSON.stringify(this.unavailablePanelState));
-        newPanelState[role][slotIndex] = this.selectedForPlacement;
-        this.unavailablePanelState = newPanelState;
 
-        // Deselect the champion after placing it
-        this.selectedForPlacement = null;
+    handlePanelSlotClick(role, index) {
+      const championInClickedSlot = this.unavailablePanelState[role][index];
+      const aChampionIsSelectedForPlacement = this.selectedForPlacement !== null;
+      const aChampionIsSelectedFromPanel = this.selectedChampionFromPanel !== null;
+
+      if (aChampionIsSelectedForPlacement) { // A champion from the holding area is selected
+        if (!championInClickedSlot) { // and the clicked slot is empty
+          let newPanelState = JSON.parse(JSON.stringify(this.unavailablePanelState));
+          newPanelState[role][index] = this.selectedForPlacement;
+          this.unavailablePanelState = newPanelState;
+          this.selectedForPlacement = null; // Deselect after placing
+        }
+        // If the target slot is not empty, do nothing to prevent overwriting.
+        return;
+      }
+
+      if (aChampionIsSelectedFromPanel) { // A champion is selected from the panel for moving/swapping
+        const sourceRole = this.selectedChampionFromPanel.role;
+        const sourceIndex = this.selectedChampionFromPanel.index;
+        const sourceChampion = this.selectedChampionFromPanel.championName;
+
+        if (sourceRole === role && sourceIndex === index) { // Clicked the same slot again to deselect
+          this.selectedChampionFromPanel = null;
+          return;
+        }
+
+        // Perform the move/swap
+        let newPanelState = JSON.parse(JSON.stringify(this.unavailablePanelState));
+        newPanelState[sourceRole][sourceIndex] = championInClickedSlot; // championInClickedSlot can be null (move) or a champion name (swap)
+        newPanelState[role][index] = sourceChampion;
+        this.unavailablePanelState = newPanelState;
+        this.selectedChampionFromPanel = null; // Deselect after action
+        return;
+      }
+
+      // If nothing is selected yet
+      if (!aChampionIsSelectedForPlacement && !aChampionIsSelectedFromPanel) {
+        if (championInClickedSlot) { // And a slot with a champion is clicked, select it
+          this.selectedChampionFromPanel = { championName: championInClickedSlot, role: role, index: index };
+        }
       }
     },
     // Allows removing a champion from a slot by right-clicking it

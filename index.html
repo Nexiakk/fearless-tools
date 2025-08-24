@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="style.css" />
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@headlessui/alpine@v1.7.17/dist/headlessui.min.js"></script>
     <script src="./champions.js"></script>
     <script src="./firebase-init.js"></script>
@@ -110,12 +110,14 @@
                     x-transition:enter-end="opacity-100 transform scale-100"
                     class="champion-card"
                     :class="{
-                                        'unavailable': isUnavailable(champion.name),
-                                        'manually-marked': isHighlighted(champion.name),
-                                        'in-pool': champion.poolInfo && champion.poolInfo.isInPool,
-                                        'not-in-pool': (!champion.poolInfo || !champion.poolInfo.isInPool) && !isUnavailable(champion.name) && !isHighlighted(champion.name),
-                                        [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name)
-                                     }"
+                        'unavailable': isUnavailable(champion.name),
+                        'manually-marked': isHighlighted(champion.name),
+                        'in-pool': champion.poolInfo && champion.poolInfo.isInPool,
+                        'not-in-pool': (!champion.poolInfo || !champion.poolInfo.isInPool) && !isUnavailable(champion.name) && !isHighlighted(champion.name),
+                        [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name),
+                        'no-borders': !settings.pool.showBorders,
+                        'hide-badges': !settings.pool.showBadges
+                     }"
                     @click="togglePick(champion.name)"
                     @contextmenu.prevent="toggleHighlight(champion.name)"
                     role="button"
@@ -155,7 +157,12 @@
                     </div>
                     <div class="unavailable-slots-grid">
                       <template x-for="i in 10" :key="`${role}-slot-${i}`">
-                        <div class="unavailable-slot" @click="placeChampion(role, i - 1)" @contextmenu.prevent="clearUnavailableSlot(role, i - 1)" title="Click to place selected champion, Right-click to clear">
+                        <div 
+                             class="unavailable-slot" 
+                             @click="handlePanelSlotClick(role, i - 1)" 
+                             @contextmenu.prevent="clearUnavailableSlot(role, i - 1)" 
+                             :class="{'selected-for-move': selectedChampionFromPanel && selectedChampionFromPanel.role === role && selectedChampionFromPanel.index === (i - 1)}"
+                             title="Click to place/move selected champion, Right-click to clear">
                           <template x-if="unavailablePanelState[role][i - 1]">
                             <img :src="getChampionIconUrl(unavailablePanelState[role][i - 1])" :alt="unavailablePanelState[role][i - 1]" x-cloak draggable="false" />
                           </template>
@@ -425,7 +432,7 @@
 
     <!-- Headless UI Modals -->
     <!-- Confirmation Modal -->
-    <div x-show="confirmationModal.isOpen" x-dialog @keydown.escape.window="closeConfirmationModal()" class="relative z-50">
+    <div x-show="confirmationModal.isOpen" x-dialog @keydown.escape.window="closeConfirmationModal()" class="relative z-50" x-cloak>
       <div x-show="confirmationModal.isOpen" x-transition.opacity class="fixed inset-0 bg-black/60"></div>
       <div class="fixed inset-0 flex w-screen items-center justify-center p-4">
         <div x-show="confirmationModal.isOpen" x-transition @click.outside="closeConfirmationModal()" x-dialog.panel class="w-full max-w-md rounded-lg bg-gray-800 border border-gray-700 p-6 shadow-lg">
@@ -440,31 +447,56 @@
     </div>
 
     <!-- Settings Modal -->
-    <div x-show="isSettingsOpen" x-dialog @keydown.escape.window="isSettingsOpen = false" class="relative z-50">
+    <div x-show="isSettingsOpen" x-dialog @keydown.escape.window="isSettingsOpen = false" class="relative z-50" x-cloak>
       <div x-show="isSettingsOpen" x-transition.opacity class="fixed inset-0 bg-black/60"></div>
       <div class="fixed inset-0 flex w-screen items-center justify-center p-4">
-        <div x-show="isSettingsOpen" x-transition @click.outside="isSettingsOpen = false" x-dialog.panel class="w-full max-w-md rounded-lg bg-gray-800 border border-gray-700 p-6 shadow-lg">
+        <div x-show="isSettingsOpen" x-transition @click.outside="isSettingsOpen = false" x-dialog.panel class="w-full max-w-lg rounded-lg bg-gray-800 border border-gray-700 p-6 shadow-lg">
           <h3 x-dialog.title class="text-xl font-semibold text-white">Settings</h3>
-          <div class="mt-4 space-y-4 text-gray-300">
+          
+          <div class="settings-tabs">
+            <button @click="settingsTab = 'pool'" class="settings-tab-button" :class="{'active': settingsTab === 'pool'}">Champion Pool</button>
+            <button @click="settingsTab = 'drafting'" class="settings-tab-button" :class="{'active': settingsTab === 'drafting'}">General</button>
+          </div>
+
+          <!-- Champion Pool Settings -->
+          <div x-show="settingsTab === 'pool'" class="mt-4 space-y-2 text-gray-300">
+            <div class="flex items-center justify-between py-3 border-b border-gray-700">
+              <label for="toggle-borders" class="font-medium">Show Card Borders</label>
+              <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                <input type="checkbox" x-model="settings.pool.showBorders" name="toggle-borders" id="toggle-borders" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
+                <label for="toggle-borders" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+              </div>
+            </div>
+             <div class="flex items-center justify-between py-3 border-b border-gray-700">
+              <label for="toggle-badges" class="font-medium">Show Tier & Player Badges</label>
+              <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                <input type="checkbox" x-model="settings.pool.showBadges" name="toggle-badges" id="toggle-badges" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
+                <label for="toggle-badges" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drafting Settings -->
+          <div x-show="settingsTab === 'drafting'" class="mt-4 space-y-2 text-gray-300">
             <div class="flex items-center justify-between py-3 border-b border-gray-700">
               <label for="toggle-dark-mode" class="font-medium">Dark Mode</label>
               <div class="relative inline-block w-10 mr-2 align-middle select-none">
-                <input type="checkbox" name="toggle-dark-mode" id="toggle-dark-mode" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked />
-                <label for="toggle-dark-mode" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                <input type="checkbox" name="toggle-dark-mode" id="toggle-dark-mode" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked disabled/>
+                <label for="toggle-dark-mode" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-not-allowed opacity-50"></label>
               </div>
             </div>
-            <div class="flex items-center justify-between py-3">
+            <div class="flex items-center justify-between py-3 border-b border-gray-700">
               <label for="language-select" class="font-medium">Language</label>
               <select id="language-select" class="bg-gray-700 border border-gray-600 rounded-md p-1 text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
                 <option>English</option>
-                <option>Español</option>
-                <option>Français</option>
+                <option disabled>Español (coming soon)</option>
+                <option disabled>Français (coming soon)</option>
               </select>
             </div>
           </div>
+
           <div class="mt-6 flex justify-end gap-3">
-            <button @click="isSettingsOpen = false" class="modal-button modal-button-cancel">Cancel</button>
-            <button @click="isSettingsOpen = false" class="modal-button modal-button-confirm">Save</button>
+            <button @click="isSettingsOpen = false" class="modal-button modal-button-confirm">Close</button>
           </div>
         </div>
       </div>
