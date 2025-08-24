@@ -92,6 +92,7 @@
   margin-top: auto;
   padding-bottom: 1px;
   color: #cccccc;
+  transition: opacity 0.2s ease-in-out;
 }
 .badge {
   /* Tier and Player Badges */
@@ -137,19 +138,16 @@ img.player-badge {
   object-fit: cover;
 }
 .champion-card.unavailable {
-  opacity: 0.45 !important;
-  transform: none !important;
-  box-shadow: none !important;
-  background-color: #282828 !important;
+  /* MODIFIED: Opacity is now 100% */
   border-color: #1e1e1e !important;
 }
 .champion-card.unavailable img.champion-icon {
-  filter: grayscale(95%);
-  border-color: #3a3a3a !important;
+  filter: grayscale(100%);
+  border-color: #3a3a3a00 !important;
 }
-.champion-card.unavailable .picked-overlay-text {
-  display: flex;
-  background-color: rgba(0, 0, 0, 0.85);
+/* MODIFIED: Champion name is now faded */
+.champion-card.unavailable .champion-name-text {
+  opacity: 0.3;
 }
 .champion-card.unavailable .badge {
   display: none;
@@ -205,25 +203,8 @@ img.player-badge {
 
 /* --- End UPDATED Champion Card Styling --- */
 
-.picked-overlay-text {
-  display: none;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 0.6rem;
-  color: white;
-  background-color: rgba(0, 0, 0, 0.85);
-  z-index: 10;
-  border-radius: 6px;
-  text-align: center;
-  padding: 2px;
-  line-height: 1;
-}
+/* MODIFIED: Overlay text rule has been removed */
+
 .img-error-placeholder {
   width: 64px;
   height: 64px;
