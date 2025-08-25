@@ -1,3 +1,5 @@
+/* css/champion-pool.css */
+
 /* --- Champion Pool View Styles --- */
 .pool-search-input {
   width: 100%;
@@ -612,21 +614,25 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
 }
 .pillar-header-wrapper {
   text-align: center;
-  padding: 0.5rem;
+  padding: 0.25rem;
   background-color: #282828;
   border-bottom: 1px solid #3a3a3a;
   border-radius: 0.5rem 0.5rem 0 0;
   flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .pillar-header {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #f97316;
-  letter-spacing: 0.1em;
+  display: none;
+}
+.pillar-header-icon {
+  width: 24px;
+  height: 24px;
 }
 .pillar-champions-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   padding: 8px;
   overflow-y: auto;

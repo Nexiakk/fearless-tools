@@ -240,10 +240,10 @@
               <template x-for="role in rolesForPanel" :key="role">
                 <div class="role-pillar">
                   <div class="pillar-header-wrapper">
-                    <h3 class="pillar-header" x-text="roleHeaderMap[role]"></h3>
+                    <img :src="getRoleIconUrl(role)" :alt="role" class="pillar-header-icon" />
                   </div>
                   <div class="pillar-champions-grid">
-                    <template x-for="champion in championsByRoleForCompactView[role]" :key="champion.id">
+                    <template x-for="champion in championsByRoleForCompactView[role]" :key="champion.id + '-' + role">
                       <div
                         class="compact-champion-card"
                         :class="{

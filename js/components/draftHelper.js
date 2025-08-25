@@ -1,3 +1,5 @@
+// js/components/draftHelper.js
+
 // Make the main Alpine component function globally available
 // so x-data="draftHelper()" in index.html can find it.
 window.draftHelper = function () {
@@ -176,10 +178,14 @@ window.draftHelper = function () {
     get championsByRoleForCompactView() {
       const grouped = { Top: [], Jungle: [], Mid: [], Bot: [], Support: [] };
 
-      // Group all champions by their main role
+      // Group all champions by ALL their roles
       this.allChampions.forEach((champ) => {
-        if (grouped.hasOwnProperty(champ.mainRole)) {
-          grouped[champ.mainRole].push(champ);
+        if (Array.isArray(champ.roles)) {
+          champ.roles.forEach((role) => {
+            if (grouped.hasOwnProperty(role)) {
+              grouped[role].push(champ);
+            }
+          });
         }
       });
 
