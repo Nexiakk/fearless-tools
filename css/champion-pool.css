@@ -80,7 +80,7 @@
   display: block;
   /* This is now the default, consistent border for all non-tiered champs */
   border: 1px solid #3a3a3a;
-  transition: filter 0.2s ease-in-out, border-color 0.2s ease-in-out;
+  transition: filter 0.2s ease-in-out, border-color 0.2s ease-in-out, box-shadow 0.1s ease-in-out;
 }
 
 .champion-card .champion-name-text {
@@ -204,8 +204,9 @@ img.player-badge {
   pointer-events: none;
 }
 
-.champion-card:not(.unavailable):hover .champion-icon {
-  border-color: #c89b3c;
+div.champion-card:not(.unavailable):hover img.champion-icon {
+  border-color: transparent; /* Hide the original border */
+  box-shadow: 0 0 0 1px #c89b3c; /* Create border effect with box-shadow */
 }
 
 .champion-icon-wrapper::before,
@@ -219,7 +220,7 @@ img.player-badge {
   border-color: #c89b3c;
   border-style: solid;
   opacity: 0;
-  transition: opacity 0.2s ease-in-out;
+  transition: opacity 0.1s ease-in-out;
   z-index: 3;
   pointer-events: none;
 }
