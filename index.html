@@ -100,7 +100,7 @@
 
           <div class="pool-view-wrapper">
             <div class="champion-grid-container">
-              <div class="champion-grid-inner" x-data="{}" x-init="$nextTick(() => { $el.parentElement.setAttribute('x-morph-key', 'grid') })" x-morph-key="grid">
+              <div class="champion-grid-inner" x-data="{}" x-init="$el.setAttribute('x-morph', 'once')" x-morph:morph>
                 <p x-show="filteredChampions.length === 0" class="text-gray-400 col-span-full text-center py-4" x-cloak>No champions match your filter/search.</p>
                 <template x-for="champion in filteredChampions" :key="champion.id">
                   <div
@@ -124,6 +124,7 @@
                   >
                     <div class="champion-icon-wrapper">
                       <img class="champion-icon" :src="getChampionIconUrl(champion.name)" :alt="champion.name" loading="lazy" draggable="false" />
+                      <div class="champion-icon-corners"></div>
                     </div>
                     <span class="champion-name-text text-gray-200" x-text="champion.name"></span>
                     <span class="badge tier-badge" x-show="champion.poolInfo?.isInPool && champion.poolInfo.tier && !isUnavailable(champion.name)" x-text="champion.poolInfo?.tier" x-cloak></span>

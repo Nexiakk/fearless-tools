@@ -48,7 +48,8 @@
 
 /* --- UPDATED Champion Card Styling --- */
 .champion-card {
-  transition: transform 0.15s ease-in-out, opacity 0.2s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.2s, border-color 0.2s;
+  /* Removed border from the main card to prevent inconsistencies */
+  transition: transform 0.15s ease-in-out, opacity 0.2s ease-in-out, box-shadow 0.15s ease-in-out;
   position: relative;
   display: inline-flex;
   flex-direction: column;
@@ -62,23 +63,26 @@
   vertical-align: top;
   background-color: #1e1e1e;
   overflow: visible;
-  border: 1px solid transparent;
 }
+
+/* Wrapper for the icon to contain the hover effect */
 .champion-icon-wrapper {
   position: relative;
   width: 86px;
   height: 86px;
+  margin-bottom: 2px;
 }
+
 .champion-card img.champion-icon {
   width: 100%;
   height: 100%;
   border-radius: 4px;
   display: block;
-  z-index: 1;
+  /* This is now the default, consistent border for all non-tiered champs */
   border: 1px solid #3a3a3a;
   transition: filter 0.2s ease-in-out, border-color 0.2s ease-in-out;
-  margin-bottom: 2px;
 }
+
 .champion-card .champion-name-text {
   font-size: 0.8rem;
   line-height: 1rem;
@@ -88,8 +92,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  z-index: 1;
-  position: relative;
   margin-top: auto;
   padding-bottom: 1px;
   color: #cccccc;
@@ -137,12 +139,9 @@ img.player-badge {
   display: block;
   object-fit: cover;
 }
-.champion-card.unavailable {
-  border-color: #1e1e1e !important;
-}
 .champion-card.unavailable .champion-icon {
   filter: grayscale(100%);
-  border-color: #3a3a3a00 !important;
+  border-color: transparent !important;
 }
 .champion-card.unavailable .champion-name-text {
   opacity: 0.3;
@@ -150,45 +149,43 @@ img.player-badge {
 .champion-card.unavailable .badge {
   display: none;
 }
+/* This no longer adds a border, just opacity for non-pool champs */
 .champion-card.not-in-pool {
-  opacity: 0.9;
-  background-color: #1e1e1e;
-  border-color: #282828;
+  opacity: 1;
 }
 .champion-card.manually-marked {
-  border: 1px solid #3b82f6;
   box-shadow: 0 0 6px 1px rgba(59, 130, 246, 0.6);
 }
 
-.champion-card.tier-S .champion-icon-wrapper .champion-icon {
+/* Tier border styles now correctly override the default icon border */
+.champion-card.tier-S .champion-icon {
   border: 1px solid #f87171;
 }
 .tier-S .tier-badge {
   background-color: #f87171;
   color: #4c0519;
 }
-.champion-card.tier-A .champion-icon-wrapper .champion-icon {
+.champion-card.tier-A .champion-icon {
   border: 1px solid #facc15;
 }
 .tier-A .tier-badge {
   background-color: #facc15;
   color: #5a4503;
 }
-.champion-card.tier-B .champion-icon-wrapper .champion-icon {
+.champion-card.tier-B .champion-icon {
   border: 1px solid #4ade80;
 }
 .tier-B .tier-badge {
   background-color: #4ade80;
   color: #064e3b;
 }
-.champion-card.tier-C .champion-icon-wrapper .champion-icon {
+.champion-card.tier-C .champion-icon {
   border: 1px solid #60a5fa;
 }
 .tier-C .tier-badge {
   background-color: #60a5fa;
   color: #1e3a8a;
 }
-
 .champion-card.no-borders .champion-icon {
   border-color: #3a3a3a !important;
 }
@@ -197,41 +194,29 @@ img.player-badge {
   display: none !important;
 }
 
-/* --- NEW Hover effect --- */
-.champion-icon-wrapper::before,
-.champion-icon-wrapper::after {
-  content: "";
+/* --- REBUILT Hover effect --- */
+.champion-icon-corners {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  border: 2px solid transparent;
-  transition: border-color 0.2s ease-in-out;
-  z-index: 2;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   pointer-events: none;
 }
 
-.champion-card:not(.unavailable):hover .champion-icon-wrapper::before {
-  border-color: #c89b3c; /* Gold border */
+.champion-card:not(.unavailable):hover .champion-icon {
+  border-color: #c89b3c;
 }
 
-.champion-icon-wrapper::before {
-  top: 0;
-  left: 0;
-}
-
-.champion-icon-wrapper::after {
-  bottom: 0;
-  right: 0;
-}
-
-.champion-icon-wrapper > .champion-icon::before,
-.champion-icon-wrapper > .champion-icon::after {
+.champion-icon-wrapper::before,
+.champion-icon-wrapper::after,
+.champion-icon-corners::before,
+.champion-icon-corners::after {
   content: "";
   position: absolute;
   width: 10px;
   height: 10px;
-  border-color: #f0e6d2;
+  border-color: #c89b3c;
   border-style: solid;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
@@ -239,61 +224,37 @@ img.player-badge {
   pointer-events: none;
 }
 
-.champion-card:not(.unavailable):hover .champion-icon-wrapper > .champion-icon::before,
-.champion-card:not(.unavailable):hover .champion-icon-wrapper > .champion-icon::after {
+.champion-card:not(.unavailable):hover .champion-icon-wrapper::before,
+.champion-card:not(.unavailable):hover .champion-icon-wrapper::after,
+.champion-card:not(.unavailable):hover .champion-icon-corners::before,
+.champion-card:not(.unavailable):hover .champion-icon-corners::after {
   opacity: 1;
 }
 
-.champion-icon-wrapper > .champion-icon::before {
+.champion-icon-wrapper::before {
   top: -2px;
   left: -2px;
   border-width: 3px 0 0 3px;
 }
 
-.champion-icon-wrapper > .champion-icon::after {
+.champion-icon-wrapper::after {
   top: -2px;
   right: -2px;
   border-width: 3px 3px 0 0;
 }
 
-.champion-icon-wrapper::after {
-  content: "";
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-color: #f0e6d2;
-  border-style: solid;
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
-  z-index: 3;
-  pointer-events: none;
+.champion-icon-corners::before {
   bottom: -2px;
   left: -2px;
   border-width: 0 0 3px 3px;
 }
 
-.champion-card:not(.unavailable):hover .champion-icon-wrapper::after {
-  opacity: 1;
-}
-
-.champion-card:not(.unavailable):hover .champion-icon-wrapper > .champion-icon ~ div::before {
-  content: "";
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-color: #f0e6d2;
-  border-style: solid;
-  opacity: 1;
-  transition: opacity 0.2s ease-in-out;
-  z-index: 3;
-  pointer-events: none;
+.champion-icon-corners::after {
   bottom: -2px;
   right: -2px;
   border-width: 0 3px 3px 0;
 }
 /* --- End Hover effect --- */
-
-/* --- End UPDATED Champion Card Styling --- */
 
 .img-error-placeholder {
   width: 64px;
@@ -310,24 +271,20 @@ img.player-badge {
   line-height: 0.8rem;
   position: relative;
 }
-
-/* --- [MODIFIED] Layout Styles --- */
 .pool-view-wrapper {
   display: flex;
   gap: 1rem;
-  height: 86vh; /* Fixed height to take up available space */
+  height: 86vh;
   margin-top: 0.5rem;
 }
-
-/* [MODIFIED] Champion Grid Container */
 .champion-grid-container {
   overflow-y: auto;
   padding: 4px;
   border: 1px solid #3a3a3a;
   border-radius: 0.5rem;
   background-color: #1e1e1e;
-  flex: 4; /* Ratio: Takes up more width */
-  min-width: 0; /* Prevents flexbox overflow issues */
+  flex: 4;
+  min-width: 0;
 }
 .champion-grid-inner {
   display: flex;
@@ -350,13 +307,11 @@ img.player-badge {
 .champion-grid-container::-webkit-scrollbar-thumb:hover {
   background-color: #555555;
 }
-
-/* [MODIFIED] Unavailable Champions Panel */
 .unavailable-champions-panel {
-  flex: 1.3; /* Ratio: Takes up less width */
-  min-width: 0; /* Prevents flexbox overflow issues */
-  height: 100%; /* Fills the height of the parent wrapper */
-  overflow-y: auto; /* Allow scrolling as a fallback */
+  flex: 1.3;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
   background-color: #1e1e1e;
   border: 1px solid #3a3a3a;
   border-radius: 0.5rem;
@@ -365,13 +320,11 @@ img.player-badge {
   flex-direction: column;
   gap: 0.25rem;
 }
-
-/* [MODIFIED & STICKY] Holding Area for Unplaced Champions */
 .unavailable-holding-area {
   position: sticky;
   top: 0;
   z-index: 10;
-  background-color: #1e1e1e; /* Match panel background to hide content scrolling underneath */
+  background-color: #1e1e1e;
   border: 1px solid #3a3a3a;
   border-radius: 6px;
   padding: 6px;
@@ -381,9 +334,8 @@ img.player-badge {
   gap: 4px;
   flex-shrink: 0;
   max-height: 25%;
-  overflow-y: auto; /* Allows this box to scroll if it has too many champs */
+  overflow-y: auto;
 }
-
 .holding-area-champ {
   width: 52px;
   height: 52px;
@@ -396,17 +348,14 @@ img.player-badge {
   transform: scale(1.05);
 }
 .holding-area-champ.selected-for-placement {
-  border-color: #d97706; /* Amber selection */
+  border-color: #d97706;
   box-shadow: 0 0 8px 1px rgba(217, 119, 6, 0.6);
   transform: scale(1.05);
 }
-
-/* [NEW] Wrapper for the scrollable role groups */
 .unavailable-roles-wrapper {
   flex-grow: 1;
   min-height: 0;
 }
-
 .unavailable-role-group {
   display: flex;
   align-items: center;
@@ -419,7 +368,6 @@ img.player-badge {
   flex-shrink: 0;
   transform: translateY(-10px);
 }
-/* [REWRITTEN] Slot grid is now a flex container for left-alignment */
 .unavailable-slots-grid {
   display: flex;
   flex-wrap: nowrap;
@@ -432,10 +380,9 @@ img.player-badge {
   align-items: center;
   gap: 3px;
 }
-/* [REWRITTEN] Slot size is now fixed */
 .unavailable-slot {
-  width: 58px; /* EDIT THIS VALUE to change slot size */
-  height: 58px; /* EDIT THIS VALUE to change slot size */
+  width: 58px;
+  height: 58px;
   background-color: #000000;
   border: 1px solid #3a3a3ac5;
   border-radius: 4px;
@@ -446,7 +393,6 @@ img.player-badge {
   overflow: hidden;
   cursor: pointer;
 }
-
 .slot-label {
   margin-top: 2px;
   font-size: 0.7rem;
@@ -469,10 +415,9 @@ img.player-badge {
   border-color: #666666;
 }
 .unavailable-slot.selected-for-move {
-  border-color: #d97706; /* Amber selection */
+  border-color: #d97706;
   box-shadow: 0 0 8px 1px rgba(217, 119, 6, 0.6);
 }
-
 .unavailable-champions-panel::-webkit-scrollbar,
 .unavailable-holding-area::-webkit-scrollbar {
   width: 8px;
@@ -492,7 +437,6 @@ img.player-badge {
 .unavailable-holding-area::-webkit-scrollbar-thumb:hover {
   background-color: #555555;
 }
-
 .controls-container {
   display: flex;
   flex-direction: column;
@@ -549,23 +493,21 @@ img.player-badge {
 }
 .reset-button.reset-marked,
 .reset-button.reset-series {
-  background-color: #d97706; /* amber-600 */
+  background-color: #d97706;
   color: #ffffff;
-  border-color: #b45309; /* amber-700 */
+  border-color: #b45309;
 }
 .reset-button.reset-marked:hover,
 .reset-button.reset-series:hover {
   transform: translateY(-1px);
   filter: brightness(1.1);
 }
-
 .unavailable-game-group {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
-
 .game-label {
   font-size: 0.8rem;
   font-weight: 600;
@@ -575,7 +517,6 @@ img.player-badge {
   flex-shrink: 0;
   transform: translateY(-10px);
 }
-
 .role-icon-label {
   width: 18px;
   height: 18px;
