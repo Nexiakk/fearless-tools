@@ -55,30 +55,31 @@
   align-items: center;
   margin: 2px;
   cursor: pointer;
-  /* MODIFIED: Increased size */
   width: 98px;
   height: 110px;
   padding: 3px;
   border-radius: 6px;
   vertical-align: top;
-  background-color: #1e1e1e; /* Base card background */
+  background-color: #1e1e1e;
   overflow: visible;
+  border: 1px solid transparent;
 }
-.champion-card img.champion-icon {
-  /* MODIFIED: Increased icon size */
+.champion-icon-wrapper {
+  position: relative;
   width: 86px;
   height: 86px;
+}
+.champion-card img.champion-icon {
+  width: 100%;
+  height: 100%;
   border-radius: 4px;
   display: block;
   z-index: 1;
-  position: relative;
   border: 1px solid #3a3a3a;
   transition: filter 0.2s ease-in-out, border-color 0.2s ease-in-out;
-  /* MODIFIED: Reduced margin to bring name closer */
   margin-bottom: 2px;
 }
 .champion-card .champion-name-text {
-  /* MODIFIED: Increased font size */
   font-size: 0.8rem;
   line-height: 1rem;
   font-weight: 500;
@@ -95,7 +96,6 @@
   transition: opacity 0.2s ease-in-out;
 }
 .badge {
-  /* Tier and Player Badges */
   position: absolute;
   font-size: 0.55rem;
   line-height: 0.75rem;
@@ -138,14 +138,12 @@ img.player-badge {
   object-fit: cover;
 }
 .champion-card.unavailable {
-  /* MODIFIED: Opacity is now 100% */
   border-color: #1e1e1e !important;
 }
-.champion-card.unavailable img.champion-icon {
+.champion-card.unavailable .champion-icon {
   filter: grayscale(100%);
   border-color: #3a3a3a00 !important;
 }
-/* MODIFIED: Champion name is now faded */
 .champion-card.unavailable .champion-name-text {
   opacity: 0.3;
 }
@@ -159,31 +157,31 @@ img.player-badge {
 }
 .champion-card.manually-marked {
   border: 1px solid #3b82f6;
-  box-shadow: 0 0 6px 1px rgba(59, 130, 246, 0.6); /* Blue glow */
+  box-shadow: 0 0 6px 1px rgba(59, 130, 246, 0.6);
 }
 
-.champion-card.tier-S img.champion-icon {
+.champion-card.tier-S .champion-icon-wrapper .champion-icon {
   border: 1px solid #f87171;
 }
 .tier-S .tier-badge {
   background-color: #f87171;
   color: #4c0519;
 }
-.champion-card.tier-A img.champion-icon {
+.champion-card.tier-A .champion-icon-wrapper .champion-icon {
   border: 1px solid #facc15;
 }
 .tier-A .tier-badge {
   background-color: #facc15;
   color: #5a4503;
 }
-.champion-card.tier-B img.champion-icon {
+.champion-card.tier-B .champion-icon-wrapper .champion-icon {
   border: 1px solid #4ade80;
 }
 .tier-B .tier-badge {
   background-color: #4ade80;
   color: #064e3b;
 }
-.champion-card.tier-C img.champion-icon {
+.champion-card.tier-C .champion-icon-wrapper .champion-icon {
   border: 1px solid #60a5fa;
 }
 .tier-C .tier-badge {
@@ -191,8 +189,6 @@ img.player-badge {
   color: #1e3a8a;
 }
 
-/* --- [NEW] Settings Toggles --- */
-/* MODIFIED: Reverts tier borders to default instead of removing them */
 .champion-card.no-borders .champion-icon {
   border-color: #3a3a3a !important;
 }
@@ -201,9 +197,103 @@ img.player-badge {
   display: none !important;
 }
 
-/* --- End UPDATED Champion Card Styling --- */
+/* --- NEW Hover effect --- */
+.champion-icon-wrapper::before,
+.champion-icon-wrapper::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease-in-out;
+  z-index: 2;
+  pointer-events: none;
+}
 
-/* MODIFIED: Overlay text rule has been removed */
+.champion-card:not(.unavailable):hover .champion-icon-wrapper::before {
+  border-color: #c89b3c; /* Gold border */
+}
+
+.champion-icon-wrapper::before {
+  top: 0;
+  left: 0;
+}
+
+.champion-icon-wrapper::after {
+  bottom: 0;
+  right: 0;
+}
+
+.champion-icon-wrapper > .champion-icon::before,
+.champion-icon-wrapper > .champion-icon::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: #f0e6d2;
+  border-style: solid;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.champion-card:not(.unavailable):hover .champion-icon-wrapper > .champion-icon::before,
+.champion-card:not(.unavailable):hover .champion-icon-wrapper > .champion-icon::after {
+  opacity: 1;
+}
+
+.champion-icon-wrapper > .champion-icon::before {
+  top: -2px;
+  left: -2px;
+  border-width: 3px 0 0 3px;
+}
+
+.champion-icon-wrapper > .champion-icon::after {
+  top: -2px;
+  right: -2px;
+  border-width: 3px 3px 0 0;
+}
+
+.champion-icon-wrapper::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: #f0e6d2;
+  border-style: solid;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 3;
+  pointer-events: none;
+  bottom: -2px;
+  left: -2px;
+  border-width: 0 0 3px 3px;
+}
+
+.champion-card:not(.unavailable):hover .champion-icon-wrapper::after {
+  opacity: 1;
+}
+
+.champion-card:not(.unavailable):hover .champion-icon-wrapper > .champion-icon ~ div::before {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: #f0e6d2;
+  border-style: solid;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 3;
+  pointer-events: none;
+  bottom: -2px;
+  right: -2px;
+  border-width: 0 3px 3px 0;
+}
+/* --- End Hover effect --- */
+
+/* --- End UPDATED Champion Card Styling --- */
 
 .img-error-placeholder {
   width: 64px;
@@ -467,4 +557,27 @@ img.player-badge {
 .reset-button.reset-series:hover {
   transform: translateY(-1px);
   filter: brightness(1.1);
+}
+
+.unavailable-game-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.game-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #aaaaaa;
+  width: 25px;
+  text-align: center;
+  flex-shrink: 0;
+  transform: translateY(-10px);
+}
+
+.role-icon-label {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
 }

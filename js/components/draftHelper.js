@@ -20,6 +20,7 @@ window.draftHelper = function () {
     _tierOrderValue: { S: 5, A: 4, B: 3, C: 2, DEFAULT: 0 },
     _validRoles: new Set(["Top", "Jungle", "Mid", "Bot", "Support"]),
     rolesForPanel: ["Top", "Jungle", "Mid", "Bot", "Support"],
+    gamesForPanel: ["G1", "G2", "G3", "G4", "G5"], // For the new grouping
 
     // --- [NEW] State for Interactive Unavailable Panel ---
     unavailablePanelState: {
@@ -39,6 +40,7 @@ window.draftHelper = function () {
       pool: {
         showBorders: true,
         showBadges: true,
+        groupByGames: false, // New setting
       },
       drafting: {
         // Future drafting-specific settings can go here
@@ -362,21 +364,23 @@ window.draftHelper = function () {
       }
     },
     placeChampionInPanel(champion) {
-      const roles = [champion.mainRole, ...champion.roles.filter((r) => r !== champion.mainRole)];
-      for (const role of roles) {
+      // Ensure we only consider valid roles associated with the champion
+      const championRoles = [champion.mainRole, ...champion.roles.filter((r) => r !== champion.mainRole)];
+      const validChampionRoles = championRoles.filter((role) => this._validRoles.has(role));
+
+      for (const role of validChampionRoles) {
         if (this.unavailablePanelState[role]) {
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < 10; i++) {
             if (this.unavailablePanelState[role][i] === null) {
               this.unavailablePanelState[role][i] = champion.name;
-              return;
-            }
-            if (this.unavailablePanelState[role][i + 5] === null) {
-              this.unavailablePanelState[role][i + 5] = champion.name;
-              return;
+              return; // Champion placed, exit function
             }
           }
         }
       }
+      // If the function reaches this point, no slot was found.
+      // The champion will remain in draftSeries but not in unavailablePanelState,
+      // so it will appear in the unplacedChampions (holding area).
     },
     removeChampionFromPanel(championName) {
       for (const role in this.unavailablePanelState) {
