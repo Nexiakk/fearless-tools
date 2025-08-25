@@ -11,6 +11,7 @@ window.draftHelper = function () {
     roleFilter: "all",
     searchTerm: "",
     sortOrder: "name",
+    alphabetFilter: "all", // NEW: State for the letter filter
     currentView: "pool",
     isLoading: true,
     patchVersion: "14.10.1", // A sensible fallback patch version.
@@ -22,7 +23,7 @@ window.draftHelper = function () {
     rolesForPanel: ["Top", "Jungle", "Mid", "Bot", "Support"],
     gamesForPanel: ["G1", "G2", "G3", "G4", "G5"], // For the new grouping
 
-    // --- [NEW] State for Interactive Unavailable Panel ---
+    // --- State for Interactive Unavailable Panel ---
     unavailablePanelState: {
       Top: Array(10).fill(null),
       Jungle: Array(10).fill(null),
@@ -33,7 +34,7 @@ window.draftHelper = function () {
     selectedForPlacement: null, // Holds the name of the champion selected from the holding area
     selectedChampionFromPanel: null, // Holds { championName, role, index } for moving placed champions
 
-    // --- [NEW] Headless UI Modal State ---
+    // --- Headless UI Modal State ---
     isSettingsOpen: false,
     settingsTab: "pool", // 'pool' or 'drafting'
     settings: {
@@ -53,7 +54,7 @@ window.draftHelper = function () {
       isDanger: false,
     },
 
-    // Draft Creator State
+    // --- Draft Creator State ---
     draftCreatorRoleFilter: "all",
     draftCreatorSearchTerm: "",
     currentDraft: {
@@ -91,7 +92,7 @@ window.draftHelper = function () {
       return Array.from(this.unavailableChampions).sort();
     },
 
-    // [NEW] Champions that are marked 'unavailable' but not yet placed in the panel grid.
+    // Champions that are marked 'unavailable' but not yet placed in the panel grid.
     get unplacedChampions() {
       const placedChamps = new Set(
         Object.values(this.unavailablePanelState)
@@ -225,7 +226,7 @@ window.draftHelper = function () {
           const loadedData = await fbFetch();
           this.highlightedChampions = loadedData.highlightedChampions || [];
           this.draftSeries = loadedData.draftSeries || [];
-          // [NEW] Load panel state, ensuring it has the correct structure
+          // Load panel state, ensuring it has the correct structure
           const defaultPanelState = { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) };
           this.unavailablePanelState = loadedData.unavailablePanelState || defaultPanelState;
           for (const role of this.rolesForPanel) {
@@ -264,7 +265,7 @@ window.draftHelper = function () {
             const dataToSave = {
               highlightedChampions: JSON.parse(JSON.stringify(this.highlightedChampions)),
               draftSeries: JSON.parse(JSON.stringify(this.draftSeries)),
-              unavailablePanelState: JSON.parse(JSON.stringify(this.unavailablePanelState)), // [NEW] Save panel state
+              unavailablePanelState: JSON.parse(JSON.stringify(this.unavailablePanelState)), // Save panel state
             };
             fbSave(dataToSave);
           }
@@ -273,7 +274,7 @@ window.draftHelper = function () {
 
       this.$watch("highlightedChampions", debouncedSave);
       this.$watch("draftSeries", debouncedSave);
-      this.$watch("unavailablePanelState", debouncedSave, { deep: true }); // [NEW] Watch panel state
+      this.$watch("unavailablePanelState", debouncedSave, { deep: true }); // Watch panel state
       this.$watch(
         "settings",
         () => {
@@ -325,6 +326,15 @@ window.draftHelper = function () {
     },
 
     // --- Champion Pool View Methods ---
+
+    // NEW: Method for the alphabet filter
+    setAlphabetFilter(letter) {
+      if (this.alphabetFilter === letter) {
+        this.alphabetFilter = "all"; // Toggle off if same letter is clicked
+      } else {
+        this.alphabetFilter = letter;
+      }
+    },
 
     setSortOrder(order) {
       this.sortOrder = order;
@@ -419,7 +429,7 @@ window.draftHelper = function () {
       }
     },
 
-    // --- [REVISED] Methods for Interactive Panel ---
+    // --- Methods for Interactive Panel ---
     selectForPlacement(championName) {
       this.selectedChampionFromPanel = null; // Clear panel selection when selecting from holding area
       if (this.selectedForPlacement === championName) {
@@ -497,7 +507,7 @@ window.draftHelper = function () {
       }
     },
 
-    // --- [NEW] Headless UI Modal Methods ---
+    // --- Headless UI Modal Methods ---
     openConfirmationModal({ message, confirmAction, isDanger = false }) {
       this.confirmationModal.message = message;
       this.confirmationModal.confirmAction = confirmAction;
@@ -520,7 +530,7 @@ window.draftHelper = function () {
       this.closeConfirmationModal();
     },
 
-    // --- Draft Creator Methods (unchanged) ---
+    // --- Draft Creator Methods ---
     setDraftCreatorRoleFilter(role) {
       this.draftCreatorRoleFilter = this.draftCreatorRoleFilter === role ? "all" : role;
     },

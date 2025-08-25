@@ -272,21 +272,78 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
   line-height: 0.8rem;
   position: relative;
 }
+
 .pool-view-wrapper {
   display: flex;
   gap: 1rem;
   height: 86vh;
   margin-top: 0.5rem;
+  align-items: flex-start;
 }
-.champion-grid-container {
-  overflow-y: auto;
-  padding: 4px;
+
+/* MODIFIED: Wrapper for grid and filter now has the visual styles */
+.champion-grid-with-filter-container {
+  display: flex;
+  gap: 8px;
+  flex: 4;
+  min-width: 0;
+  height: 100%;
+  padding: 16px 16px 0 16px;
   border: 1px solid #3a3a3a;
   border-radius: 0.5rem;
   background-color: #1e1e1e;
-  flex: 4;
-  min-width: 0;
 }
+
+/* MODIFIED: Alphabetical Filter Styles no longer need their own background/border */
+.alphabet-filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+  align-self: flex-start; /* Stays at the top */
+}
+
+.alphabet-filter-container button {
+  background: none;
+  border: none;
+  color: #a0a0a0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+  width: 28px; /* Fixed width */
+  text-align: center;
+}
+
+.alphabet-filter-container button:hover {
+  background-color: #3a3a3a;
+  color: #ffffff;
+}
+
+.alphabet-filter-container button.active {
+  background-color: #d97706; /* Amber accent */
+  color: #ffffff;
+}
+
+/* Dimming effect for champion cards */
+.champion-card.dimmed {
+  opacity: 0.3;
+  transform: scale(0.95);
+}
+.champion-card.dimmed:hover {
+    opacity: 1; /* Bring it back on hover */
+    transform: scale(1);
+}
+
+/* MODIFIED: champion-grid-container is now just for scrolling */
+.champion-grid-container {
+  overflow-y: auto;
+  flex-grow: 1;
+  min-width: 0;
+  height: 100%;
+}
+
 .champion-grid-inner {
   display: flex;
   flex-wrap: wrap;
