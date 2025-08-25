@@ -15,6 +15,8 @@ window.draftHelper = function () {
     currentView: "pool",
     isLoading: true,
     patchVersion: "14.10.1", // A sensible fallback patch version.
+    championPoolView: "grid", // 'grid' or 'compact'
+    roleHeaderMap: { Top: "TOP", Jungle: "JUNGLE", Mid: "MID", Bot: "ADC", Support: "SUPP" },
     _saveTimeout: null,
     _unsubscribeFirestore: null,
     _defaultPoolInfo: { isInPool: false, tier: null, players: [], tierClass: "tier-DEFAULT" },
@@ -39,8 +41,8 @@ window.draftHelper = function () {
     settingsTab: "pool", // 'pool' or 'drafting'
     settings: {
       pool: {
-        showBorders: true,
-        showBadges: true,
+        showTierInfo: true, // Merged setting for tier borders and badges
+        showRoleBadges: true, // Separate setting for role/player badges
         groupByGames: false, // New setting
       },
       drafting: {
@@ -169,6 +171,31 @@ window.draftHelper = function () {
         }
       });
       return processedChampions;
+    },
+
+    get championsByRoleForCompactView() {
+      const grouped = { Top: [], Jungle: [], Mid: [], Bot: [], Support: [] };
+
+      // Group all champions by their main role
+      this.allChampions.forEach((champ) => {
+        if (grouped.hasOwnProperty(champ.mainRole)) {
+          grouped[champ.mainRole].push(champ);
+        }
+      });
+
+      // Sort champions within each role group
+      for (const role in grouped) {
+        grouped[role].sort((a, b) => {
+          const aIsUnavailable = this.isUnavailable(a.name);
+          const bIsUnavailable = this.isUnavailable(b.name);
+
+          if (aIsUnavailable !== bIsUnavailable) {
+            return bIsUnavailable - aIsUnavailable; // true (1) comes before false (0)
+          }
+          return a.name.localeCompare(b.name); // Then sort by name
+        });
+      }
+      return grouped;
     },
 
     get draftCreatorFilteredChampions() {

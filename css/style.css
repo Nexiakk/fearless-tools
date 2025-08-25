@@ -11,6 +11,7 @@
   justify-content: center; /* Horizontally center the nav items */
   max-width: 1280px;
   margin: 0 auto;
+  position: relative; /* Needed for absolute positioning of the switcher */
 }
 .navbar-nav {
   display: flex;
@@ -51,6 +52,39 @@
   width: 50%; /* Active state: visible */
 }
 
+/* --- [NEW] View Switcher in Navbar --- */
+.view-switcher-navbar-container {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.view-switcher-navbar {
+  display: flex;
+  background-color: #282828;
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+  padding: 2px;
+}
+.view-switch-button-navbar {
+  padding: 4px 10px;
+  border: none;
+  background-color: transparent;
+  color: #cccccc;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.view-switch-button-navbar.active {
+  background-color: #555555;
+  color: #ffffff;
+}
+.view-switch-button-navbar:not(.active):hover {
+  background-color: #3a3a3a;
+}
+
 /* Basic resets and full height */
 html,
 body {
@@ -65,13 +99,14 @@ body {
   min-height: 100vh;
   background-color: #121212; /* Very dark gray base */
   color: #e0e0e0; /* Light gray text */
-  overflow-x: hidden; /* Prevent horizontal scroll on body */
+  overflow: hidden; /* Prevent body scrollbar */
   user-select: none;
 }
 /* Ensure main content area can contain positioned elements */
 .main-content {
   flex-grow: 1;
   position: relative;
+  overflow-y: auto; /* Allow scrolling within the main content */
 }
 
 /* Prevent FOUC for Alpine elements */
