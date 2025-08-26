@@ -417,8 +417,8 @@
 
 /* Champion Card in Draft Creator Pool */
 .draft-creator-champion-card {
-  width: 64px;
-  height: 78px;
+  width: 60px; /* <-- REDUCED */
+  height: 74px; /* <-- REDUCED */
   border: 1px solid #3a3a3a;
   border-radius: 4px;
   background-color: #1e1e1e;
@@ -432,13 +432,13 @@
   flex-shrink: 0;
 }
 .draft-creator-champion-card img.champion-icon {
-  width: 56px;
-  height: 56px;
+  width: 52px; /* <-- REDUCED */
+  height: 52px; /* <-- REDUCED */
   border-radius: 3px;
   margin-bottom: 2px;
 }
 .draft-creator-champion-card .champion-name-text {
-  font-size: 0.65rem;
+  font-size: 0.6rem; /* <-- REDUCED */
   line-height: 0.8rem;
   text-align: center;
   width: 100%;

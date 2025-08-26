@@ -58,8 +58,8 @@
   align-items: center;
   margin: 2px;
   cursor: pointer;
-  width: 98px;
-  height: 110px;
+  width: 88px;
+  height: 100px;
   padding: 3px;
   border-radius: 6px;
   vertical-align: top;
@@ -70,8 +70,8 @@
 /* Wrapper for the icon to contain the hover effect */
 .champion-icon-wrapper {
   position: relative;
-  width: 86px;
-  height: 86px;
+  width: 76px;
+  height: 76px;
   margin-bottom: 2px;
 }
 
@@ -86,7 +86,7 @@
 }
 
 .champion-card .champion-name-text {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 500;
   text-align: center;
@@ -668,7 +668,7 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
   transition: all 0.2s ease-in-out;
   flex-grow: 0;
   flex-shrink: 0;
-  width: calc(25% - 3px); /* Base size for 4 columns */
+  width: calc(20% - 3.2px); /* Base size for 5 columns */
 }
 .compact-champion-card:hover {
   transform: scale(1.05);
@@ -678,16 +678,17 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
   width: 100%;
   aspect-ratio: 1 / 1;
   border: 1px solid #3a3a3a;
+  display: block; /* Ensures no extra space below the image */
 }
 .compact-champion-name-bar {
   background-color: #1a1a1a;
   width: 100%;
-  padding: 2px 0;
+  padding: 1px 0 2px 0; /* <-- REDUCED top padding */
   text-align: center;
 }
 .compact-champion-name {
-  font-size: 0.65rem;
-  line-height: 0.8rem;
+  font-size: 0.6rem;
+  line-height: 0.75rem;
   color: #cccccc;
   white-space: nowrap;
   overflow: hidden;
@@ -698,14 +699,14 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
 
 /* Unavailable champions are much smaller */
 .compact-champion-card.unavailable {
-  width: calc(20% - 3.2px); /* 5 columns for unavailable */
+  width: calc(16.666% - 3.4px); /* 6 columns for unavailable */
   opacity: 0.6;
 }
 .compact-champion-card.unavailable .compact-champion-icon {
   filter: grayscale(100%);
 }
 .compact-champion-card.unavailable .compact-champion-name {
-  font-size: 0.55rem;
+  font-size: 0.5rem;
 }
 
 /* OP champions have an orange border but same size as normal */

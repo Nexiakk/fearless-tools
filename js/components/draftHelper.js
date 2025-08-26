@@ -198,13 +198,20 @@ window.draftHelper = function () {
           const aIsOp = this.isOpForRole(a.name, role);
           const bIsOp = this.isOpForRole(b.name, role);
 
-          if (aIsUnavailable !== bIsUnavailable) {
-            return bIsUnavailable - aIsUnavailable; // true (1) comes before false (0)
+          // Rule 1: Unavailable champions go to the top.
+          if (aIsUnavailable && !bIsUnavailable) return -1;
+          if (!aIsUnavailable && bIsUnavailable) return 1;
+
+          // Rule 2: For available champions, OP champions go next.
+          // This block is only reached if both are available or both are unavailable.
+          // We only care about the 'available' case for this rule.
+          if (!aIsUnavailable) {
+            if (aIsOp && !bIsOp) return -1;
+            if (!aIsOp && bIsOp) return 1;
           }
-          if (!aIsUnavailable && aIsOp !== bIsOp) {
-            return bIsOp - aIsOp; // Then OP champions (if not unavailable)
-          }
-          return a.name.localeCompare(b.name); // Then sort by name
+
+          // Rule 3: Alphabetical sort for champions in the same group.
+          return a.name.localeCompare(b.name);
         });
       }
       return grouped;

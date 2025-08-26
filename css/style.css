@@ -109,6 +109,12 @@ body {
   overflow-y: auto; /* Allow scrolling within the main content */
 }
 
+/* --- [NEW] Expanded Container --- */
+.container-fluid {
+  width: 98%;
+  max-width: 1800px; /* Adjust this value as needed */
+}
+
 /* Prevent FOUC for Alpine elements */
 [x-cloak] {
   display: none !important;
