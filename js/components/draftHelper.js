@@ -427,10 +427,12 @@ window.draftHelper = function () {
       // Ensure we only consider valid roles associated with the champion
       const championRoles = [champion.mainRole, ...champion.roles.filter((r) => r !== champion.mainRole)];
       const validChampionRoles = championRoles.filter((role) => this._validRoles.has(role));
+      const placementOrder = [0, 5, 1, 6, 2, 7, 3, 8, 4, 9]; // New placement order
 
       for (const role of validChampionRoles) {
         if (this.unavailablePanelState[role]) {
-          for (let i = 0; i < 10; i++) {
+          for (const i of placementOrder) {
+            // Iterate using the new order
             if (this.unavailablePanelState[role][i] === null) {
               this.unavailablePanelState[role][i] = champion.name;
               return; // Champion placed, exit function
