@@ -7,6 +7,7 @@ window.draftHelper = function () {
     // --- State ---
     allChampions: [],
     teamPool: {},
+    opTierChampions: {},
     highlightedChampions: [],
     draftSeries: [], // REPURPOSED: Now holds manually 'unavailable' champion names.
     currentFilter: "all",
@@ -22,7 +23,7 @@ window.draftHelper = function () {
     _saveTimeout: null,
     _unsubscribeFirestore: null,
     _defaultPoolInfo: { isInPool: false, tier: null, players: [], tierClass: "tier-DEFAULT" },
-    _tierOrderValue: { S: 5, A: 4, B: 3, C: 2, DEFAULT: 0 },
+    _tierOrderValue: { OP: 6, S: 5, A: 4, B: 3, C: 2, DEFAULT: 0 },
     _validRoles: new Set(["Top", "Jungle", "Mid", "Bot", "Support"]),
     rolesForPanel: ["Top", "Jungle", "Mid", "Bot", "Support"],
     gamesForPanel: ["G1", "G2", "G3", "G4", "G5"], // For the new grouping
@@ -43,7 +44,7 @@ window.draftHelper = function () {
     settingsTab: "pool", // 'pool' or 'drafting'
     settings: {
       pool: {
-        showTierInfo: true, // Merged setting for tier borders and badges
+        showPlayerTier: false,
         showRoleBadges: true, // Separate setting for role/player badges
         groupByGames: false, // New setting
       },
@@ -194,9 +195,14 @@ window.draftHelper = function () {
         grouped[role].sort((a, b) => {
           const aIsUnavailable = this.isUnavailable(a.name);
           const bIsUnavailable = this.isUnavailable(b.name);
+          const aIsOp = this.isOpForRole(a.name, role);
+          const bIsOp = this.isOpForRole(b.name, role);
 
           if (aIsUnavailable !== bIsUnavailable) {
             return bIsUnavailable - aIsUnavailable; // true (1) comes before false (0)
+          }
+          if (!aIsUnavailable && aIsOp !== bIsOp) {
+            return bIsOp - aIsOp; // Then OP champions (if not unavailable)
           }
           return a.name.localeCompare(b.name); // Then sort by name
         });
@@ -248,6 +254,7 @@ window.draftHelper = function () {
 
       this.allChampions = window.allLolChampions || [];
       this.teamPool = window.teamTierList || {};
+      this.opTierChampions = window.opTierChampions || {};
 
       const fbFetch = window.fetchDraftDataFromFirestore;
       const fbSave = window.saveDraftDataToFirestore;
@@ -359,6 +366,9 @@ window.draftHelper = function () {
     },
 
     // --- Champion Pool View Methods ---
+    isOpForRole(championName, role) {
+      return this.opTierChampions[championName]?.includes(role);
+    },
 
     // NEW: Method for the alphabet filter
     setAlphabetFilter(letter) {
@@ -898,6 +908,11 @@ window.draftHelper = function () {
       if (!championName || !this.teamPool || typeof this.teamPool !== "object") {
         return defaultInfo;
       }
+
+      if (this.opTierChampions[championName]) {
+        return { isInPool: true, tier: "OP", players: [], tierClass: "tier-OP" };
+      }
+
       let players = [];
       let isInPool = false;
       let highestTier = null;

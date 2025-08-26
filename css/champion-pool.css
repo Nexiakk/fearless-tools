@@ -160,6 +160,13 @@ img.player-badge {
 }
 
 /* Tier border styles now correctly override the default icon border */
+.champion-card.tier-OP .champion-icon {
+  border: 1px solid #d97706;
+}
+.tier-OP .tier-badge {
+  background-color: #d97706;
+  color: #ffffff;
+}
 .champion-card.tier-S .champion-icon {
   border: 1px solid #f87171;
 }
@@ -191,7 +198,7 @@ img.player-badge {
 .champion-card.no-borders .champion-icon {
   border-color: #3a3a3a !important;
 }
-.champion-card.hide-tier-info .tier-badge {
+.champion-card.hide-player-tier-info .tier-badge {
   display: none !important;
 }
 .champion-card.hide-role-badges .player-badge-container {
@@ -587,7 +594,7 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
   margin-top: 2px;
 }
 
-/* --- NEW Compact View Styles --- */
+/* --- REVISED Compact View Styles --- */
 .pool-main-area {
   position: relative;
   width: 100%;
@@ -611,6 +618,7 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
   background-color: #1e1e1e;
   border: 1px solid #3a3a3a;
   border-radius: 0.5rem;
+  overflow: hidden; /* Prevent pillar from overflowing */
 }
 .pillar-header-wrapper {
   text-align: center;
@@ -631,12 +639,14 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
   height: 24px;
 }
 .pillar-champions-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 8px;
-  overflow-y: auto;
+  overflow-y: auto; /* Enable scrolling within the grid */
   flex-grow: 1;
+  min-height: 0; /* Important for flexbox scrolling */
+  align-content: flex-start;
 }
 .pillar-champions-grid::-webkit-scrollbar {
   width: 6px;
@@ -649,43 +659,56 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
   background-color: #444;
   border-radius: 3px;
 }
+
 .compact-champion-card {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #282828;
-  border-radius: 4px;
-  padding: 4px;
+  flex-direction: column;
+  background-color: transparent;
   cursor: pointer;
-  border: 1px solid #3a3a3a;
-  transition: background-color 0.2s, border-color 0.2s, opacity 0.2s;
-  overflow: hidden;
+  transition: all 0.2s ease-in-out;
+  flex-grow: 0;
+  flex-shrink: 0;
+  width: calc(25% - 3px); /* Base size for 4 columns */
 }
 .compact-champion-card:hover {
-  background-color: #3a3a3a;
-  border-color: #555;
+  transform: scale(1.05);
+  z-index: 10;
 }
 .compact-champion-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 3px;
-  flex-shrink: 0;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid #3a3a3a;
+}
+.compact-champion-name-bar {
+  background-color: #1a1a1a;
+  width: 100%;
+  padding: 2px 0;
+  text-align: center;
 }
 .compact-champion-name {
-  font-size: 0.8rem;
+  font-size: 0.65rem;
+  line-height: 0.8rem;
   color: #cccccc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
 }
+
+/* Unavailable champions are much smaller */
 .compact-champion-card.unavailable {
-  opacity: 0.4;
-  background-color: #1e1e1e;
+  width: calc(20% - 3.2px); /* 5 columns for unavailable */
+  opacity: 0.6;
 }
 .compact-champion-card.unavailable .compact-champion-icon {
   filter: grayscale(100%);
 }
-.compact-champion-card.manually-marked {
-  border-color: #3b82f6; /* blue-500 */
-  background-color: #252e3e;
+.compact-champion-card.unavailable .compact-champion-name {
+  font-size: 0.55rem;
+}
+
+/* OP champions have an orange border but same size as normal */
+.compact-champion-card.op-tier .compact-champion-icon {
+  border: 2px solid #d97706;
 }

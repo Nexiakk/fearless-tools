@@ -95,7 +95,7 @@
                 </button>
               </div>
               <div class="sort-reset-container">
-                <div x-show="settings.pool.showTierInfo && championPoolView === 'grid'" class="flex items-center gap-2">
+                <div x-show="settings.pool.showPlayerTier && championPoolView === 'grid'" class="flex items-center gap-2">
                   <span class="sort-label">Sort By:</span>
                   <button @click="setSortOrder('name')" class="sort-button" :class="{'active': sortOrder === 'name'}">Name</button>
                   <button @click="setSortOrder('tier')" class="sort-button" :class="{'active': sortOrder === 'tier'}">Tier</button>
@@ -130,8 +130,8 @@
                             'in-pool': champion.poolInfo && champion.poolInfo.isInPool,
                             'not-in-pool': (!champion.poolInfo || !champion.poolInfo.isInPool) && !isUnavailable(champion.name) && !isHighlighted(champion.name),
                             [champion.poolInfo?.tierClass || 'tier-DEFAULT']: champion.poolInfo && champion.poolInfo.isInPool && !isUnavailable(champion.name),
-                            'no-borders': !settings.pool.showTierInfo,
-                            'hide-tier-info': !settings.pool.showTierInfo,
+                            'no-borders': !settings.pool.showPlayerTier,
+                            'hide-player-tier-info': !settings.pool.showPlayerTier,
                             'hide-role-badges': !settings.pool.showRoleBadges,
                             'dimmed': alphabetFilter !== 'all' && !champion.name.toUpperCase().startsWith(alphabetFilter)
                          }"
@@ -247,15 +247,17 @@
                       <div
                         class="compact-champion-card"
                         :class="{
-                                        'unavailable': isUnavailable(champion.name),
-                                        'manually-marked': isHighlighted(champion.name)
-                                      }"
+                          'unavailable': isUnavailable(champion.name),
+                          'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name)
+                        }"
                         @click="togglePick(champion.name)"
                         @contextmenu.prevent="toggleHighlight(champion.name)"
                         :title="champion.name"
                       >
-                        <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'list')" :alt="champion.name" draggable="false" />
-                        <span class="compact-champion-name" x-text="champion.name"></span>
+                        <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
+                        <div class="compact-champion-name-bar">
+                          <span class="compact-champion-name" x-text="champion.name"></span>
+                        </div>
                       </div>
                     </template>
                   </div>
@@ -542,10 +544,10 @@
 
           <div x-show="settingsTab === 'pool'" class="mt-4 space-y-2 text-gray-300">
             <div class="flex items-center justify-between py-3 border-b border-gray-700">
-              <label for="toggle-tier-info" class="font-medium">Show Tier Info (Borders & Badges)</label>
+              <label for="toggle-player-tier" class="font-medium">Show Player Tier (Borders & Badges)</label>
               <div class="relative inline-block w-10 mr-2 align-middle select-none">
-                <input type="checkbox" x-model="settings.pool.showTierInfo" name="toggle-tier-info" id="toggle-tier-info" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
-                <label for="toggle-tier-info" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                <input type="checkbox" x-model="settings.pool.showPlayerTier" name="toggle-player-tier" id="toggle-player-tier" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
+                <label for="toggle-player-tier" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
               </div>
             </div>
             <div class="flex items-center justify-between py-3 border-b border-gray-700">

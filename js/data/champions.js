@@ -313,9 +313,51 @@ const teamTierList = {
   },
 };
 
+const opTierChampions = {
+  Ambessa: ["Top"],
+  Gwen: ["Top"],
+  Rumble: ["Top"],
+  Sion: ["Top"],
+  Aurora: ["Top", "Mid"],
+  "K'Sante": ["Top"],
+  Yorick: ["Top"],
+  Wukong: ["Jungle"],
+  "Xin Zhao": ["Jungle"],
+  Trundle: ["Jungle"],
+  "Jarvan IV": ["Jungle"],
+  Vi: ["Jungle"],
+  Pantheon: ["Jungle"],
+  Poppy: ["Jungle", "Support"],
+  Nocturne: ["Jungle"],
+  Azir: ["Mid"],
+  Taliyah: ["Mid"],
+  Orianna: ["Mid"],
+  Ryze: ["Mid"],
+  Annie: ["Mid"],
+  Ahri: ["Mid"],
+  Yone: ["Mid"],
+  Galio: ["Mid"],
+  Corki: ["Bot"],
+  Varus: ["Bot"],
+  Yunara: ["Bot"],
+  Sivir: ["Bot"],
+  Lucian: ["Bot"],
+  Jhin: ["Bot"],
+  "Kai'Sa": ["Bot"],
+  Rell: ["Support"],
+  Alistar: ["Support"],
+  Neeko: ["Support"],
+  Nautilus: ["Support", "Jungle"],
+  Braum: ["Support"],
+  Rakan: ["Support"],
+  Bard: ["Support"],
+  Leona: ["Support"],
+};
+
 // --- Make the data available globally ---
 window.allLolChampions = allLolChampionsWithRoles;
 window.teamTierList = teamTierList;
+window.opTierChampions = opTierChampions;
 
 // Console logs for verification
 if (window.allLolChampions && Array.isArray(window.allLolChampions)) {
