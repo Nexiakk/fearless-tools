@@ -255,9 +255,8 @@
                         :title="champion.name"
                       >
                         <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
-                        <div class="compact-champion-name-bar">
-                          <span class="compact-champion-name" x-text="champion.name"></span>
-                        </div>
+                        <!-- [REMOVED] the extra div wrapper -->
+                        <span class="compact-champion-name" x-text="champion.name"></span>
                       </div>
                     </template>
                   </div>

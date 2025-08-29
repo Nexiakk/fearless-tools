@@ -660,35 +660,37 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
   border-radius: 3px;
 }
 
+/* [REWRITTEN] Compact Champion Card Logic */
 .compact-champion-card {
+  width: calc(20% - 3.2px); /* Base size for 5 columns */
+  background-color: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
-  background-color: transparent;
+  align-items: center;
+  padding: 2px;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  flex-grow: 0;
   flex-shrink: 0;
-  width: calc(20% - 3.2px); /* Base size for 5 columns */
 }
 .compact-champion-card:hover {
   transform: scale(1.05);
   z-index: 10;
+  border-color: #555555;
+  background-color: #282828;
 }
 .compact-champion-icon {
   width: 100%;
   aspect-ratio: 1 / 1;
-  border: 1px solid #3a3a3a;
-  display: block; /* Ensures no extra space below the image */
+  border-radius: 3px;
+  margin-bottom: 2px;
+  display: block;
 }
-.compact-champion-name-bar {
-  background-color: #1a1a1a;
-  width: 100%;
-  padding: 1px 0 2px 0; /* <-- REDUCED top padding */
-  text-align: center;
-}
+/* [REMOVED] .compact-champion-name-bar rule */
 .compact-champion-name {
   font-size: 0.6rem;
-  line-height: 0.75rem;
+  line-height: 0.8rem;
   color: #cccccc;
   white-space: nowrap;
   overflow: hidden;
@@ -701,6 +703,8 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
 .compact-champion-card.unavailable {
   width: calc(16.666% - 3.4px); /* 6 columns for unavailable */
   opacity: 0.6;
+  background-color: #121212;
+  border-color: #282828;
 }
 .compact-champion-card.unavailable .compact-champion-icon {
   filter: grayscale(100%);
@@ -710,6 +714,7 @@ div.champion-card:not(.unavailable):hover img.champion-icon {
 }
 
 /* OP champions have an orange border but same size as normal */
-.compact-champion-card.op-tier .compact-champion-icon {
+.compact-champion-card.op-tier {
   border: 2px solid #d97706;
+  padding: 1px; /* Adjust padding to account for thicker border */
 }
