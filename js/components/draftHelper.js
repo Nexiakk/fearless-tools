@@ -197,20 +197,25 @@ window.draftHelper = function () {
           const bIsUnavailable = this.isUnavailable(b.name);
           const aIsOp = this.isOpForRole(a.name, role);
           const bIsOp = this.isOpForRole(b.name, role);
+          const aIsHighlighted = this.isHighlighted(a.name);
+          const bIsHighlighted = this.isHighlighted(b.name);
 
-          // Rule 1: Unavailable champions go to the top.
-          if (aIsUnavailable && !bIsUnavailable) return -1;
-          if (!aIsUnavailable && bIsUnavailable) return 1;
+          // Sorting priorities
+          const getPriority = (isUnavailable, isOp, isHighlighted) => {
+            if (isUnavailable) return 4; // Highest priority
+            if (isOp) return 3;
+            if (isHighlighted) return 2;
+            return 1; // Default
+          };
 
-          // Rule 2: For available champions, OP champions go next.
-          // This block is only reached if both are available or both are unavailable.
-          // We only care about the 'available' case for this rule.
-          if (!aIsUnavailable) {
-            if (aIsOp && !bIsOp) return -1;
-            if (!aIsOp && bIsOp) return 1;
+          const priorityA = getPriority(aIsUnavailable, aIsOp, aIsHighlighted);
+          const priorityB = getPriority(bIsUnavailable, bIsOp, bIsHighlighted);
+
+          if (priorityA !== priorityB) {
+            return priorityB - priorityA; // Higher priority number comes first
           }
 
-          // Rule 3: Alphabetical sort for champions in the same group.
+          // If priorities are the same, sort alphabetically
           return a.name.localeCompare(b.name);
         });
       }

@@ -248,14 +248,17 @@
                         class="compact-champion-card"
                         :class="{
                           'unavailable': isUnavailable(champion.name),
-                          'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name)
+                          'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name),
+                          'manually-marked': isHighlighted(champion.name) && !isUnavailable(champion.name)
                         }"
                         @click="togglePick(champion.name)"
                         @contextmenu.prevent="toggleHighlight(champion.name)"
                         :title="champion.name"
                       >
-                        <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
-                        <!-- [REMOVED] the extra div wrapper -->
+                        <div class="compact-champion-icon-wrapper">
+                          <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
+                          <div class="champion-icon-corners"></div>
+                        </div>
                         <span class="compact-champion-name" x-text="champion.name"></span>
                       </div>
                     </template>
