@@ -28,6 +28,10 @@ window.draftHelper = function () {
     rolesForPanel: ["Top", "Jungle", "Mid", "Bot", "Support"],
     gamesForPanel: ["G1", "G2", "G3", "G4", "G5"], // For the new grouping
 
+    // --- Grid View Panel Visibility ---
+    isLeftPanelVisible: true,
+    isRightPanelVisible: true,
+
     // --- State for Interactive Unavailable Panel ---
     unavailablePanelState: {
       Top: Array(10).fill(null),
@@ -89,6 +93,10 @@ window.draftHelper = function () {
     notesModal: { isOpen: false, side: null, type: null, index: null, currentNote: "", title: "" },
 
     // --- Computed Properties ---
+
+    get sortedHighlightedChampions() {
+      return [...this.highlightedChampions].sort();
+    },
 
     get unavailableChampions() {
       return new Set(this.draftSeries);

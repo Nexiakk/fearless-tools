@@ -109,8 +109,22 @@
           </div>
 
           <div class="pool-main-area">
-            <div x-show="championPoolView === 'grid'" class="pool-view-wrapper" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+            <div x-show="championPoolView === 'grid'" class="pool-view-wrapper">
+              <div :class="{'highlighted-champions-panel': true, 'hidden': !isLeftPanelVisible}">
+                <div class="highlighted-champions-grid">
+                  <template x-for="championName in sortedHighlightedChampions" :key="championName">
+                    <div class="highlighted-champion-card" @click="toggleHighlight(championName)" :title="`Click to un-highlight ${championName}`">
+                      <img :src="getChampionIconUrl(championName, 'list')" :alt="championName" />
+                      <span class="champion-name-text" x-text="championName"></span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
               <div class="champion-grid-with-filter-container">
+                <button @click="isLeftPanelVisible = !isLeftPanelVisible" class="panel-toggle-button left" :title="isLeftPanelVisible ? 'Hide Panel' : 'Show Panel'">
+                  <span x-text="isLeftPanelVisible ? '<' : '>'"></span>
+                </button>
                 <div class="alphabet-filter-container">
                   <button @click="setAlphabetFilter('all')" class="font-bold" :class="{'active': alphabetFilter === 'all'}">All</button>
                   <template x-for="letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')" :key="letter">
@@ -158,9 +172,12 @@
                     </template>
                   </div>
                 </div>
+                <button @click="isRightPanelVisible = !isRightPanelVisible" class="panel-toggle-button right" :title="isRightPanelVisible ? 'Hide Panel' : 'Show Panel'">
+                  <span x-text="isRightPanelVisible ? '>' : '<'"></span>
+                </button>
               </div>
 
-              <div class="unavailable-champions-panel">
+              <div :class="{'unavailable-champions-panel': true, 'hidden': !isRightPanelVisible}">
                 <div class="unavailable-holding-area" x-show="unplacedChampions.length > 0" x-cloak x-transition:enter="transition-all ease-out duration-300" x-transition:enter-start="opacity-0 max-h-0 !p-0 !mb-0" x-transition:enter-end="opacity-100 max-h-[25vh] p-[6px] mb-2 overflow-y-auto" x-transition:leave="transition-all ease-in duration-200" x-transition:leave-start="opacity-100 max-h-[25vh] p-[6px] mb-2 overflow-y-auto" x-transition:leave-end="opacity-0 max-h-0 !p-0 !mb-0">
                   <template x-for="championName in unplacedChampions" :key="championName">
                     <img :src="getChampionIconUrl(championName, 'holding-area')" :alt="championName" :title="championName" class="holding-area-champ" :class="{'selected-for-placement': selectedForPlacement === championName}" @click="selectForPlacement(championName)" @contextmenu.prevent="revertUnavailableChampion(championName)" draggable="false" />
