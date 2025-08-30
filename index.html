@@ -114,7 +114,7 @@
                 <div class="alphabet-filter-container">
                   <button @click="setAlphabetFilter('all')" class="font-bold" :class="{'active': alphabetFilter === 'all'}">All</button>
                   <template x-for="letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')" :key="letter">
-                    <button @click="setAlphabetFilter(letter)" :class="{'active': alphabetFilter === letter}" x-text="letter"></button>
+                    <button @click="setAlphabetFilter(letter)" :class="{'active': alphabetFilter === 'letter}" x-text="letter"></button>
                   </template>
                 </div>
 
@@ -242,27 +242,47 @@
                   <div class="pillar-header-wrapper">
                     <img :src="getRoleIconUrl(role)" :alt="role" class="pillar-header-icon" />
                   </div>
-                  <div class="pillar-champions-grid">
-                    <template x-for="champion in championsByRoleForCompactView[role]" :key="champion.id + '-' + role">
-                      <div
-                        class="compact-champion-card"
-                        :class="{
-                          'unavailable': isUnavailable(champion.name),
-                          'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name),
-                          'manually-marked': isHighlighted(champion.name) && !isUnavailable(champion.name)
-                        }"
-                        @click="togglePick(champion.name)"
-                        @contextmenu.prevent="toggleHighlight(champion.name)"
-                        :title="champion.name"
-                      >
-                        <div class="compact-champion-icon-wrapper">
-                          <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
-                          <div class="champion-icon-corners"></div>
-                        </div>
-                        <span class="compact-champion-name" x-text="champion.name"></span>
+
+                  <template x-if="settings.pool.frozenChampions">
+                    <div class="pillar-champions-grid">
+                      <div class="sticky-champions-container">
+                        <template x-for="champion in championsByRoleForCompactView[role].sticky" :key="champion.id + '-' + role + '-sticky'">
+                          <div class="compact-champion-card" :class="{'unavailable': isUnavailable(champion.name), 'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name), 'manually-marked': isHighlighted(champion.name) && !isUnavailable(champion.name)}" @click="togglePick(champion.name)" @contextmenu.prevent="toggleHighlight(champion.name)" :title="champion.name">
+                            <div class="compact-champion-icon-wrapper">
+                              <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
+                              <div class="champion-icon-corners"></div>
+                            </div>
+                            <span class="compact-champion-name" x-text="champion.name"></span>
+                          </div>
+                        </template>
                       </div>
-                    </template>
-                  </div>
+                      <div class="scrollable-champions-container">
+                        <template x-for="champion in championsByRoleForCompactView[role].scrollable" :key="champion.id + '-' + role + '-scrollable'">
+                          <div class="compact-champion-card" :class="{'unavailable': isUnavailable(champion.name), 'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name), 'manually-marked': isHighlighted(champion.name) && !isUnavailable(champion.name)}" @click="togglePick(champion.name)" @contextmenu.prevent="toggleHighlight(champion.name)" :title="champion.name">
+                            <div class="compact-champion-icon-wrapper">
+                              <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
+                              <div class="champion-icon-corners"></div>
+                            </div>
+                            <span class="compact-champion-name" x-text="champion.name"></span>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+
+                  <template x-if="!settings.pool.frozenChampions">
+                    <div class="pillar-champions-grid fluid">
+                      <template x-for="champion in championsByRoleForCompactView[role]" :key="champion.id + '-' + role">
+                        <div class="compact-champion-card" :class="{'unavailable': isUnavailable(champion.name), 'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name), 'manually-marked': isHighlighted(champion.name) && !isUnavailable(champion.name)}" @click="togglePick(champion.name)" @contextmenu.prevent="toggleHighlight(champion.name)" :title="champion.name">
+                          <div class="compact-champion-icon-wrapper">
+                            <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
+                            <div class="champion-icon-corners"></div>
+                          </div>
+                          <span class="compact-champion-name" x-text="champion.name"></span>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
                 </div>
               </template>
             </div>
@@ -564,6 +584,13 @@
               <div class="relative inline-block w-10 mr-2 align-middle select-none">
                 <input type="checkbox" x-model="settings.pool.groupByGames" name="toggle-group-by-games" id="toggle-group-by-games" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
                 <label for="toggle-group-by-games" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+              </div>
+            </div>
+            <div class="flex items-center justify-between py-3 border-b border-gray-700">
+              <label for="toggle-frozen-champions" class="font-medium">Frozen Champions in Compact View</label>
+              <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                <input type="checkbox" x-model="settings.pool.frozenChampions" name="toggle-frozen-champions" id="toggle-frozen-champions" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
+                <label for="toggle-frozen-champions" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
               </div>
             </div>
           </div>

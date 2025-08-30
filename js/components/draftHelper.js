@@ -47,6 +47,7 @@ window.draftHelper = function () {
         showPlayerTier: false,
         showRoleBadges: true, // Separate setting for role/player badges
         groupByGames: false, // New setting
+        frozenChampions: true, // NEW: Setting for frozen champions
       },
       drafting: {
         // Future drafting-specific settings can go here
@@ -177,49 +178,78 @@ window.draftHelper = function () {
     },
 
     get championsByRoleForCompactView() {
-      const grouped = { Top: [], Jungle: [], Mid: [], Bot: [], Support: [] };
+      if (this.settings.pool.frozenChampions) {
+        const grouped = {
+          Top: { sticky: [], scrollable: [] },
+          Jungle: { sticky: [], scrollable: [] },
+          Mid: { sticky: [], scrollable: [] },
+          Bot: { sticky: [], scrollable: [] },
+          Support: { sticky: [], scrollable: [] },
+        };
 
-      // Group all champions by ALL their roles
-      this.allChampions.forEach((champ) => {
-        if (Array.isArray(champ.roles)) {
-          champ.roles.forEach((role) => {
-            if (grouped.hasOwnProperty(role)) {
-              grouped[role].push(champ);
-            }
+        this.allChampions.forEach((champ) => {
+          if (Array.isArray(champ.roles)) {
+            champ.roles.forEach((role) => {
+              if (grouped.hasOwnProperty(role)) {
+                const isUnavailable = this.isUnavailable(champ.name);
+                const isOp = this.isOpForRole(champ.name, role);
+                const isHighlighted = this.isHighlighted(champ.name);
+
+                if (isUnavailable || isOp || isHighlighted) {
+                  grouped[role].sticky.push(champ);
+                } else {
+                  grouped[role].scrollable.push(champ);
+                }
+              }
+            });
+          }
+        });
+
+        for (const role in grouped) {
+          grouped[role].sticky.sort((a, b) => {
+            const getPriority = (champ) => {
+              if (this.isUnavailable(champ.name)) return 3;
+              if (this.isOpForRole(champ.name, role)) return 2;
+              if (this.isHighlighted(champ.name)) return 1;
+              return 0;
+            };
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+            if (priorityA !== priorityB) return priorityB - priorityA;
+            return a.name.localeCompare(b.name);
+          });
+          grouped[role].scrollable.sort((a, b) => a.name.localeCompare(b.name));
+        }
+        return grouped;
+      } else {
+        const grouped = { Top: [], Jungle: [], Mid: [], Bot: [], Support: [] };
+
+        this.allChampions.forEach((champ) => {
+          if (Array.isArray(champ.roles)) {
+            champ.roles.forEach((role) => {
+              if (grouped.hasOwnProperty(role)) {
+                grouped[role].push(champ);
+              }
+            });
+          }
+        });
+
+        for (const role in grouped) {
+          grouped[role].sort((a, b) => {
+            const getPriority = (champ) => {
+              if (this.isUnavailable(champ.name)) return 3;
+              if (this.isOpForRole(champ.name, role)) return 2;
+              if (this.isHighlighted(champ.name)) return 1;
+              return 0;
+            };
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+            if (priorityA !== priorityB) return priorityB - priorityA;
+            return a.name.localeCompare(b.name);
           });
         }
-      });
-
-      // Sort champions within each role group
-      for (const role in grouped) {
-        grouped[role].sort((a, b) => {
-          const aIsUnavailable = this.isUnavailable(a.name);
-          const bIsUnavailable = this.isUnavailable(b.name);
-          const aIsOp = this.isOpForRole(a.name, role);
-          const bIsOp = this.isOpForRole(b.name, role);
-          const aIsHighlighted = this.isHighlighted(a.name);
-          const bIsHighlighted = this.isHighlighted(b.name);
-
-          // Sorting priorities
-          const getPriority = (isUnavailable, isOp, isHighlighted) => {
-            if (isUnavailable) return 4; // Highest priority
-            if (isOp) return 3;
-            if (isHighlighted) return 2;
-            return 1; // Default
-          };
-
-          const priorityA = getPriority(aIsUnavailable, aIsOp, aIsHighlighted);
-          const priorityB = getPriority(bIsUnavailable, bIsOp, bIsHighlighted);
-
-          if (priorityA !== priorityB) {
-            return priorityB - priorityA; // Higher priority number comes first
-          }
-
-          // If priorities are the same, sort alphabetically
-          return a.name.localeCompare(b.name);
-        });
+        return grouped;
       }
-      return grouped;
     },
 
     get draftCreatorFilteredChampions() {
