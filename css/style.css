@@ -55,7 +55,7 @@
 /* --- [NEW] View Switcher in Navbar --- */
 .view-switcher-navbar-container {
   position: absolute;
-  left: -19%;
+  left: 0;
   top: 50%;
   transform: translateY(-50%);
 }
