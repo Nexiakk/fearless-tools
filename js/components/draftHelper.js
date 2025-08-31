@@ -18,7 +18,7 @@ window.draftHelper = function () {
     currentView: "pool",
     isLoading: true,
     patchVersion: "14.10.1", // A sensible fallback patch version.
-    championPoolView: "grid", // 'grid' or 'compact'
+    championPoolView: "compact", // 'grid' or 'compact'
     roleHeaderMap: { Top: "TOP", Jungle: "JUNGLE", Mid: "MID", Bot: "ADC", Support: "SUPP" },
     _saveTimeout: null,
     _unsubscribeFirestore: null,
