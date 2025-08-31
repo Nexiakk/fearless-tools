@@ -661,6 +661,9 @@ div.champion-card:not(.unavailable):hover img.champion-icon,
 }
 .reset-button.reset-marked:hover,
 .reset-button.reset-series:hover {
+  background-color: #d97706;
+  color: #ffffff;
+  border-color: #b45309;
   transform: translateY(-1px);
   filter: brightness(1.1);
 }
