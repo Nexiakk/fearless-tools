@@ -49,7 +49,7 @@ window.draftHelper = function () {
     settings: {
       pool: {
         showPlayerTier: false,
-        showRoleBadges: true, // Separate setting for role/player badges
+        showRoleBadges: false, // Separate setting for role/player badges
         groupByGames: false, // New setting
         frozenChampions: true, // NEW: Setting for frozen champions
       },
