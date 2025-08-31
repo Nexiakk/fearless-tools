@@ -808,7 +808,6 @@ div.champion-card:not(.unavailable):hover img.champion-icon,
   cursor: pointer;
   flex-shrink: 0;
   position: relative;
-  transition: transform 0.1s ease;
 }
 .compact-champion-card:hover {
   transform: scale(1.05);
