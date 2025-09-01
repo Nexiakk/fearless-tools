@@ -8,27 +8,25 @@ window.draftHelper = function () {
     allChampions: [],
     teamPool: {},
     opTierChampions: {},
-    // MODIFIED: highlightedChampions is now an object to store role-specific highlights.
-    // Structure: { championName: ["Role1", "Role2"], ... }
     highlightedChampions: {},
-    draftSeries: [], // REPURPOSED: Now holds manually 'unavailable' champion names.
+    draftSeries: [],
     currentFilter: "all",
     roleFilter: "all",
     searchTerm: "",
     sortOrder: "name",
-    alphabetFilter: "all", // NEW: State for the letter filter
+    alphabetFilter: "all",
     currentView: "pool",
     isLoading: true,
-    patchVersion: "14.10.1", // A sensible fallback patch version.
-    championPoolView: "compact", // 'grid' or 'compact'
+    patchVersion: "14.10.1",
+    championPoolView: "compact",
     roleHeaderMap: { Top: "TOP", Jungle: "JUNGGLE", Mid: "MID", Bot: "ADC", Support: "SUPP" },
-    _saveTimeout: null,
+    _saveTimeout: null, // MODIFIED: This will now be managed inside the component
     _unsubscribeFirestore: null,
     _defaultPoolInfo: { isInPool: false, tier: null, players: [], tierClass: "tier-DEFAULT" },
     _tierOrderValue: { OP: 6, S: 5, A: 4, B: 3, C: 2, DEFAULT: 0 },
     _validRoles: new Set(["Top", "Jungle", "Mid", "Bot", "Support"]),
     rolesForPanel: ["Top", "Jungle", "Mid", "Bot", "Support"],
-    gamesForPanel: ["G1", "G2", "G3", "G4", "G5"], // For the new grouping
+    gamesForPanel: ["G1", "G2", "G3", "G4", "G5"],
 
     // --- Grid View Panel Visibility ---
     isLeftPanelVisible: true,
@@ -42,22 +40,20 @@ window.draftHelper = function () {
       Bot: Array(10).fill(null),
       Support: Array(10).fill(null),
     },
-    selectedForPlacement: null, // Holds the name of the champion selected from the holding area
-    selectedChampionFromPanel: null, // Holds { championName, role, index } for moving placed champions
+    selectedForPlacement: null,
+    selectedChampionFromPanel: null,
 
     // --- Headless UI Modal State ---
     isSettingsOpen: false,
-    settingsTab: "pool", // 'pool' or 'drafting'
+    settingsTab: "pool",
     settings: {
       pool: {
         showPlayerTier: false,
-        showRoleBadges: false, // Separate setting for role/player badges
-        groupByGames: false, // New setting
-        frozenChampions: true, // NEW: Setting for frozen champions
+        showRoleBadges: false,
+        groupByGames: false,
+        frozenChampions: true,
       },
-      drafting: {
-        // Future drafting-specific settings can go here
-      },
+      drafting: {},
     },
     confirmationModal: {
       isOpen: false,
@@ -95,21 +91,15 @@ window.draftHelper = function () {
     notesModal: { isOpen: false, side: null, type: null, index: null, currentNote: "", title: "" },
 
     // --- Computed Properties ---
-
     get sortedHighlightedChampions() {
-      // MODIFIED: Get keys from the new object structure.
       return Object.keys(this.highlightedChampions).sort();
     },
-
     get unavailableChampions() {
       return new Set(this.draftSeries);
     },
-
     get sortedUnavailableChampions() {
       return Array.from(this.unavailableChampions).sort();
     },
-
-    // Champions that are marked 'unavailable' but not yet placed in the panel grid.
     get unplacedChampions() {
       const placedChamps = new Set(
         Object.values(this.unavailablePanelState)
@@ -118,7 +108,6 @@ window.draftHelper = function () {
       );
       return this.draftSeries.filter((champ) => !placedChamps.has(champ));
     },
-
     get unavailableChampionsByRole() {
       const grouped = { Top: [], Jungle: [], Mid: [], Bot: [], Support: [], Unknown: [] };
       const validRoles = this._validRoles;
@@ -128,7 +117,6 @@ window.draftHelper = function () {
         const teamRoleCount = teamRoles.length;
         const champData = this.allChampions.find((c) => c.name === championName);
         const mainRole = champData?.mainRole;
-
         if (teamRoleCount === 1) {
           assignedRole = teamRoles[0];
         } else if (teamRoleCount > 1) {
@@ -152,7 +140,6 @@ window.draftHelper = function () {
       Object.values(grouped).forEach((arr) => arr.sort());
       return grouped;
     },
-
     get filteredChampions() {
       if (!this.allChampions || this.allChampions.length === 0) return [];
       const normalizeString = (str) => str.toLowerCase().replace(/[^a-z0-9]/gi, "");
@@ -187,7 +174,6 @@ window.draftHelper = function () {
       });
       return processedChampions;
     },
-
     get championsByRoleForCompactView() {
       if (this.settings.pool.frozenChampions) {
         const grouped = {
@@ -197,16 +183,13 @@ window.draftHelper = function () {
           Bot: { sticky: [], scrollable: [] },
           Support: { sticky: [], scrollable: [] },
         };
-
         this.allChampions.forEach((champ) => {
           if (Array.isArray(champ.roles)) {
             champ.roles.forEach((role) => {
               if (grouped.hasOwnProperty(role)) {
                 const isUnavailable = this.isUnavailable(champ.name);
                 const isOp = this.isOpForRole(champ.name, role);
-                // MODIFIED: Check highlight for the specific role
                 const isHighlighted = this.isHighlighted(champ.name, role);
-
                 if (isUnavailable || isOp || isHighlighted) {
                   grouped[role].sticky.push(champ);
                 } else {
@@ -216,13 +199,11 @@ window.draftHelper = function () {
             });
           }
         });
-
         for (const role in grouped) {
           grouped[role].sticky.sort((a, b) => {
             const getPriority = (champ) => {
               if (this.isUnavailable(champ.name)) return 3;
               if (this.isOpForRole(champ.name, role)) return 2;
-              // MODIFIED: Check highlight for the specific role
               if (this.isHighlighted(champ.name, role)) return 1;
               return 0;
             };
@@ -236,7 +217,6 @@ window.draftHelper = function () {
         return grouped;
       } else {
         const grouped = { Top: [], Jungle: [], Mid: [], Bot: [], Support: [] };
-
         this.allChampions.forEach((champ) => {
           if (Array.isArray(champ.roles)) {
             champ.roles.forEach((role) => {
@@ -246,13 +226,11 @@ window.draftHelper = function () {
             });
           }
         });
-
         for (const role in grouped) {
           grouped[role].sort((a, b) => {
             const getPriority = (champ) => {
               if (this.isUnavailable(champ.name)) return 3;
               if (this.isOpForRole(champ.name, role)) return 2;
-              // MODIFIED: Check highlight for the specific role
               if (this.isHighlighted(champ.name, role)) return 1;
               return 0;
             };
@@ -265,7 +243,6 @@ window.draftHelper = function () {
         return grouped;
       }
     },
-
     get draftCreatorFilteredChampions() {
       if (!this.allChampions || this.allChampions.length === 0) return [];
       const normalizeString = (str) => str.toLowerCase().replace(/[^a-z0-9]/gi, "");
@@ -280,12 +257,29 @@ window.draftHelper = function () {
       return champs.sort((a, b) => a.name.localeCompare(b.name));
     },
 
+    // --- Methods ---
+
+    // MODIFIED: New method to handle debounced saving.
+    queueSave() {
+      clearTimeout(this._saveTimeout);
+      this._saveTimeout = setTimeout(() => {
+        const fbSave = window.saveDraftDataToFirestore;
+        if (typeof fbSave === "function") {
+          const dataToSave = {
+            highlightedChampions: JSON.parse(JSON.stringify(this.highlightedChampions)),
+            draftSeries: JSON.parse(JSON.stringify(this.draftSeries)),
+            unavailablePanelState: JSON.parse(JSON.stringify(this.unavailablePanelState)),
+          };
+          fbSave(dataToSave);
+        }
+        this._saveTimeout = null; // Clear the flag after the save is initiated.
+      }, 3000);
+    },
+
     // --- Initialization ---
     async init() {
       console.log("Alpine component initializing...");
       this.isLoading = true;
-
-      // Fetch the latest patch version first.
       try {
         const response = await fetch("https://ddragon.leagueoflegends.com/api/versions.json");
         if (!response.ok) throw new Error("Network response was not ok");
@@ -296,34 +290,24 @@ window.draftHelper = function () {
         }
       } catch (error) {
         console.error("Failed to fetch latest patch version, using fallback:", error);
-        // Fallback version is already set in the state.
       }
-
-      // Load settings from localStorage
       const savedSettings = localStorage.getItem("fearlessSettings");
       if (savedSettings) {
-        // Merge saved settings with defaults to avoid errors if new settings are added
         const parsedSettings = JSON.parse(savedSettings);
         this.settings.pool = { ...this.settings.pool, ...(parsedSettings.pool || {}) };
         this.settings.drafting = { ...this.settings.drafting, ...(parsedSettings.drafting || {}) };
       }
-
       this.allChampions = window.allLolChampions || [];
       this.teamPool = window.teamTierList || {};
       this.opTierChampions = window.opTierChampions || {};
-
       const fbFetch = window.fetchDraftDataFromFirestore;
-      const fbSave = window.saveDraftDataToFirestore;
       const db = window.db;
       const fbFetchSavedDrafts = window.fetchSavedDraftsFromFirestore;
-
       if (typeof fbFetch === "function") {
         try {
           const loadedData = await fbFetch();
-          // MODIFIED: Handle new object structure for highlightedChampions
           this.highlightedChampions = typeof loadedData.highlightedChampions === "object" && loadedData.highlightedChampions !== null && !Array.isArray(loadedData.highlightedChampions) ? loadedData.highlightedChampions : {};
           this.draftSeries = loadedData.draftSeries || [];
-          // Load panel state, ensuring it has the correct structure
           const defaultPanelState = { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) };
           this.unavailablePanelState = loadedData.unavailablePanelState || defaultPanelState;
           for (const role of this.rolesForPanel) {
@@ -340,7 +324,6 @@ window.draftHelper = function () {
       } else {
         console.error("fetchDraftDataFromFirestore function not found globally.");
       }
-
       if (typeof fbFetchSavedDrafts === "function") {
         this.isLoadingSavedDrafts = true;
         try {
@@ -351,26 +334,13 @@ window.draftHelper = function () {
           this.isLoadingSavedDrafts = false;
         }
       }
-
       this.isLoading = false;
       console.log("Draft Helper Initialized");
 
-      // MODIFIED: This now calls the debounced function from firebase-init.js
-      const saveData = () => {
-        if (typeof fbSave === "function") {
-          const dataToSave = {
-            highlightedChampions: JSON.parse(JSON.stringify(this.highlightedChampions)),
-            draftSeries: JSON.parse(JSON.stringify(this.draftSeries)),
-            unavailablePanelState: JSON.parse(JSON.stringify(this.unavailablePanelState)),
-          };
-          fbSave(dataToSave);
-        }
-      };
-
-      this.$watch("highlightedChampions", saveData, { deep: true });
-      this.$watch("draftSeries", saveData);
-      this.$watch("unavailablePanelState", saveData, { deep: true });
-
+      // MODIFIED: Watchers now call the internal queueSave method.
+      this.$watch("highlightedChampions", () => this.queueSave(), { deep: true });
+      this.$watch("draftSeries", () => this.queueSave());
+      this.$watch("unavailablePanelState", () => this.queueSave(), { deep: true });
       this.$watch(
         "settings",
         () => {
@@ -383,11 +353,14 @@ window.draftHelper = function () {
         const DRAFT_COLLECTION = "drafts";
         const DRAFT_DOC_ID = "current_draft";
         const docRef = db.collection(DRAFT_COLLECTION).doc(DRAFT_DOC_ID);
-
         this._unsubscribeFirestore = docRef.onSnapshot(
           (doc) => {
-            // MODIFIED: Ignore updates that are pending writes from the local client.
-            // This prevents the UI from reverting while waiting for the debounced save.
+            // MODIFIED: This block now prevents remote updates from overwriting local changes
+            // that are waiting to be saved.
+            if (this._saveTimeout) {
+              console.log("Ignoring snapshot due to pending local save.");
+              return;
+            }
             if (doc.metadata.hasPendingWrites) {
               return;
             }
@@ -397,7 +370,6 @@ window.draftHelper = function () {
               const newDraftSeries = Array.isArray(data.draftSeries) ? data.draftSeries : [];
               const newhighlightedChampions = typeof data.highlightedChampions === "object" && data.highlightedChampions !== null && !Array.isArray(data.highlightedChampions) ? data.highlightedChampions : {};
               const newPanelState = data.unavailablePanelState || { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) };
-
               if (JSON.stringify(this.draftSeries) !== JSON.stringify(newDraftSeries)) {
                 this.draftSeries = newDraftSeries;
               }
@@ -419,28 +391,22 @@ window.draftHelper = function () {
         );
       }
     },
-
     destroy() {
       if (this._unsubscribeFirestore) {
         this._unsubscribeFirestore();
       }
       clearTimeout(this._saveTimeout);
     },
-
-    // --- Champion Pool View Methods ---
     isOpForRole(championName, role) {
       return this.opTierChampions[championName]?.includes(role);
     },
-
-    // NEW: Method for the alphabet filter
     setAlphabetFilter(letter) {
       if (this.alphabetFilter === letter) {
-        this.alphabetFilter = "all"; // Toggle off if same letter is clicked
+        this.alphabetFilter = "all";
       } else {
         this.alphabetFilter = letter;
       }
     },
-
     setSortOrder(order) {
       this.sortOrder = order;
     },
@@ -456,34 +422,21 @@ window.draftHelper = function () {
     isUnavailable(championName) {
       return championName ? this.unavailableChampions.has(championName) : false;
     },
-
-    // MODIFIED: `isHighlighted` now accepts an optional role.
     isHighlighted(championName, role = null) {
       if (!championName || !this.highlightedChampions) return false;
       const highlightedRoles = this.highlightedChampions[championName];
-
       if (!highlightedRoles || highlightedRoles.length === 0) {
         return false;
       }
-
-      // If a role is specified (compact view), check if that role is in the array.
       if (role) {
         return highlightedRoles.includes(role);
       }
-
-      // If no role is specified (grid view), return true if it's highlighted in ANY role.
       return true;
     },
-
     togglePick(championName) {
       if (!championName) return;
-
       const champion = this.allChampions.find((c) => c.name === championName);
       if (!champion) return;
-
-      // REMOVED: The logic that un-highlighted a champion when it was marked as unavailable.
-      // This ensures the highlight state is preserved.
-
       const index = this.draftSeries.indexOf(championName);
       if (index === -1) {
         this.draftSeries = [...this.draftSeries, championName];
@@ -494,25 +447,19 @@ window.draftHelper = function () {
       }
     },
     placeChampionInPanel(champion) {
-      // Ensure we only consider valid roles associated with the champion
       const championRoles = [champion.mainRole, ...champion.roles.filter((r) => r !== champion.mainRole)];
       const validChampionRoles = championRoles.filter((role) => this._validRoles.has(role));
-      const placementOrder = [0, 5, 1, 6, 2, 7, 3, 8, 4, 9]; // New placement order
-
+      const placementOrder = [0, 5, 1, 6, 2, 7, 3, 8, 4, 9];
       for (const role of validChampionRoles) {
         if (this.unavailablePanelState[role]) {
           for (const i of placementOrder) {
-            // Iterate using the new order
             if (this.unavailablePanelState[role][i] === null) {
               this.unavailablePanelState[role][i] = champion.name;
-              return; // Champion placed, exit function
+              return;
             }
           }
         }
       }
-      // If the function reaches this point, no slot was found.
-      // The champion will remain in draftSeries but not in unavailablePanelState,
-      // so it will appear in the unplacedChampions (holding area).
     },
     removeChampionFromPanel(championName) {
       for (const role in this.unavailablePanelState) {
@@ -523,42 +470,29 @@ window.draftHelper = function () {
         }
       }
     },
-
-    // MODIFIED: `toggleHighlight` now handles role-specific and global highlighting.
     toggleHighlight(championName, role = null) {
       if (!championName || this.isUnavailable(championName)) return;
-
-      // Case 1: Called from compact view with a specific role.
       if (role) {
         const currentHighlights = this.highlightedChampions[championName] ? [...this.highlightedChampions[championName]] : [];
         const roleIndex = currentHighlights.indexOf(role);
-
         if (roleIndex === -1) {
-          // Add the role to the champion's highlighted roles.
           currentHighlights.push(role);
         } else {
-          // Remove the role.
           currentHighlights.splice(roleIndex, 1);
         }
-
         if (currentHighlights.length > 0) {
           this.highlightedChampions = { ...this.highlightedChampions, [championName]: currentHighlights };
         } else {
-          // If no roles are left, remove the champion from the main object.
           const newHighlights = { ...this.highlightedChampions };
           delete newHighlights[championName];
           this.highlightedChampions = newHighlights;
         }
         return;
       }
-
-      // Case 2: Called from grid view (no role). Toggles all highlights for the champion.
       const newHighlights = { ...this.highlightedChampions };
       if (newHighlights[championName]) {
-        // If already highlighted in any role, un-highlight completely.
         delete newHighlights[championName];
       } else {
-        // If not highlighted, highlight in its main role.
         const champData = this.allChampions.find((c) => c.name === championName);
         if (champData?.mainRole) {
           newHighlights[championName] = [champData.mainRole];
@@ -566,98 +500,67 @@ window.draftHelper = function () {
       }
       this.highlightedChampions = newHighlights;
     },
-
     resetDraftSeriesAction() {
       this.draftSeries = [];
       this.unavailablePanelState = { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) };
       this.searchTerm = "";
-      const fbSave = window.saveDraftDataToFirestore;
-      if (typeof fbSave === "function") {
-        fbSave({ highlightedChampions: this.highlightedChampions, draftSeries: [], unavailablePanelState: this.unavailablePanelState });
-      }
+      this.queueSave(); // Instead of direct save
     },
-
     resetMarkedPicksAction() {
-      // MODIFIED: Check and reset the new object structure.
       if (Object.keys(this.highlightedChampions).length > 0) {
         this.highlightedChampions = {};
-        const fbSave = window.saveDraftDataToFirestore;
-        if (typeof fbSave === "function") {
-          fbSave({ highlightedChampions: {}, draftSeries: this.draftSeries, unavailablePanelState: this.unavailablePanelState });
-        }
+        this.queueSave(); // Instead of direct save
       }
     },
-
-    // --- Methods for Interactive Panel ---
     selectForPlacement(championName) {
-      this.selectedChampionFromPanel = null; // Clear panel selection when selecting from holding area
+      this.selectedChampionFromPanel = null;
       if (this.selectedForPlacement === championName) {
-        this.selectedForPlacement = null; // Deselect if clicking the same one
+        this.selectedForPlacement = null;
       } else {
         this.selectedForPlacement = championName;
       }
     },
-
     revertUnavailableChampion(championName) {
       if (!championName) return;
-
-      // Remove the champion from the unavailable list
       this.draftSeries = this.draftSeries.filter((name) => name !== championName);
-
-      // If the reverted champion was the one selected for placement, clear the selection
       if (this.selectedForPlacement === championName) {
         this.selectedForPlacement = null;
       }
     },
-
     handlePanelSlotClick(role, index) {
       const championInClickedSlot = this.unavailablePanelState[role][index];
       const aChampionIsSelectedForPlacement = this.selectedForPlacement !== null;
       const aChampionIsSelectedFromPanel = this.selectedChampionFromPanel !== null;
-
       if (aChampionIsSelectedForPlacement) {
-        // A champion from the holding area is selected
         if (!championInClickedSlot) {
-          // and the clicked slot is empty
           let newPanelState = JSON.parse(JSON.stringify(this.unavailablePanelState));
           newPanelState[role][index] = this.selectedForPlacement;
           this.unavailablePanelState = newPanelState;
-          this.selectedForPlacement = null; // Deselect after placing
+          this.selectedForPlacement = null;
         }
-        // If the target slot is not empty, do nothing to prevent overwriting.
         return;
       }
-
       if (aChampionIsSelectedFromPanel) {
-        // A champion is selected from the panel for moving/swapping
         const sourceRole = this.selectedChampionFromPanel.role;
         const sourceIndex = this.selectedChampionFromPanel.index;
         const sourceChampion = this.selectedChampionFromPanel.championName;
-
         if (sourceRole === role && sourceIndex === index) {
-          // Clicked the same slot again to deselect
           this.selectedChampionFromPanel = null;
           return;
         }
-
-        // Perform the move/swap
         let newPanelState = JSON.parse(JSON.stringify(this.unavailablePanelState));
-        newPanelState[sourceRole][sourceIndex] = championInClickedSlot; // championInClickedSlot can be null (move) or a champion name (swap)
+        newPanelState[sourceRole][sourceIndex] = championInClickedSlot;
         newPanelState[role][index] = sourceChampion;
         this.unavailablePanelState = newPanelState;
-        this.selectedChampionFromPanel = null; // Deselect after action
+        this.selectedChampionFromPanel = null;
         return;
       }
-
-      // If nothing is selected yet
       if (!aChampionIsSelectedForPlacement && !aChampionIsSelectedFromPanel) {
         if (championInClickedSlot) {
-          // And a slot with a champion is clicked, select it
           this.selectedChampionFromPanel = { championName: championInClickedSlot, role: role, index: index };
         }
       }
     },
-    // Allows removing a champion from a slot by right-clicking it
     clearUnavailableSlot(role, slotIndex) {
       if (this.unavailablePanelState[role][slotIndex] !== null) {
         let newPanelState = JSON.parse(JSON.stringify(this.unavailablePanelState));
@@ -665,8 +568,6 @@ window.draftHelper = function () {
         this.unavailablePanelState = newPanelState;
       }
     },
-
-    // --- Headless UI Modal Methods ---
     openConfirmationModal({ message, confirmAction, isDanger = false }) {
       this.confirmationModal.message = message;
       this.confirmationModal.confirmAction = confirmAction;
@@ -675,7 +576,6 @@ window.draftHelper = function () {
     },
     closeConfirmationModal() {
       this.confirmationModal.isOpen = false;
-      // Reset after a short delay to allow for transitions
       setTimeout(() => {
         this.confirmationModal.message = "";
         this.confirmationModal.confirmAction = null;
@@ -688,8 +588,6 @@ window.draftHelper = function () {
       }
       this.closeConfirmationModal();
     },
-
-    // --- Draft Creator Methods ---
     setDraftCreatorRoleFilter(role) {
       this.draftCreatorRoleFilter = this.draftCreatorRoleFilter === role ? "all" : role;
     },
@@ -733,7 +631,6 @@ window.draftHelper = function () {
         return;
       }
       if (this.selectedChampionSource) this.selectedChampionSource = null;
-
       if (this.isChampionPlacedInCurrentDraft(championName)) {
         let foundSource = null;
         ["blue", "red"].forEach((side) => {
@@ -781,14 +678,12 @@ window.draftHelper = function () {
           return;
         }
         if (currentTargetChampion && currentTargetChampion !== champToMove) {
-          // Swap
           const targetNotes = targetSlotRef.notes;
           sourceSlotRef.champion = currentTargetChampion;
           sourceSlotRef.notes = targetNotes;
           targetSlotRef.champion = champToMove;
           targetSlotRef.notes = notesToMove;
         } else {
-          // Move to empty slot
           targetSlotRef.champion = champToMove;
           targetSlotRef.notes = notesToMove;
           sourceSlotRef.champion = null;
@@ -798,11 +693,9 @@ window.draftHelper = function () {
         this.selectedTargetSlot = null;
       } else {
         if (currentTargetChampion) {
-          // Select filled slot for moving
           this.selectedChampionSource = { side: targetSide, type: targetType, index: targetIndex };
           this.selectedTargetSlot = null;
         } else {
-          // Select empty slot for targeting
           if (this.selectedTargetSlot && this.selectedTargetSlot.side === targetSide && this.selectedTargetSlot.type === targetType && this.selectedTargetSlot.index === targetIndex) {
             this.selectedTargetSlot = null;
           } else {
@@ -942,7 +835,6 @@ window.draftHelper = function () {
         return;
       }
       if (!draftId) return;
-
       try {
         const draftToDelete = this.savedDrafts.find((d) => d.id === draftId);
         const draftName = draftToDelete ? draftToDelete.name : "this draft";
@@ -1024,11 +916,9 @@ window.draftHelper = function () {
       if (!championName || !this.teamPool || typeof this.teamPool !== "object") {
         return defaultInfo;
       }
-
       if (this.opTierChampions[championName]) {
         return { isInPool: true, tier: "OP", players: [], tierClass: "tier-OP" };
       }
-
       let players = [];
       let isInPool = false;
       let highestTier = null;
