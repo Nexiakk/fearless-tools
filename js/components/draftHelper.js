@@ -21,7 +21,7 @@ window.draftHelper = function () {
     isLoading: true,
     patchVersion: "14.10.1", // A sensible fallback patch version.
     championPoolView: "compact", // 'grid' or 'compact'
-    roleHeaderMap: { Top: "TOP", Jungle: "JUNGLE", Mid: "MID", Bot: "ADC", Support: "SUPP" },
+    roleHeaderMap: { Top: "TOP", Jungle: "JUNGGLE", Mid: "MID", Bot: "ADC", Support: "SUPP" },
     _saveTimeout: null,
     _unsubscribeFirestore: null,
     _defaultPoolInfo: { isInPool: false, tier: null, players: [], tierClass: "tier-DEFAULT" },
@@ -386,10 +386,15 @@ window.draftHelper = function () {
 
         this._unsubscribeFirestore = docRef.onSnapshot(
           (doc) => {
+            // MODIFIED: Ignore updates that are pending writes from the local client.
+            // This prevents the UI from reverting while waiting for the debounced save.
+            if (doc.metadata.hasPendingWrites) {
+              return;
+            }
+
             if (doc.exists) {
               const data = doc.data();
               const newDraftSeries = Array.isArray(data.draftSeries) ? data.draftSeries : [];
-              // MODIFIED: Handle object structure for highlights from Firestore snapshot
               const newhighlightedChampions = typeof data.highlightedChampions === "object" && data.highlightedChampions !== null && !Array.isArray(data.highlightedChampions) ? data.highlightedChampions : {};
               const newPanelState = data.unavailablePanelState || { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) };
 
