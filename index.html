@@ -264,7 +264,7 @@
                     <div class="pillar-champions-grid">
                       <div class="sticky-champions-container">
                         <template x-for="champion in championsByRoleForCompactView[role].sticky" :key="champion.id + '-' + role + '-sticky'">
-                          <div class="compact-champion-card" :class="{'unavailable': isUnavailable(champion.name), 'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name), 'manually-marked': isHighlighted(champion.name) && !isUnavailable(champion.name)}" @click="togglePick(champion.name)" @contextmenu.prevent="toggleHighlight(champion.name)" :title="champion.name">
+                          <div class="compact-champion-card" :class="{'unavailable': isUnavailable(champion.name), 'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name), 'manually-marked': isHighlighted(champion.name, role) && !isUnavailable(champion.name)}" @click="togglePick(champion.name)" @contextmenu.prevent="toggleHighlight(champion.name, role)" :title="champion.name">
                             <div class="compact-champion-icon-wrapper">
                               <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
                               <div class="champion-icon-corners"></div>
@@ -275,7 +275,7 @@
                       </div>
                       <div class="scrollable-champions-container">
                         <template x-for="champion in championsByRoleForCompactView[role].scrollable" :key="champion.id + '-' + role + '-scrollable'">
-                          <div class="compact-champion-card" :class="{'unavailable': isUnavailable(champion.name), 'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name), 'manually-marked': isHighlighted(champion.name) && !isUnavailable(champion.name)}" @click="togglePick(champion.name)" @contextmenu.prevent="toggleHighlight(champion.name)" :title="champion.name">
+                          <div class="compact-champion-card" :class="{'unavailable': isUnavailable(champion.name), 'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name), 'manually-marked': isHighlighted(champion.name, role) && !isUnavailable(champion.name)}" @click="togglePick(champion.name)" @contextmenu.prevent="toggleHighlight(champion.name, role)" :title="champion.name">
                             <div class="compact-champion-icon-wrapper">
                               <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
                               <div class="champion-icon-corners"></div>
@@ -290,7 +290,7 @@
                   <template x-if="!settings.pool.frozenChampions">
                     <div class="pillar-champions-grid fluid">
                       <template x-for="champion in championsByRoleForCompactView[role]" :key="champion.id + '-' + role">
-                        <div class="compact-champion-card" :class="{'unavailable': isUnavailable(champion.name), 'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name), 'manually-marked': isHighlighted(champion.name) && !isUnavailable(champion.name)}" @click="togglePick(champion.name)" @contextmenu.prevent="toggleHighlight(champion.name)" :title="champion.name">
+                        <div class="compact-champion-card" :class="{'unavailable': isUnavailable(champion.name), 'op-tier': isOpForRole(champion.name, role) && !isUnavailable(champion.name), 'manually-marked': isHighlighted(champion.name, role) && !isUnavailable(champion.name)}" @click="togglePick(champion.name)" @contextmenu.prevent="toggleHighlight(champion.name, role)" :title="champion.name">
                           <div class="compact-champion-icon-wrapper">
                             <img class="compact-champion-icon" :src="getChampionIconUrl(champion.name, 'creator-pool')" :alt="champion.name" draggable="false" />
                             <div class="champion-icon-corners"></div>

@@ -8,7 +8,9 @@ window.draftHelper = function () {
     allChampions: [],
     teamPool: {},
     opTierChampions: {},
-    highlightedChampions: [],
+    // MODIFIED: highlightedChampions is now an object to store role-specific highlights.
+    // Structure: { championName: ["Role1", "Role2"], ... }
+    highlightedChampions: {},
     draftSeries: [], // REPURPOSED: Now holds manually 'unavailable' champion names.
     currentFilter: "all",
     roleFilter: "all",
@@ -95,7 +97,8 @@ window.draftHelper = function () {
     // --- Computed Properties ---
 
     get sortedHighlightedChampions() {
-      return [...this.highlightedChampions].sort();
+      // MODIFIED: Get keys from the new object structure.
+      return Object.keys(this.highlightedChampions).sort();
     },
 
     get unavailableChampions() {
@@ -201,7 +204,8 @@ window.draftHelper = function () {
               if (grouped.hasOwnProperty(role)) {
                 const isUnavailable = this.isUnavailable(champ.name);
                 const isOp = this.isOpForRole(champ.name, role);
-                const isHighlighted = this.isHighlighted(champ.name);
+                // MODIFIED: Check highlight for the specific role
+                const isHighlighted = this.isHighlighted(champ.name, role);
 
                 if (isUnavailable || isOp || isHighlighted) {
                   grouped[role].sticky.push(champ);
@@ -218,7 +222,8 @@ window.draftHelper = function () {
             const getPriority = (champ) => {
               if (this.isUnavailable(champ.name)) return 3;
               if (this.isOpForRole(champ.name, role)) return 2;
-              if (this.isHighlighted(champ.name)) return 1;
+              // MODIFIED: Check highlight for the specific role
+              if (this.isHighlighted(champ.name, role)) return 1;
               return 0;
             };
             const priorityA = getPriority(a);
@@ -247,7 +252,8 @@ window.draftHelper = function () {
             const getPriority = (champ) => {
               if (this.isUnavailable(champ.name)) return 3;
               if (this.isOpForRole(champ.name, role)) return 2;
-              if (this.isHighlighted(champ.name)) return 1;
+              // MODIFIED: Check highlight for the specific role
+              if (this.isHighlighted(champ.name, role)) return 1;
               return 0;
             };
             const priorityA = getPriority(a);
@@ -314,7 +320,8 @@ window.draftHelper = function () {
       if (typeof fbFetch === "function") {
         try {
           const loadedData = await fbFetch();
-          this.highlightedChampions = loadedData.highlightedChampions || [];
+          // MODIFIED: Handle new object structure for highlightedChampions
+          this.highlightedChampions = typeof loadedData.highlightedChampions === "object" && loadedData.highlightedChampions !== null && !Array.isArray(loadedData.highlightedChampions) ? loadedData.highlightedChampions : {};
           this.draftSeries = loadedData.draftSeries || [];
           // Load panel state, ensuring it has the correct structure
           const defaultPanelState = { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) };
@@ -326,7 +333,7 @@ window.draftHelper = function () {
           }
         } catch (error) {
           console.error("Error during initial Firestore fetch:", error);
-          this.highlightedChampions = [];
+          this.highlightedChampions = {};
           this.draftSeries = [];
           this.unavailablePanelState = { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) };
         }
@@ -348,23 +355,22 @@ window.draftHelper = function () {
       this.isLoading = false;
       console.log("Draft Helper Initialized");
 
-      const debouncedSave = () => {
-        clearTimeout(this._saveTimeout);
-        this._saveTimeout = setTimeout(() => {
-          if (typeof fbSave === "function") {
-            const dataToSave = {
-              highlightedChampions: JSON.parse(JSON.stringify(this.highlightedChampions)),
-              draftSeries: JSON.parse(JSON.stringify(this.draftSeries)),
-              unavailablePanelState: JSON.parse(JSON.stringify(this.unavailablePanelState)), // Save panel state
-            };
-            fbSave(dataToSave);
-          }
-        }, 1500);
+      // MODIFIED: This now calls the debounced function from firebase-init.js
+      const saveData = () => {
+        if (typeof fbSave === "function") {
+          const dataToSave = {
+            highlightedChampions: JSON.parse(JSON.stringify(this.highlightedChampions)),
+            draftSeries: JSON.parse(JSON.stringify(this.draftSeries)),
+            unavailablePanelState: JSON.parse(JSON.stringify(this.unavailablePanelState)),
+          };
+          fbSave(dataToSave);
+        }
       };
 
-      this.$watch("highlightedChampions", debouncedSave);
-      this.$watch("draftSeries", debouncedSave);
-      this.$watch("unavailablePanelState", debouncedSave, { deep: true }); // Watch panel state
+      this.$watch("highlightedChampions", saveData, { deep: true });
+      this.$watch("draftSeries", saveData);
+      this.$watch("unavailablePanelState", saveData, { deep: true });
+
       this.$watch(
         "settings",
         () => {
@@ -383,7 +389,8 @@ window.draftHelper = function () {
             if (doc.exists) {
               const data = doc.data();
               const newDraftSeries = Array.isArray(data.draftSeries) ? data.draftSeries : [];
-              const newhighlightedChampions = Array.isArray(data.highlightedChampions) ? data.highlightedChampions : [];
+              // MODIFIED: Handle object structure for highlights from Firestore snapshot
+              const newhighlightedChampions = typeof data.highlightedChampions === "object" && data.highlightedChampions !== null && !Array.isArray(data.highlightedChampions) ? data.highlightedChampions : {};
               const newPanelState = data.unavailablePanelState || { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) };
 
               if (JSON.stringify(this.draftSeries) !== JSON.stringify(newDraftSeries)) {
@@ -397,7 +404,7 @@ window.draftHelper = function () {
               }
             } else {
               this.draftSeries = [];
-              this.highlightedChampions = [];
+              this.highlightedChampions = {};
               this.unavailablePanelState = { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) };
             }
           },
@@ -444,18 +451,33 @@ window.draftHelper = function () {
     isUnavailable(championName) {
       return championName ? this.unavailableChampions.has(championName) : false;
     },
-    isHighlighted(championName) {
-      return championName ? this.highlightedChampions.includes(championName) : false;
+
+    // MODIFIED: `isHighlighted` now accepts an optional role.
+    isHighlighted(championName, role = null) {
+      if (!championName || !this.highlightedChampions) return false;
+      const highlightedRoles = this.highlightedChampions[championName];
+
+      if (!highlightedRoles || highlightedRoles.length === 0) {
+        return false;
+      }
+
+      // If a role is specified (compact view), check if that role is in the array.
+      if (role) {
+        return highlightedRoles.includes(role);
+      }
+
+      // If no role is specified (grid view), return true if it's highlighted in ANY role.
+      return true;
     },
+
     togglePick(championName) {
       if (!championName) return;
 
       const champion = this.allChampions.find((c) => c.name === championName);
       if (!champion) return;
 
-      if (this.isHighlighted(championName)) {
-        this.highlightedChampions = this.highlightedChampions.filter((name) => name !== championName);
-      }
+      // REMOVED: The logic that un-highlighted a champion when it was marked as unavailable.
+      // This ensures the highlight state is preserved.
 
       const index = this.draftSeries.indexOf(championName);
       if (index === -1) {
@@ -496,15 +518,50 @@ window.draftHelper = function () {
         }
       }
     },
-    toggleHighlight(championName) {
+
+    // MODIFIED: `toggleHighlight` now handles role-specific and global highlighting.
+    toggleHighlight(championName, role = null) {
       if (!championName || this.isUnavailable(championName)) return;
-      const index = this.highlightedChampions.indexOf(championName);
-      if (index === -1) {
-        this.highlightedChampions = [...this.highlightedChampions, championName];
-      } else {
-        this.highlightedChampions = this.highlightedChampions.filter((name) => name !== championName);
+
+      // Case 1: Called from compact view with a specific role.
+      if (role) {
+        const currentHighlights = this.highlightedChampions[championName] ? [...this.highlightedChampions[championName]] : [];
+        const roleIndex = currentHighlights.indexOf(role);
+
+        if (roleIndex === -1) {
+          // Add the role to the champion's highlighted roles.
+          currentHighlights.push(role);
+        } else {
+          // Remove the role.
+          currentHighlights.splice(roleIndex, 1);
+        }
+
+        if (currentHighlights.length > 0) {
+          this.highlightedChampions = { ...this.highlightedChampions, [championName]: currentHighlights };
+        } else {
+          // If no roles are left, remove the champion from the main object.
+          const newHighlights = { ...this.highlightedChampions };
+          delete newHighlights[championName];
+          this.highlightedChampions = newHighlights;
+        }
+        return;
       }
+
+      // Case 2: Called from grid view (no role). Toggles all highlights for the champion.
+      const newHighlights = { ...this.highlightedChampions };
+      if (newHighlights[championName]) {
+        // If already highlighted in any role, un-highlight completely.
+        delete newHighlights[championName];
+      } else {
+        // If not highlighted, highlight in its main role.
+        const champData = this.allChampions.find((c) => c.name === championName);
+        if (champData?.mainRole) {
+          newHighlights[championName] = [champData.mainRole];
+        }
+      }
+      this.highlightedChampions = newHighlights;
     },
+
     resetDraftSeriesAction() {
       this.draftSeries = [];
       this.unavailablePanelState = { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) };
@@ -514,12 +571,14 @@ window.draftHelper = function () {
         fbSave({ highlightedChampions: this.highlightedChampions, draftSeries: [], unavailablePanelState: this.unavailablePanelState });
       }
     },
+
     resetMarkedPicksAction() {
-      if (this.highlightedChampions.length > 0) {
-        this.highlightedChampions = [];
+      // MODIFIED: Check and reset the new object structure.
+      if (Object.keys(this.highlightedChampions).length > 0) {
+        this.highlightedChampions = {};
         const fbSave = window.saveDraftDataToFirestore;
         if (typeof fbSave === "function") {
-          fbSave({ highlightedChampions: [], draftSeries: this.draftSeries, unavailablePanelState: this.unavailablePanelState });
+          fbSave({ highlightedChampions: {}, draftSeries: this.draftSeries, unavailablePanelState: this.unavailablePanelState });
         }
       }
     },

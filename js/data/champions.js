@@ -318,6 +318,7 @@ const opTierChampions = {
   Gwen: ["Top"],
   Rumble: ["Top"],
   Sion: ["Top"],
+  Jayce: ["Top"],
   Aurora: ["Top", "Mid"],
   "K'Sante": ["Top"],
   Yorick: ["Top"],

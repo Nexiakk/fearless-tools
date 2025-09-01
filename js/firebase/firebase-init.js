@@ -37,7 +37,8 @@ async function fetchDraftDataFromFirestore() {
   console.log(`Fetching draft data from ${DRAFT_TRACKER_COLLECTION}/${DRAFT_TRACKER_DOC_ID}...`);
   const defaultData = {
     draftSeries: [],
-    highlightedChampions: [],
+    // MODIFIED: Default highlightedChampions is now an empty object.
+    highlightedChampions: {},
     unavailablePanelState: { Top: Array(10).fill(null), Jungle: Array(10).fill(null), Mid: Array(10).fill(null), Bot: Array(10).fill(null), Support: Array(10).fill(null) },
   };
   if (!dbInstance) {
@@ -53,7 +54,8 @@ async function fetchDraftDataFromFirestore() {
       // Return fetched data, falling back to defaults for each property
       return {
         draftSeries: Array.isArray(data.draftSeries) ? data.draftSeries : defaultData.draftSeries,
-        highlightedChampions: Array.isArray(data.highlightedChampions) ? data.highlightedChampions : defaultData.highlightedChampions,
+        // MODIFIED: Check for a non-array object for highlightedChampions.
+        highlightedChampions: typeof data.highlightedChampions === "object" && data.highlightedChampions !== null && !Array.isArray(data.highlightedChampions) ? data.highlightedChampions : defaultData.highlightedChampions,
         unavailablePanelState: data.unavailablePanelState || defaultData.unavailablePanelState,
       };
     } else {
@@ -66,25 +68,41 @@ async function fetchDraftDataFromFirestore() {
   }
 }
 
-async function saveDraftDataToFirestore(draftData) {
+// --- Debounce Utility ---
+let debounceTimeout;
+const debounce = (func, delay) => {
+  return function (...args) {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+      func.apply(this, args);
+    }, delay);
+  };
+};
+
+// --- Internal save function ---
+async function _saveDraftDataToFirestore(draftData) {
   if (!dbInstance) {
     console.error("Firestore not initialized. Cannot save draft data.");
     return;
   }
   console.log(`Saving draft data to ${DRAFT_TRACKER_COLLECTION}/${DRAFT_TRACKER_DOC_ID}`);
   try {
-    // Sanitize data before saving
     const dataToSave = {
-      highlightedChampions: Array.isArray(draftData.highlightedChampions) ? draftData.highlightedChampions : [],
+      highlightedChampions: typeof draftData.highlightedChampions === "object" && draftData.highlightedChampions !== null && !Array.isArray(draftData.highlightedChampions) ? draftData.highlightedChampions : {},
       draftSeries: Array.isArray(draftData.draftSeries) ? draftData.draftSeries : [],
       unavailablePanelState: draftData.unavailablePanelState || {},
     };
-    await dbInstance.collection(DRAFT_TRACKER_COLLECTION).doc(DRAFT_TRACKER_DOC_ID).set(dataToSave, { merge: true });
+    // MODIFIED: Removed { merge: true } to ensure a full document overwrite.
+    // This correctly handles the deletion of keys when unhighlighting champions.
+    await dbInstance.collection(DRAFT_TRACKER_COLLECTION).doc(DRAFT_TRACKER_DOC_ID).set(dataToSave);
     console.log("Draft data saved successfully.");
   } catch (error) {
     console.error("Error saving draft data:", error);
   }
 }
+
+// Create a debounced version of the save function
+const saveDraftDataToFirestore = debounce(_saveDraftDataToFirestore, 3000);
 
 // --- Firestore Helper Functions (Draft Creator - Unchanged) ---
 async function saveDraftToCreatorCollection(draftObject) {
